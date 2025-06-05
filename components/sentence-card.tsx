@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Volume2 } from "lucide-react"
@@ -7,6 +10,14 @@ interface SentenceCardProps {
 }
 
 export function SentenceCard({ sentence }: SentenceCardProps) {
+  const [waveformHeights, setWaveformHeights] = useState<number[]>([])
+
+  useEffect(() => {
+    // 클라이언트 사이드에서만 랜덤 값 생성
+    const heights = Array.from({ length: 40 }, () => Math.random() * 30 + 10)
+    setWaveformHeights(heights)
+  }, [])
+
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20">
       <CardHeader>

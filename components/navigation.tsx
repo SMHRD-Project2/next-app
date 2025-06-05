@@ -379,6 +379,7 @@ export function Navigation() {
       {mobileMenuOpen && (
         <div className="md:hidden bg-onair-bg border-t border-onair-text-sub/10 py-4">
           <div className="container mx-auto px-4 space-y-2">
+            {/* 모든 페이지 메뉴 항상 표시 */}
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || (item.href === "/training" && pathname.startsWith("/training"))
