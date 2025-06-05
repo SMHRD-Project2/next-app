@@ -1,78 +1,138 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { SentenceCard } from "@/components/sentence-card"
-import { RecordController } from "@/components/record-controller"
-import { AIResultPanel } from "@/components/ai-result-panel"
-import { VoiceComparisonPanel } from "@/components/voice-comparison-panel"
-import { CustomSentenceUpload } from "@/components/custom-sentence-upload"
-import { PronunciationChallenge } from "@/components/pronunciation-challenge"
+import { useEffect, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SentenceCard } from "@/components/sentence-card";
+import { RecordController } from "@/components/record-controller";
+import { AIResultPanel } from "@/components/ai-result-panel";
+import { VoiceComparisonPanel } from "@/components/voice-comparison-panel";
+import { CustomSentenceUpload } from "@/components/custom-sentence-upload";
+import { PronunciationChallenge } from "@/components/pronunciation-challenge";
 
-const trainingData = {
-  short: {
-    title: "짧은 문장",
-    sentences: ["안녕하세요, 시청자 여러분.", "오늘 날씨가 참 좋습니다.", "뉴스를 전해드리겠습니다."],
-  },
-  long: {
-    title: "긴 문장",
-    sentences: [
-      "오늘 서울 지역에 첫눈이 내렸으며, 기상청은 내일까지 눈이 계속될 것으로 예보했습니다.",
-      "정부는 새로운 경제 정책을 발표하며, 이를 통해 국민들의 생활이 개선될 것으로 기대한다고 밝혔습니다.",
-    ],
-  },
-  news: {
-    title: "뉴스 읽기",
-    sentences: [
-      "다음은 경제 뉴스입니다. 오늘 코스피 지수는 전 거래일 대비 1.2% 상승한 2,450포인트로 마감했습니다.",
-      "국제 유가가 상승세를 보이면서 에너지 관련 주식들이 강세를 나타냈습니다.",
-    ],
-  },
-}
-
+// 250606 박남규 수정: 각 탭별 currentSentenceIndex를 관리하는 상태
 export function TrainingTabs() {
-  const [activeTab, setActiveTab] = useState("short")
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
-  const [isRecording, setIsRecording] = useState(false)
-  const [hasRecorded, setHasRecorded] = useState(false)
-  const [customSentence, setCustomSentence] = useState("")
+  const [currentSentenceIndex, setCurrentSentenceIndex] = useState<
+    Record<string, number>
+  >({
+    short: 0,
+    long: 0,
+    news: 0,
+    custom: 0,
+    challenge: 0,
+  });
+  const [trainingData, setTrainingData] = useState<
+    Record<string, { title: string; sentences: string[] }>
+  >({});
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("short");
+  const [isRecording, setIsRecording] = useState(false);
+  const [hasRecorded, setHasRecorded] = useState(false);
+  const [customSentence, setCustomSentence] = useState("");
 
-  const currentData = trainingData[activeTab as keyof typeof trainingData]
-  const currentSentence = activeTab === "custom" ? customSentence : currentData?.sentences[currentSentenceIndex]
+  // 250606 박남규 수정: 새로고침 함수 (탭별로 동작)
+  const handleRefreshSentence = () => {
+    if (!trainingData[activeTab]) return;
+    const sentences = trainingData[activeTab].sentences;
+    if (sentences.length <= 1) return;
+
+    // 250606 박남규 수정: 현재 탭의 인덱스만 변경
+    setCurrentSentenceIndex((prev) => ({
+      ...prev,
+      [activeTab]: (() => {
+        let newIndex = prev[activeTab] || 0;
+        while (newIndex === prev[activeTab]) {
+          newIndex = Math.floor(Math.random() * sentences.length);
+        }
+        return newIndex;
+      })(),
+    }));
+    setHasRecorded(false);
+  };
+
+  // 250606 박남규 수정: 다음 문장 함수 (탭별로 동작)
+  const handleNextSentence = () => {
+    if (!trainingData[activeTab]) return;
+    const sentences = trainingData[activeTab].sentences;
+    const currentIndex = currentSentenceIndex[activeTab] || 0;
+
+    if (currentIndex < sentences.length - 1) {
+      // 250606 박남규 수정: 현재 탭의 인덱스만 변경
+      setCurrentSentenceIndex((prev) => ({
+        ...prev,
+        [activeTab]: currentIndex + 1,
+      }));
+      setHasRecorded(false);
+    }
+  };
+
+  useEffect(() => {
+    async function fetchSentences() {
+      try {
+        const res = await fetch("/api/sentences");
+        const data = await res.json();
+
+        setTrainingData({
+          short: { title: "짧은 문장", sentences: data.short || [] },
+          long: { title: "긴 문장", sentences: data.long || [] },
+          news: { title: "뉴스 읽기", sentences: data.news || [] },
+        });
+        setLoading(false);
+      } catch (err) {
+        console.error("문장 데이터 불러오기 실패:", err);
+      }
+    }
+
+    fetchSentences();
+  }, []);
+
+  // 250606 박남규 수정: 현재 문장 (탭별로 currentSentenceIndex 적용)
+  const currentData = trainingData[activeTab];
+  const currentIndex = currentSentenceIndex[activeTab] || 0;
+  const currentSentence =
+    activeTab === "custom"
+      ? customSentence
+      : currentData?.sentences[currentIndex] || "";
 
   const handleRecord = () => {
-    setIsRecording(!isRecording)
+    setIsRecording(!isRecording);
     if (isRecording) {
-      setHasRecorded(true)
+      setHasRecorded(true);
     }
-  }
-
-  const handleNextSentence = () => {
-    if (currentData && currentSentenceIndex < currentData.sentences.length - 1) {
-      setCurrentSentenceIndex(currentSentenceIndex + 1)
-      setHasRecorded(false)
-    }
-  }
+  };
 
   const handleCustomSentenceSelect = (sentence: string) => {
-    setCustomSentence(sentence)
-    setHasRecorded(false)
-  }
+    setCustomSentence(sentence);
+    setHasRecorded(false);
+  };
+
+  if (loading) return <div className="text-center py-10">문장을 불러오는 중...</div>;
 
   return (
     <div className="max-w-4xl mx-auto">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5 bg-onair-bg-sub">
-          <TabsTrigger value="short" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
+          <TabsTrigger
+            value="short"
+            className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg"
+          >
             짧은 문장
           </TabsTrigger>
-          <TabsTrigger value="long" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
+          <TabsTrigger
+            value="long"
+            className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg"
+          >
             긴 문장
           </TabsTrigger>
-          <TabsTrigger value="news" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
+          <TabsTrigger
+            value="news"
+            className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg"
+          >
             뉴스 읽기
           </TabsTrigger>
-          <TabsTrigger value="custom" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
+          <TabsTrigger
+            value="custom"
+            className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg"
+          >
             내문장 업로드
           </TabsTrigger>
           <TabsTrigger
@@ -83,35 +143,40 @@ export function TrainingTabs() {
           </TabsTrigger>
         </TabsList>
 
-        {/* 기존 탭들 */}
-        {Object.entries(trainingData).map(([key, data]) => (
-          <TabsContent key={key} value={key} className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold text-onair-text mb-2">{data.title}</h2>
-              <p className="text-onair-text-sub">
-                문장 {currentSentenceIndex + 1} / {data.sentences.length}
-              </p>
-            </div>
-
-            <SentenceCard sentence={currentSentence} />
-
-            <RecordController
-              isRecording={isRecording}
-              onRecord={handleRecord}
-              hasRecorded={hasRecorded}
-              onNext={handleNextSentence}
-              canNext={currentSentenceIndex < data.sentences.length - 1}
-            />
-
-            {hasRecorded && (
-              <div className="space-y-6">
-                <AIResultPanel />
-                <VoiceComparisonPanel />
+        {["short", "long", "news"].map((key) => {
+          const data = trainingData[key];
+          return (
+            <TabsContent key={key} value={key} className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-semibold text-onair-text mb-2">{data.title}</h2>
+                {/* 250606 박남규 수정: 탭별 문장 인덱스 표시 */}
+                {/* <p className="text-onair-text-sub">
+                  문장 {(currentSentenceIndex[key] || 0) + 1} / {data.sentences.length}
+                </p> */}
               </div>
-            )}
-          </TabsContent>
-        ))}
+              {/* 250606 박남규 수정: SentenceCard 에 onRefresh prop 전달 */}
+              <SentenceCard sentence={currentSentence} onRefresh={handleRefreshSentence} />
+              <RecordController
+                isRecording={isRecording}
+                onRecord={handleRecord}
+                hasRecorded={hasRecorded}
+                onNext={handleNextSentence}
+                canNext={
+                  currentData &&
+                  currentSentenceIndex[key] !== undefined &&
+                  currentSentenceIndex[key] < data.sentences.length - 1
+                }
+              />
 
+              {hasRecorded && (
+                <div className="space-y-6">
+                  <AIResultPanel />
+                  <VoiceComparisonPanel />
+                </div>
+              )}
+            </TabsContent>
+          );
+        })}
         {/* 내문장 업로드 탭 */}
         <TabsContent value="custom" className="space-y-6">
           <div className="text-center">
@@ -123,8 +188,8 @@ export function TrainingTabs() {
 
           {customSentence && (
             <>
-              <SentenceCard sentence={customSentence} />
-
+              {/* 250606 박남규 수정: SentenceCard 에 onRefresh prop 전달 */}
+              <SentenceCard sentence={customSentence} onRefresh={() => {}} />
               <RecordController
                 isRecording={isRecording}
                 onRecord={handleRecord}
@@ -166,5 +231,5 @@ export function TrainingTabs() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
