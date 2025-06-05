@@ -149,7 +149,8 @@ export function AIModelManager() {
                           className={`bg-onair-mint/60 rounded-full ${playingModel === model.id ? "animate-wave" : ""}`}
                           style={{
                             width: "2px",
-                            height: `${Math.random() * 16 + 4}px`,
+                            // height: `${Math.random() * 16 + 4}px`,
+                            height: `${0 * 16 + 4}px`,
                             animationDelay: playingModel === model.id ? `${i * 0.05}s` : "0s",
                           }}
                         />

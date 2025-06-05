@@ -25,16 +25,16 @@ export function Navigation() {
 
   // 클라이언트 사이드 마운트 확인
   useEffect(() => {
-    console.log("[NAV] 컴포넌트 마운트됨")
+    // console.log("[NAV] 컴포넌트 마운트됨")
     setMounted(true)
   }, [])
 
   // 로그인 상태 확인 함수
   const checkAuthStatus = () => {
-    console.log("[NAV] checkAuthStatus 호출됨")
+    // console.log("[NAV] checkAuthStatus 호출됨")
     if (typeof window !== "undefined") {
       const { isLoggedIn: loggedIn, userProfile: profile } = getAuthStatus()
-      console.log("[NAV] 상태 확인 결과:", { loggedIn, profile })
+      // console.log("[NAV] 상태 확인 결과:", { loggedIn, profile })
 
       setIsLoggedIn(loggedIn)
       if (profile && loggedIn) {
@@ -62,20 +62,8 @@ export function Navigation() {
   // 컴포넌트 마운트 시 로그인 상태 확인
   useEffect(() => {
     if (mounted) {
-      console.log("[NAV] 마운트 완료 - 상태 확인 시작")
+      // console.log("[NAV] 마운트 완료 - 상태 확인 시작")
       checkAuthStatus()
-    }
-  }, [mounted])
-
-  // 주기적으로 상태 확인 (디버깅용)
-  useEffect(() => {
-    if (mounted) {
-      const interval = setInterval(() => {
-        console.log("[NAV] 주기적 상태 확인")
-        checkAuthStatus()
-      }, 5000) // 5초마다 확인
-
-      return () => clearInterval(interval)
     }
   }, [mounted])
 
@@ -94,7 +82,7 @@ export function Navigation() {
   }, [])
 
   // 인증 페이지에서는 네비게이션을 숨김
-  if (pathname.startsWith("/auth")) {
+  if (pathname?.startsWith("/auth")) {
     return null
   }
 
@@ -176,18 +164,18 @@ export function Navigation() {
         </Link>
 
         {/* 디버그 정보 (개발용) */}
-        <div className="hidden lg:block text-xs text-onair-text-sub">
+        {/* <div className="hidden lg:block text-xs text-onair-text-sub">
           {debugInfo} |
           <button onClick={handleForceRefresh} className="ml-1 text-onair-mint hover:underline">
             <RefreshCw className="w-3 h-3 inline" />
           </button>
-        </div>
+        </div> */}
 
         {/* 데스크톱 메뉴 */}
         <div className="hidden md:flex items-center space-x-1">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || (item.href === "/training" && pathname.startsWith("/training"))
+            const isActive = pathname === item.href || (item.href === "/training" && pathname?.startsWith("/training"))
 
             return (
               <Button
@@ -398,7 +386,7 @@ export function Navigation() {
             {/* 모든 페이지 메뉴 항상 표시 */}
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || (item.href === "/training" && pathname.startsWith("/training"))
+              const isActive = pathname === item.href || (item.href === "/training" && pathname?.startsWith("/training"))
 
               return (
                 <Button
