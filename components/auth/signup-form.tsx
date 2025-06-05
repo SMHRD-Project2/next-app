@@ -55,22 +55,27 @@ export function SignupForm() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          // 필요한 다른 필드가 있으면 추가
         }),
       });
   
+      const data = await response.json();
+  
       if (!response.ok) {
-        const errorData = await response.json();
-        alert(`회원가입 실패: ${errorData.message || '알 수 없는 오류'}`);
-        return;
+        throw new Error(data.message || '회원가입에 실패했습니다.');
       }
   
-      // 성공 시
+      // 회원가입 성공 시 자동 로그인 처리
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userProfile", JSON.stringify(data.user));
+  
+      // 성공 메시지 표시
       alert('회원가입이 완료되었습니다!');
-      router.push('/'); // 또는 로그인 페이지로 이동 등
+      
+      // 메인 페이지로 이동
+      window.location.href = "/";
     } catch (error) {
       console.error('회원가입 실패:', error);
-      alert('회원가입 중 오류가 발생했습니다.');
+      alert(error instanceof Error ? error.message : '회원가입 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }

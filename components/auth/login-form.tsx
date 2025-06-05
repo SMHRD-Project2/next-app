@@ -26,18 +26,35 @@ export function LoginForm() {
     e.preventDefault()
     setIsLoading(true)
 
-    // 실제 로그인 로직 구현 (예: API 호출)
     try {
-      // 임시로 2초 후 성공으로 처리
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-      // 로그인 처리 - auth-utils의 함수 사용
-      login(formData.email)
+      const data = await response.json();
 
-      // 참고: login 함수 내부에서 페이지 리디렉션 처리
+      if (!response.ok) {
+        throw new Error(data.message || '로그인에 실패했습니다.');
+      }
+
+      // 로그인 성공 시 사용자 정보 저장
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userProfile", JSON.stringify(data.user));
+
+      // 페이지 새로고침
+      window.location.href = "/";
     } catch (error) {
-      console.error("로그인 실패:", error)
-      setIsLoading(false)
+      console.error("로그인 실패:", error);
+      alert(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   }
 

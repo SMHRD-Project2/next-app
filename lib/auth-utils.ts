@@ -68,6 +68,42 @@ export const login = (email: string) => {
 }
 
 // 로그아웃
+// export const logout = () => {
+//   debugLog("logout 함수 호출됨")
+
+//   if (typeof window === "undefined") {
+//     debugLog("서버 사이드에서 logout 호출됨 - 무시")
+//     return
+//   }
+
+//   try {
+//     // 저장 전 상태 확인
+//     debugLog("로그아웃 전 상태", getAuthStatus())
+
+//     // 모든 스토리지 정리
+//     localStorage.removeItem("isLoggedIn")
+//     localStorage.removeItem("userProfile")
+    
+
+//     debugLog("localStorage 삭제 완료", {
+//       isLoggedIn: localStorage.getItem("isLoggedIn"),
+//       userProfile: localStorage.getItem("userProfile"),
+//     })
+
+//     // 즉시 확인
+//     const verification = getAuthStatus()
+//     debugLog("삭제 후 즉시 확인", verification)
+
+//     // 페이지 새로고침
+//     debugLog("페이지 새로고침 시작")
+//     window.location.href = "/"
+//   } catch (error) {
+//     debugLog("logout 에러", error)
+//     alert("로그아웃 처리 중 오류가 발생했습니다: " + error)
+//   }
+// }
+
+
 export const logout = () => {
   debugLog("logout 함수 호출됨")
 
@@ -77,32 +113,15 @@ export const logout = () => {
   }
 
   try {
-    // 저장 전 상태 확인
-    debugLog("로그아웃 전 상태", getAuthStatus())
-
-    // 모든 스토리지 정리
     localStorage.removeItem("isLoggedIn")
     localStorage.removeItem("userProfile")
-
-    debugLog("localStorage 삭제 완료", {
-      isLoggedIn: localStorage.getItem("isLoggedIn"),
-      userProfile: localStorage.getItem("userProfile"),
-    })
-
-    // 즉시 확인
-    const verification = getAuthStatus()
-    debugLog("삭제 후 즉시 확인", verification)
-
-    // 페이지 새로고침
-    debugLog("페이지 새로고침 시작")
-    setTimeout(() => {
-      window.location.href = "/"
-    }, 100)
+    debugLog("localStorage 삭제 완료")
   } catch (error) {
     debugLog("logout 에러", error)
     alert("로그아웃 처리 중 오류가 발생했습니다: " + error)
   }
 }
+
 
 // SNS 계정 연동
 export const connectSNS = (provider: string) => {
