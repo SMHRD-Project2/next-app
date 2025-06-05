@@ -107,7 +107,23 @@ export function Navigation() {
   // 로그아웃 처리
   const handleLogout = () => {
     console.log("[NAV] 로그아웃 버튼 클릭됨")
-    logout()
+    try {
+      logout()
+      setProfileMenuOpen(false)
+      setIsLoggedIn(false)
+      setUserProfile({
+        name: "사용자",
+        email: "user@example.com",
+        image: "/placeholder.svg?height=32&width=32",
+      })
+
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 100)
+    } catch (error) {
+      console.error("[NAV] 로그아웃 처리 중 오류:", error)
+      alert("로그아웃 처리 중 오류가 발생했습니다.")
+    }
   }
 
   // SNS 연동 처리
