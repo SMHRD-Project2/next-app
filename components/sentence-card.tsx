@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Volume2 } from "lucide-react"
+import { Volume2, RefreshCw } from "lucide-react" // 250605 박남규 추가: 새로고침 아이콘 import
 
 interface SentenceCardProps {
   sentence: string
+  onRefresh?: () => void; // 250605 박남규 추가: 새로고침 버튼 클릭 핸들러 prop (optional)
 }
 
-export function SentenceCard({ sentence }: SentenceCardProps) {
+export function SentenceCard({ sentence, onRefresh }: SentenceCardProps) {
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
 
   useEffect(() => {
@@ -23,14 +24,30 @@ export function SentenceCard({ sentence }: SentenceCardProps) {
       <CardHeader>
         <CardTitle className="text-onair-text flex items-center justify-between">
           <span>훈련 문장</span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
-          >
-            <Volume2 className="w-4 h-4 mr-2" />
-            AI 예시 듣기
-          </Button>
+          <div className="flex items-center space-x-2 ml-auto">
+            {onRefresh && (
+              <Button
+              variant="outline"
+              size="sm"
+                className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
+                onClick={onRefresh}
+                aria-label="문장 새로고침"
+                title="다른 문장으로 교체"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
+            >
+              <Volume2 className="w-4 h-4 mr-2" />
+              AI 예시 듣기
+            </Button>
+          </div>
+
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
