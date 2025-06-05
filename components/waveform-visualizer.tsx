@@ -4,23 +4,41 @@ import { useEffect, useState } from "react"
 
 export function WaveformVisualizer() {
   const [isAnimating, setIsAnimating] = useState(false)
+  const [tick, setTick] = useState(0)
+  const [staticHeights, setStaticHeights] = useState<number[]>([])
 
   useEffect(() => {
     setIsAnimating(true)
 
-    // 10초 후에 애니메이션 중지 (실제로는 오디오 재생 완료 시 중지)
-    const timer = setTimeout(() => {
+    // static height 배열 생성 (CSR에서만)
+    setStaticHeights(
+      Array.from({ length: 40 }).map(() => 0.1 + Math.random() * 0.1)
+    )
+
+    const stopTimer = setTimeout(() => {
       setIsAnimating(false)
     }, 10000)
 
-    return () => clearTimeout(timer)
+    const interval = setInterval(() => {
+      setTick(prev => prev + 1)
+    }, 100)
+
+    return () => {
+      clearTimeout(stopTimer)
+      clearInterval(interval)
+    }
   }, [])
+
+  // staticHeights가 아직 준비 안 됐을 때는 렌더링 보류
+  if (staticHeights.length === 0) return null
 
   return (
     <div className="flex items-center h-8 flex-grow bg-onair-bg rounded-md overflow-hidden">
       {Array.from({ length: 40 }).map((_, i) => {
-        const height = Math.sin(i * 0.2) * 0.5 + 0.5
-        const animatedHeight = isAnimating ? height : 0.1 + Math.random() * 0.1
+        const baseHeight = Math.sin(i * 0.2) * 0.5 + 0.5
+        const animatedHeight = isAnimating
+          ? baseHeight * (0.5 + Math.sin((tick + i * 5) / 10) * 0.5)
+          : staticHeights[i]
 
         return (
           <div
@@ -29,8 +47,6 @@ export function WaveformVisualizer() {
             style={{
               height: `${animatedHeight * 100}%`,
               width: "2px",
-              animationDelay: `${i * 0.05}s`,
-              transform: isAnimating ? `scaleY(${0.5 + Math.sin(Date.now() / 200 + i * 0.5) * 0.5})` : "scaleY(1)",
             }}
           />
         )
