@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,11 +20,13 @@ export function LoginForm() {
     email: "",
     password: "",
   })
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
+    // 실제 로그인 로직 구현 (예: API 호출)
     try {
       // 임시로 2초 후 성공으로 처리
       await new Promise((resolve) => setTimeout(resolve, 2000))

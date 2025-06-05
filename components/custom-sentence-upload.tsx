@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, FileText, LinkIcon, Type } from "lucide-react"
+import { extractTextFromUrl, extractTextFromPdf } from "@/lib/api"
 
 interface CustomSentenceUploadProps {
   onSentenceSelect: (sentence: string) => void
@@ -31,11 +32,7 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
 
     setIsLoading(true)
     try {
-      // 실제로는 URL에서 텍스트를 추출하는 API 호출
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // 임시 예시 텍스트
-      const extractedText = "URL에서 추출된 텍스트입니다. 이것은 웹페이지나 문서에서 가져온 내용의 예시입니다."
+      const extractedText = await extractTextFromUrl(urlInput)
       onSentenceSelect(extractedText)
     } catch (error) {
       console.error("URL 처리 실패:", error)
@@ -50,21 +47,19 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
 
     setIsLoading(true)
     try {
-      // 실제로는 파일을 읽고 텍스트를 추출하는 로직
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const content = e.target?.result as string
-        // PDF나 다른 파일 형식의 경우 별도 처리 필요
-        if (file.type === "text/plain") {
+      if (file.type === "text/plain") {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const content = e.target?.result as string
           onSentenceSelect(content)
-        } else {
-          // PDF 등의 경우 임시 텍스트
-          onSentenceSelect(
-            "업로드된 파일에서 추출된 텍스트입니다. 실제로는 PDF나 문서 파일의 내용이 여기에 표시됩니다.",
-          )
         }
+        reader.readAsText(file)
+      } else if (file.type === "application/pdf") {
+        const extractedText = await extractTextFromPdf(file)
+        onSentenceSelect(extractedText)
+      } else {
+        console.error("지원하지 않는 파일 형식입니다.")
       }
-      reader.readAsText(file)
     } catch (error) {
       console.error("파일 업로드 실패:", error)
     } finally {
@@ -154,14 +149,14 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
                 <Input
                   id="file-input"
                   type="file"
-                  accept=".txt,.pdf,.doc,.docx"
+                  accept=".txt,.pdf"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
                 <Label htmlFor="file-input" className="cursor-pointer flex flex-col items-center space-y-2">
                   <Upload className="w-8 h-8 text-onair-text-sub" />
                   <span className="text-onair-text">파일을 선택하거나 드래그하세요</span>
-                  <span className="text-sm text-onair-text-sub">지원 형식: TXT, PDF, DOC, DOCX (최대 10MB)</span>
+                  <span className="text-sm text-onair-text-sub">지원 형식: TXT, PDF (최대 10MB)</span>
                 </Label>
               </div>
             </div>
