@@ -27,34 +27,12 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || '로그인에 실패했습니다.');
-      }
-
-      // 로그인 성공 시 사용자 정보 저장
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userProfile", JSON.stringify(data.user));
-
-      // 페이지 새로고침
-      window.location.href = "/";
+      await login(formData.email, formData.password)
     } catch (error) {
-      console.error("로그인 실패:", error);
-      alert(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.');
+      console.error("로그인 실패:", error)
+      alert(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
