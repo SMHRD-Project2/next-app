@@ -1,8 +1,6 @@
 "use client"
 
 import * as React from "react"
-import * as RechartsPrimitive from "recharts"
-
 import { cn } from "@/lib/utils"
 
 // Chart container component
@@ -16,8 +14,6 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "ChartContainer"
 
-// Chart tooltip component
-const ChartTooltip = RechartsPrimitive.Tooltip
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
@@ -27,9 +23,6 @@ const ChartTooltipContent = React.forwardRef<
     indicator?: "line" | "dot" | "dashed"
     nameKey?: string
     labelKey?: string
-    active?: boolean
-    payload?: any[]
-    label?: string | number
   }
 >(
   (
@@ -40,9 +33,6 @@ const ChartTooltipContent = React.forwardRef<
       indicator = "dot",
       nameKey,
       labelKey,
-      active,
-      payload,
-      label,
       ...props
     },
     ref
@@ -61,4 +51,4 @@ const ChartTooltipContent = React.forwardRef<
 )
 ChartTooltipContent.displayName = "ChartTooltipContent"
 
-export { ChartContainer, ChartTooltip, ChartTooltipContent }
+export { ChartContainer, ChartTooltipContent }
