@@ -12,8 +12,11 @@ interface SentenceCardProps {
 
 export function SentenceCard({ sentence, onRefresh }: SentenceCardProps) {
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    // 클라이언트 마운트 확인
+    setIsClient(true)
     // 클라이언트 사이드에서만 랜덤 값 생성
     const heights = Array.from({ length: 40 }, () => Math.random() * 30 + 10)
     setWaveformHeights(heights)
@@ -57,17 +60,32 @@ export function SentenceCard({ sentence, onRefresh }: SentenceCardProps) {
 
         {/* AI 예시 음성 파형 시각화 */}
         <div className="flex items-center justify-center space-x-1 h-12 bg-onair-bg rounded-lg p-2">
-          {Array.from({ length: 40 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-onair-mint/60 rounded-full animate-wave"
-              style={{
-                width: "3px",
-                height: `${Math.random() * 30 + 10}px`,
-                animationDelay: `${i * 0.1}s`,
-              }}
-            />
-          ))}
+          {isClient && waveformHeights.length > 0 ? (
+            waveformHeights.map((height, i) => (
+              <div
+                key={i}
+                className="bg-onair-mint/60 rounded-full animate-wave"
+                style={{
+                  width: "3px",
+                  height: `${height}px`,
+                  animationDelay: `${i * 0.1}s`,
+                }}
+              />
+            ))
+          ) : (
+            // SSR 및 초기 로딩 시 정적 높이 사용
+            Array.from({ length: 40 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-onair-mint/60 rounded-full animate-wave"
+                style={{
+                  width: "3px",
+                  height: "20px", // 고정 높이
+                  animationDelay: `${i * 0.1}s`,
+                }}
+              />
+            ))
+          )}
         </div>
       </CardContent>
     </Card>
