@@ -56,10 +56,12 @@ export function TrainingTabs() {
   };
 
   const handleRecord = () => {
-    setIsRecording(!isRecording);
-    if (isRecording) {
-      setHasRecorded(true);
-    }
+    setIsRecording(prevIsRecording => {
+      if (prevIsRecording) { // 녹음 중이었다면 (이제 중지될 것이므로)
+        setHasRecorded(true); // 녹음이 완료되었음을 표시
+      }
+      return !prevIsRecording; // isRecording 상태 토글 (true -> false, false -> true)
+    });
   };
 
   const handleCustomSentenceSelect = (sentence: string) => {
@@ -158,6 +160,7 @@ export function TrainingTabs() {
             onReset={() => setHasRecorded(false)}
           />
 
+          {/* AI 분석 결과 및 음성 비교 분석 패널 배치 */}
           {hasRecorded && (
             <div className="space-y-6">
               <AIResultPanel />

@@ -20,6 +20,10 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
   const [urlInput, setUrlInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [currentTab, setCurrentTab] = useState("text")
+  const [textExtracted, setTextExtracted] = useState<string>("")
+  const [urlExtracted, setUrlExtracted] = useState<string>("")
+  const [fileExtracted, setFileExtracted] = useState<string>("")
 
   const handleTextSubmit = () => {
     if (textInput.trim()) {
@@ -106,7 +110,6 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         <Tabs
           defaultValue="text"
           className="space-y-4"
-          onValueChange={(value) => setCurrentTab(value)}
         >
           <TabsList className="grid w-full grid-cols-3 bg-onair-bg">
             <TabsTrigger value="text" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
