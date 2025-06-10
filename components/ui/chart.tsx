@@ -30,6 +30,17 @@ const ChartTooltipContent = React.forwardRef<
     active?: boolean
     payload?: any[]
     label?: string | number
+    accessibilityLayer?: any
+    allowEscapeViewBox?: boolean
+    animationDuration?: number
+    animationEasing?: string
+    contentStyle?: React.CSSProperties
+    cursor?: string | boolean
+    cursorStyle?: React.CSSProperties
+    filterNull?: boolean
+    isAnimationActive?: boolean
+    itemStyle?: React.CSSProperties
+    labelStyle?: React.CSSProperties
   }
 >(
   (
@@ -43,6 +54,17 @@ const ChartTooltipContent = React.forwardRef<
       active,
       payload,
       label,
+      accessibilityLayer,
+      allowEscapeViewBox,
+      animationDuration,
+      animationEasing,
+      contentStyle,
+      cursor,
+      cursorStyle,
+      filterNull,
+      isAnimationActive,
+      itemStyle,
+      labelStyle,
       ...props
     },
     ref
