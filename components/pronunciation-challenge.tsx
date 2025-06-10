@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -67,10 +67,16 @@ const challenges = [
 export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onReset }: PronunciationChallengeProps) {
   const [selectedChallenge, setSelectedChallenge] = useState(challenges[0])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
+  const currentChallengeRef = useRef<HTMLDivElement>(null)
 
   const handleChallengeSelect = (challenge: (typeof challenges)[0]) => {
     setSelectedChallenge(challenge)
     onReset()
+    currentChallengeRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const handleDifficultySelect = (difficulty: string | null) => {
+    setSelectedDifficulty(difficulty)
   }
 
   const filteredChallenges = selectedDifficulty
@@ -89,34 +95,34 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
       <div className="flex gap-2 mb-4">
         <Button
           variant={selectedDifficulty === null ? "default" : "outline"}
-          onClick={() => setSelectedDifficulty(null)}
+          onClick={() => handleDifficultySelect(null)}
           className="flex-1"
         >
           전체
         </Button>
         <Button
           variant={selectedDifficulty === "초급" ? "default" : "outline"}
-          onClick={() => setSelectedDifficulty("초급")}
+          onClick={() => handleDifficultySelect("초급")}
           className="flex-1"
         >
           초급
         </Button>
         <Button
           variant={selectedDifficulty === "중급" ? "default" : "outline"}
-          onClick={() => setSelectedDifficulty("중급")}
+          onClick={() => handleDifficultySelect("중급")}
           className="flex-1"
         >
           중급
         </Button>
         <Button
           variant={selectedDifficulty === "고급" ? "default" : "outline"}
-          onClick={() => setSelectedDifficulty("고급")}
+          onClick={() => handleDifficultySelect("고급")}
           className="flex-1"
         >
           고급
         </Button>
       </div>
-      
+
       {/* 챌린지 선택 */}
       <Card className="bg-onair-bg-sub border-onair-text-sub/20">
         <CardHeader>
@@ -124,7 +130,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
             <Trophy className="w-5 h-5 text-onair-orange" />
             발음 챌린지 선택
           </CardTitle>
-            <p className="text-onair-text-sub">어려운 발음에 도전하여 실력을 한 단계 업그레이드하세요</p>
+          <p>어려운 발음에 도전하여 실력을 한 단계 업그레이드하세요</p>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3">
@@ -155,7 +161,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
 
 
       {/* 선택된 챌린지 */}
-      <Card className="bg-onair-bg-sub border-onair-text-sub/20">
+      <Card ref={currentChallengeRef} className="bg-onair-bg-sub border-onair-text-sub/20">
         <CardHeader>
           <CardTitle className="text-onair-text flex items-center justify-between">
             <span>현재 챌린지</span>
