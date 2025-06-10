@@ -88,7 +88,12 @@ export function TrainingTabs() {
               </h2>
             </div>
 
-            <SentenceCard sentence={sentence} onRefresh={handleRefreshSentence} />
+            <SentenceCard 
+              sentence={sentence} 
+              onRefresh={handleRefreshSentence} 
+              currentTab={activeTab}
+              onSentenceChange={setSentence} 
+            />
 
             <RecordController
               isRecording={isRecording}
@@ -117,7 +122,11 @@ export function TrainingTabs() {
 
           {customSentence && (
             <>
-              <SentenceCard sentence={customSentence} onRefresh={() => {}} />
+              <SentenceCard 
+                sentence={customSentence} 
+                onRefresh={() => {}} 
+                currentTab={activeTab} 
+              />
               <RecordController
                 isRecording={isRecording}
                 onRecord={handleRecord}
