@@ -19,13 +19,11 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
   const [textInput, setTextInput] = useState("")
   const [urlInput, setUrlInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-
-  // 탭별 상태 분리
-  const [textExtracted, setTextExtracted] = useState("")
-  const [urlExtracted, setUrlExtracted] = useState("")
-  const [fileExtracted, setFileExtracted] = useState("")
-
+  const [isDragging, setIsDragging] = useState(false)
   const [currentTab, setCurrentTab] = useState("text")
+  const [textExtracted, setTextExtracted] = useState<string>("")
+  const [urlExtracted, setUrlExtracted] = useState<string>("")
+  const [fileExtracted, setFileExtracted] = useState<string>("")
 
   const handleTextSubmit = () => {
     if (textInput.trim()) {
@@ -48,9 +46,17 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
     }
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const processFile = async (file: File) => {
     setIsLoading(true)
     try {
       if (file.type === "text/plain") {
@@ -75,35 +81,21 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
     }
   }
 
-  // 현재 탭별 상태 반환
-  const getExtractedText = () => {
-    switch (currentTab) {
-      case "text":
-        return textExtracted
-      case "url":
-        return urlExtracted
-      case "file":
-        return fileExtracted
-      default:
-        return ""
-    }
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+
+    await processFile(file)
   }
 
-  // 현재 탭별 상태 설정 및 onSentenceSelect 호출
-  const setExtractedText = (value: string) => {
-    switch (currentTab) {
-      case "text":
-        setTextExtracted(value)
-        setTextInput(value)  // 탭 내부 입력창과 동기화
-        break
-      case "url":
-        setUrlExtracted(value)
-        break
-      case "file":
-        setFileExtracted(value)
-        break
-    }
-    onSentenceSelect(value)
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    await processFile(file)
   }
 
   return (
@@ -118,7 +110,6 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         <Tabs
           defaultValue="text"
           className="space-y-4"
-          onValueChange={(value) => setCurrentTab(value)}
         >
           <TabsList className="grid w-full grid-cols-3 bg-onair-bg">
             <TabsTrigger value="text" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
@@ -188,7 +179,16 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
               <Label htmlFor="file-input" className="text-onair-text">
                 파일을 업로드하세요
               </Label>
-              <div className="border-2 border-dashed border-onair-text-sub/20 rounded-lg p-6 text-center">
+              <div 
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  isDragging 
+                    ? "border-onair-mint bg-onair-mint/10" 
+                    : "border-onair-text-sub/20"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <Input
                   id="file-input"
                   type="file"

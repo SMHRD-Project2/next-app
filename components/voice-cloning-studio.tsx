@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Mic, Play, Square, CheckCircle, Wand2 } from "lucide-react"
+import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2 } from "lucide-react"
 
 export function VoiceCloningStudio() {
   const [step, setStep] = useState(1)
@@ -21,13 +21,53 @@ export function VoiceCloningStudio() {
   const [modelName, setModelName] = useState("")
   const [modelDescription, setModelDescription] = useState("")
 
-  const sampleTexts = [
-    "안녕하세요, 저는 AI 음성 모델 생성을 위한 샘플 음성을 녹음하고 있습니다.",
-    "오늘은 날씨가 정말 좋네요. 맑은 하늘과 따뜻한 햇살이 기분을 좋게 만듭니다.",
-    "뉴스를 전해드리겠습니다. 오늘 주요 경제 지표가 발표되었습니다.",
-    "교육은 미래를 만드는 가장 중요한 투자입니다. 꾸준한 학습이 성공의 열쇠입니다.",
-    "기술의 발전은 우리 삶을 더욱 편리하게 만들어주고 있습니다.",
+  const allSampleTexts = [
+    "안녕하세요, 저는 AI 음성 모델 생성을 위한 샘플 음성을 녹음하고 있습니다. 오늘은 제 목소리로 여러분과 함께하게 되어 기쁩니다. 앞으로 다양한 콘텐츠를 제작하는데 도움이 되었으면 좋겠습니다.",
+    
+    "오늘은 날씨가 정말 좋네요. 맑은 하늘과 따뜻한 햇살이 기분을 좋게 만듭니다. 이런 날씨에는 산책을 하거나 카페에서 책을 읽는 것도 좋을 것 같습니다. 여러분은 오늘 어떤 계획을 가지고 계신가요?",
+    
+    "뉴스를 전해드리겠습니다. 오늘 주요 경제 지표가 발표되었습니다. 실업률이 전년 대비 0.5% 감소했으며, 소비자 물가지수는 안정세를 보이고 있습니다. 전문가들은 내년 상반기까지 이러한 추세가 이어질 것으로 전망하고 있습니다.",
+    
+    "교육은 미래를 만드는 가장 중요한 투자입니다. 꾸준한 학습이 성공의 열쇠입니다. 특히 요즘은 평생학습의 시대라고 합니다. 새로운 기술과 지식을 배우는 것은 우리의 삶을 더욱 풍요롭게 만들어줄 것입니다.",
+    
+    "기술의 발전은 우리 삶을 더욱 편리하게 만들어주고 있습니다. 인공지능과 빅데이터는 이제 우리 일상의 일부가 되었습니다. 이러한 기술들이 앞으로 어떤 변화를 가져올지 기대가 됩니다.",
+    
+    "음악은 마음의 언어입니다. 감정을 표현하는 가장 아름다운 방법이죠. 좋은 음악은 우리의 마음을 치유하고 위로해줍니다. 여러분은 어떤 음악을 좋아하시나요?",
+    
+    "여행은 새로운 경험과 추억을 만드는 특별한 시간입니다. 낯선 곳에서 만나는 사람들과의 만남, 새로운 문화를 경험하는 것은 우리의 시야를 넓혀줍니다. 다음 여행지는 어디로 가고 싶으신가요?",
+    
+    "건강한 식습관은 행복한 삶의 기본입니다. 신선한 채소와 과일을 충분히 섭취하고, 규칙적인 식사를 하는 것이 중요합니다. 또한 충분한 수분 섭취도 잊지 마세요.",
+    
+    "독서는 마음의 양식입니다. 책을 통해 새로운 세계를 만나보세요. 좋은 책 한 권은 우리의 인생을 바꿀 수도 있습니다. 오늘은 어떤 책을 읽어보시겠어요?",
+    
+    "운동은 건강한 삶을 위한 필수 요소입니다. 규칙적인 운동은 우리의 신체적, 정신적 건강을 모두 향상시켜줍니다. 하루 30분만이라도 운동하는 습관을 들여보세요."
   ]
+
+  const [sampleTexts, setSampleTexts] = useState<string[]>([])
+
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // 랜덤 샘플 텍스트 생성 함수
+  const generateRandomSample = () => {
+    const randomIndex = Math.floor(Math.random() * allSampleTexts.length)
+    setSampleTexts([allSampleTexts[randomIndex]])
+    // 녹음된 샘플이 있다면 초기화
+    setRecordedSamples([])
+  }
+
+  // TTS 예시 듣기
+  const handlePlaySampleTTS = () => {
+    if (!sampleTexts[0]) return
+    const utter = new window.SpeechSynthesisUtterance(sampleTexts[0])
+    utter.lang = "ko-KR"
+    window.speechSynthesis.speak(utter)
+  }
+
+  // 컴포넌트가 마운트될 때 랜덤 샘플 텍스트 선택
+  useEffect(() => {
+    generateRandomSample()
+  }, [])
 
   const handleRecord = (index: number) => {
     setIsRecording(!isRecording)
@@ -39,11 +79,29 @@ export function VoiceCloningStudio() {
     }
   }
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      setRecordedSamples([files[0].name])
+    }
+  }
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
-    if (files) {
-      const newSamples = Array.from(files).map((file) => file.name)
-      setRecordedSamples([...recordedSamples, ...newSamples])
+    if (files && files.length > 0) {
+      setRecordedSamples([files[0].name])
     }
   }
 
@@ -80,7 +138,7 @@ export function VoiceCloningStudio() {
                 <Wand2 className="w-5 h-5 text-onair-mint" />
                 1단계: 음성 샘플 수집
               </CardTitle>
-              <p className="text-onair-text-sub">고품질 AI 모델 생성을 위해 최소 5개의 음성 샘플이 필요합니다.</p>
+              <p className="text-onair-text-sub">고품질 AI 모델 생성을 위해 최소 1개의 음성 샘플이 필요합니다.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <Tabs defaultValue="record" className="space-y-4">
@@ -100,6 +158,25 @@ export function VoiceCloningStudio() {
                 </TabsList>
 
                 <TabsContent value="record" className="space-y-4">
+                  <div className="flex gap-2 justify-end mb-2">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="border-onair-mint text-onair-mint"
+                      onClick={generateRandomSample}
+                    >
+                      <RefreshCw className="w-5 h-5" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-onair-mint text-onair-mint flex items-center gap-2"
+                      onClick={handlePlaySampleTTS}
+                    >
+                      <Volume2 className="w-5 h-5" />
+                      <span>AI 예시 듣기</span>
+                    </Button>
+                  </div>
+
                   <div className="bg-onair-bg/50 rounded-lg p-4">
                     <h4 className="font-medium text-onair-text mb-2">녹음 가이드</h4>
                     <ul className="text-sm text-onair-text-sub space-y-1">
@@ -140,21 +217,32 @@ export function VoiceCloningStudio() {
                 </TabsContent>
 
                 <TabsContent value="upload" className="space-y-4">
-                  <div className="border-2 border-dashed border-onair-text-sub/20 rounded-lg p-8 text-center">
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                      isDragging ? "border-onair-mint bg-onair-mint/10" : "border-onair-text-sub/20"
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     <Upload className="w-12 h-12 text-onair-text-sub mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-onair-text mb-2">음성 파일 업로드</h3>
                     <p className="text-onair-text-sub mb-4">WAV, MP3, M4A 파일을 드래그하거나 클릭하여 업로드하세요</p>
-                    <Input
+                    <input
+                      ref={fileInputRef}
                       type="file"
-                      multiple
                       accept=".wav,.mp3,.m4a"
                       onChange={handleFileUpload}
                       className="hidden"
                       id="voice-upload"
                     />
-                    <Label htmlFor="voice-upload">
-                      <Button className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg">파일 선택</Button>
-                    </Label>
+                    <Button
+                      className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                      onClick={() => fileInputRef.current?.click()}
+                      type="button"
+                    >
+                      파일 선택
+                    </Button>
                   </div>
 
                   {recordedSamples.length > 0 && (
@@ -172,10 +260,10 @@ export function VoiceCloningStudio() {
               </Tabs>
 
               <div className="flex justify-between items-center pt-4 border-t border-onair-text-sub/10">
-                <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.length}/5 샘플 완료</div>
+                <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.length}/1 샘플 완료</div>
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={recordedSamples.length < 5}
+                  disabled={recordedSamples.length < 1}
                   className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                 >
                   다음 단계
