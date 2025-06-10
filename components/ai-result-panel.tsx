@@ -1,7 +1,34 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import { Lock, LogIn } from "lucide-react"
+import { useEffect, useState } from "react"
+import { getAuthStatus } from "@/lib/auth-utils"
 
 export function AIResultPanel() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    // 클라이언트에서만 로그인 상태 확인
+    if (typeof window !== "undefined") {
+      const { isLoggedIn: loggedIn } = getAuthStatus()
+      setIsLoggedIn(loggedIn)
+    }
+
+    // 로그인 상태 변경 감지
+    const handleAuthChange = () => {
+      if (typeof window !== "undefined") {
+        const { isLoggedIn: loggedIn } = getAuthStatus()
+        setIsLoggedIn(loggedIn)
+      }
+    }
+
+    window.addEventListener('localStorageChange', handleAuthChange)
+    return () => window.removeEventListener('localStorageChange', handleAuthChange)
+  }, [])
+
   const results = {
     pronunciation: 85,
     intonation: 78,
@@ -15,8 +42,12 @@ export function AIResultPanel() {
     { type: "tip", text: "문장 끝에서 톤을 살짝 낮춰보세요" },
   ]
 
+  const handleLoginRedirect = () => {
+    window.location.href = "/auth/login"
+  }
+
   return (
-    <Card className="bg-onair-bg-sub border-onair-text-sub/20">
+    <Card className="bg-onair-bg-sub border-onair-text-sub/20 relative">
       <CardHeader>
         <CardTitle className="text-onair-text">AI 분석 결과</CardTitle>
       </CardHeader>
@@ -67,6 +98,28 @@ export function AIResultPanel() {
           })}
         </div>
       </CardContent>
+
+      {/* 비회원 블러 처리 오버레이 */}
+      {!isLoggedIn && (
+        <div className="absolute inset-0 bg-onair-bg/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+          <div className="text-center p-6 bg-onair-bg-sub rounded-lg border border-onair-text-sub/20 max-w-sm mx-4">
+            <Lock className="w-12 h-12 text-onair-mint mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-onair-text mb-2">
+              로그인이 필요합니다
+            </h3>
+            <p className="text-onair-text-sub text-sm mb-4">
+              AI 분석 결과를 확인하려면 로그인해주세요
+            </p>
+            <Button 
+              onClick={handleLoginRedirect}
+              className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              로그인하기
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   )
 }
