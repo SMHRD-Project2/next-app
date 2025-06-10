@@ -20,6 +20,7 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
   const [textInput, setTextInput] = useState("")
   const [urlInput, setUrlInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   const handleTextSubmit = () => {
     if (textInput.trim()) {
@@ -41,10 +42,17 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
     }
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
 
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const processFile = async (file: File) => {
     setIsLoading(true)
     try {
       if (file.type === "text/plain") {
@@ -65,6 +73,23 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+
+    await processFile(file)
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    await processFile(file)
   }
 
   return (
@@ -145,7 +170,16 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
               <Label htmlFor="file-input" className="text-onair-text">
                 파일을 업로드하세요
               </Label>
-              <div className="border-2 border-dashed border-onair-text-sub/20 rounded-lg p-6 text-center">
+              <div 
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  isDragging 
+                    ? "border-onair-mint bg-onair-mint/10" 
+                    : "border-onair-text-sub/20"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <Input
                   id="file-input"
                   type="file"
