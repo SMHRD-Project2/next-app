@@ -1,8 +1,31 @@
+'use client'
+
+import { useSearchParams } from 'next/navigation'
 import { LoginForm } from "@/components/auth/login-form"
 import { Mic } from "lucide-react"
 import Link from "next/link"
+import { Suspense } from "react"
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams()
+  const error = searchParams.get('error')
+  const message = searchParams.get('message')
+
+  const getErrorMessage = (error: string | null) => {
+    switch (error) {
+      case 'no_linked_account':
+        return '연동된 카카오 계정이 없습니다. 먼저 회원가입을 하고 계정을 연동해주세요.'
+      case 'kakao_login_failed':
+        return '카카오 로그인 중 오류가 발생했습니다.'
+      case 'no_code':
+        return '인증 코드를 받지 못했습니다.'
+      default:
+        return message || null
+    }
+  }
+
+  const errorMessage = getErrorMessage(error)
+
   return (
     <div className="min-h-screen flex">
       {/* 왼쪽 브랜딩 섹션 */}
@@ -61,6 +84,20 @@ export default function LoginPage() {
             <p className="text-onair-text-sub">계정에 로그인하여 훈련을 시작하세요</p>
           </div>
 
+          {/* 에러 메시지 표시 */}
+          {errorMessage && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{errorMessage}</p>
+              {error === 'no_linked_account' && (
+                <p className="text-red-600 text-sm mt-2">
+                  <Link href="/auth/signup" className="underline font-medium">
+                    회원가입 페이지로 이동
+                  </Link>
+                </p>
+              )}
+            </div>
+          )}
+
           <LoginForm />
 
           <div className="mt-6 text-center">
@@ -74,5 +111,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }
