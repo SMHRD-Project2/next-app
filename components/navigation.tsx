@@ -39,7 +39,7 @@ export function Navigation() {
   const [debugInfo, setDebugInfo] = useState("")
 
   /* ------------------------------------------------------------------ */
-  /* refs – 두 개로 분리                                                 */
+  /* refs – 두 개로 분리                                                 */
   /* ------------------------------------------------------------------ */
   const desktopMenuRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
@@ -245,15 +245,16 @@ export function Navigation() {
                     <div className="py-2">
                       <p className="px-4 py-2 text-xs font-medium text-onair-text-sub">SNS 계정 연동</p>
                       {[
-                        { label: "Google", provider: "Google" },
-                        { label: "Naver", provider: "Naver" },
-                        { label: "Kakao", provider: "Kakao" },
-                      ].map(({ label, provider }) => (
+                        { label: "Google", provider: "Google", icon: "https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" },
+                        { label: "Naver", provider: "Naver", icon: '/naver.png' },
+                        { label: "Kakao", provider: "Kakao", icon: "https://developers.kakao.com/assets/img/about/logos/kakaotalksharing/kakaotalk_sharing_btn_medium.png" },
+                      ].map(({ label, provider, icon }) => (
                         <button
                           key={provider}
                           onClick={() => handleSNSConnect(provider)}
-                          className="w-full px-4 py-2 text-left text-sm text-onair-text hover:bg-onair-mint/10 hover:text-onair-mint"
+                          className="w-full px-4 py-2 text-left text-sm text-onair-text hover:bg-onair-mint/10 hover:text-onair-mint flex items-center gap-2"
                         >
+                          {icon && <img src={icon} alt={`${label} 로고`} className="w-5 h-5" />}
                           {label} 연동
                         </button>
                       ))}
@@ -330,13 +331,14 @@ export function Navigation() {
             {[
               { label: "Google", provider: "Google" },
               { label: "Naver", provider: "Naver" },
-              { label: "Kakao", provider: "Kakao" },
-            ].map(({ label, provider }) => (
+              { label: "Kakao", provider: "Kakao", icon: "https://developers.kakao.com/assets/img/about/logos/kakaotalksharing/kakaotalk_sharing_btn_medium.png" },
+            ].map(({ label, provider, icon }) => (
               <button
                 key={provider}
                 onClick={() => handleSNSConnect(provider)}
-                className="w-full px-4 py-2 text-left text-sm text-onair-text hover:bg-onair-mint/10 hover:text-onair-mint"
+                className="w-full px-4 py-2 text-left text-sm text-onair-text hover:bg-onair-mint/10 hover:text-onair-mint flex items-center gap-2"
               >
+                {icon && <img src={icon} alt={`${label} 로고`} className="w-5 h-5" />}
                 {label} 연동
               </button>
             ))}
