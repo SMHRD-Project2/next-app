@@ -1,41 +1,46 @@
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server';
+import clientPromise from '@/db/mongodb';
+import bcrypt from 'bcryptjs';
+import {cookies} from 'next/headers';
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json()
-    const { email, password } = body
+    const { email, password } = await req.json();
+    const client = await clientPromise;
+    const db = client.db('ONAIR');
 
-    // TODO: 실제 데이터베이스에서 사용자 확인 로직 구현
-    // 임시로 하드코딩된 사용자 정보로 검증
-    if (email === "test@example.com" && password === "password123") {
-      const user = {
-        name: "테스트 사용자",
-        email: email,
-        image: "/placeholder.svg?height=32&width=32",
-      }
+    const user = await db.collection('USER').findOne({ email });
 
-      // 쿠키에 로그인 상태 저장
-      const cookieStore = cookies()
-      cookieStore.set('isLoggedIn', 'true', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 1주일
-      })
-
-      return NextResponse.json({ user })
+    if (!user) {
+      return NextResponse.json({ message: '이메일 또는 비밀번호가 일치하지 않습니다.' }, { status: 401 });
     }
 
-    return NextResponse.json(
-      { message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
-      { status: 401 }
-    )
-  } catch (error) {
-    console.error('로그인 처리 중 오류:', error)
-    return NextResponse.json(
-      { message: '로그인 처리 중 오류가 발생했습니다.' },
-      { status: 500 }
-    )
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return NextResponse.json({ message: '이메일 또는 비밀번호가 일치하지 않습니다.' }, { status: 401 });
+    }
+    // 쿠키에 로그인 상태 저장
+    const cookieStore = await cookies()
+    cookieStore.set('isLoggedIn', 'true', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 1주일
+    })
+
+    // 필요한 경우 JWT 발급 후 전달 (여기서는 생략)
+
+    return NextResponse.json({
+      message: '로그인 성공',
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ message: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
-} 
+}
