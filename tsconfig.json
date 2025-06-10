@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "target": "ES6",
     "skipLibCheck": true,
     "strict": true,
+    "types": ["node"],  // 250609 박남규 추가
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",

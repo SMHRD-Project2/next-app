@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,19 +20,27 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
   const [urlInput, setUrlInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  // 탭별 상태 분리
+  const [textExtracted, setTextExtracted] = useState("")
+  const [urlExtracted, setUrlExtracted] = useState("")
+  const [fileExtracted, setFileExtracted] = useState("")
+
+  const [currentTab, setCurrentTab] = useState("text")
+
   const handleTextSubmit = () => {
     if (textInput.trim()) {
+      setTextExtracted(textInput.trim())
       onSentenceSelect(textInput.trim())
     }
   }
 
   const handleUrlSubmit = async () => {
     if (!urlInput.trim()) return
-
     setIsLoading(true)
     try {
-      const extractedText = await extractTextFromUrl(urlInput)
-      onSentenceSelect(extractedText)
+      const extracted = await extractTextFromUrl(urlInput)
+      setUrlExtracted(extracted)
+      onSentenceSelect(extracted)
     } catch (error) {
       console.error("URL 처리 실패:", error)
     } finally {
@@ -44,19 +51,20 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-
     setIsLoading(true)
     try {
       if (file.type === "text/plain") {
         const reader = new FileReader()
         reader.onload = (e) => {
           const content = e.target?.result as string
+          setFileExtracted(content)
           onSentenceSelect(content)
         }
         reader.readAsText(file)
       } else if (file.type === "application/pdf") {
-        const extractedText = await extractTextFromPdf(file)
-        onSentenceSelect(extractedText)
+        const extracted = await extractTextFromPdf(file)
+        setFileExtracted(extracted)
+        onSentenceSelect(extracted)
       } else {
         console.error("지원하지 않는 파일 형식입니다.")
       }
@@ -65,6 +73,37 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // 현재 탭별 상태 반환
+  const getExtractedText = () => {
+    switch (currentTab) {
+      case "text":
+        return textExtracted
+      case "url":
+        return urlExtracted
+      case "file":
+        return fileExtracted
+      default:
+        return ""
+    }
+  }
+
+  // 현재 탭별 상태 설정 및 onSentenceSelect 호출
+  const setExtractedText = (value: string) => {
+    switch (currentTab) {
+      case "text":
+        setTextExtracted(value)
+        setTextInput(value)  // 탭 내부 입력창과 동기화
+        break
+      case "url":
+        setUrlExtracted(value)
+        break
+      case "file":
+        setFileExtracted(value)
+        break
+    }
+    onSentenceSelect(value)
   }
 
   return (
@@ -76,7 +115,11 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="text" className="space-y-4">
+        <Tabs
+          defaultValue="text"
+          className="space-y-4"
+          onValueChange={(value) => setCurrentTab(value)}
+        >
           <TabsList className="grid w-full grid-cols-3 bg-onair-bg">
             <TabsTrigger value="text" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
               <Type className="w-4 h-4 mr-2" />
@@ -170,7 +213,12 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
             )}
           </TabsContent>
         </Tabs>
+
       </CardContent>
     </Card>
   )
 }
+
+
+
+
