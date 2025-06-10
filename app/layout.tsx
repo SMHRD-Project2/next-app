@@ -12,8 +12,17 @@ export const metadata: Metadata = {
   title: "ON AIR - AI 발음 피드백 훈련 플랫폼",
   description: "아나운서 및 스피치 입시/실무 준비생을 위한 AI 기반 발음 피드백 훈련 플랫폼",
   generator: "v0.dev",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+      { url: '/icon.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-icon.png' },
+    ],
+  },
 }
-
 export default function RootLayout({
   children,
 }: {

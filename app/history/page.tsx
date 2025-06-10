@@ -1,7 +1,74 @@
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, TrendingUp, Award } from "lucide-react"
+import { Calendar, TrendingUp, Award, Lock, LogIn } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/use-auth"
+
+const trainingRecords = [
+  {
+    id: 1,
+    date: "2024-01-07",
+    category: "뉴스 읽기",
+    sentence: "오늘 서울 지역에 첫눈이 내렸습니다.",
+    scores: { pronunciation: 91, intonation: 88, tone: 92 },
+    status: "완료",
+  },
+  {
+    id: 2,
+    date: "2024-01-07",
+    category: "긴 문장",
+    sentence: "정부는 새로운 경제 정책을 발표하며...",
+    scores: { pronunciation: 85, intonation: 82, tone: 89 },
+    status: "완료",
+  },
+  {
+    id: 3,
+    date: "2024-01-06",
+    category: "짧은 문장",
+    sentence: "안녕하세요, 시청자 여러분.",
+    scores: { pronunciation: 88, intonation: 85, tone: 86 },
+    status: "완료",
+  },
+];
 
 export default function HistoryPage() {
+  const router = useRouter()
+  const { isLoggedIn } = useAuth()
+
+  const handleLoginRedirect = () => {
+    router.push('/login')
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="fixed inset-0 bg-onair-bg/80 backdrop-blur-sm flex items-center justify-center">
+        <div className="text-center p-6 bg-onair-bg-sub rounded-lg border border-onair-text-sub/20 max-w-sm mx-4">
+          <Lock className="w-12 h-12 text-onair-mint mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-onair-text mb-2">
+            로그인이 필요합니다
+          </h3>
+          <p className="text-onair-text-sub text-sm mb-4">
+            훈련 기록을 확인하려면 로그인해주세요
+          </p>
+          <Button 
+            onClick={handleLoginRedirect}
+            className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            로그인하기
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const handleRetrain = (sentence: string) => {
+    // Navigate to training page with the sentence as a query parameter
+    router.push(`/training?customSentence=${encodeURIComponent(sentence)}`)
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="text-center space-y-4">
@@ -21,17 +88,17 @@ export default function HistoryPage() {
 
         <Card className="bg-onair-bg-sub border-onair-text-sub/20">
           <CardContent className="p-6 text-center">
-            <TrendingUp className="w-8 h-8 text-onair-orange mx-auto mb-2" />
-            <h3 className="text-2xl font-bold text-onair-text">87%</h3>
-            <p className="text-onair-text-sub">평균 정확도</p>
+            <Award className="w-8 h-8 text-onair-blue mx-auto mb-2" />
+            <h3 className="text-2xl font-bold text-onair-text">{trainingRecords.length}개</h3>
+            <p className="text-onair-text-sub">훈련 갯수</p>
           </CardContent>
         </Card>
 
         <Card className="bg-onair-bg-sub border-onair-text-sub/20">
           <CardContent className="p-6 text-center">
-            <Award className="w-8 h-8 text-onair-blue mx-auto mb-2" />
-            <h3 className="text-2xl font-bold text-onair-text">12개</h3>
-            <p className="text-onair-text-sub">획득 배지</p>
+            <TrendingUp className="w-8 h-8 text-onair-orange mx-auto mb-2" />
+            <h3 className="text-2xl font-bold text-onair-text">87%</h3>
+            <p className="text-onair-text-sub">평균 정확도</p>
           </CardContent>
         </Card>
       </div>
@@ -45,32 +112,7 @@ export default function HistoryPage() {
           </div>
 
           <div className="space-y-4">
-            {[
-              {
-                id: 1,
-                date: "2024-01-07",
-                category: "뉴스 읽기",
-                sentence: "오늘 서울 지역에 첫눈이 내렸습니다.",
-                scores: { pronunciation: 91, intonation: 88, tone: 92 },
-                status: "완료",
-              },
-              {
-                id: 2,
-                date: "2024-01-07",
-                category: "긴 문장",
-                sentence: "정부는 새로운 경제 정책을 발표하며...",
-                scores: { pronunciation: 85, intonation: 82, tone: 89 },
-                status: "완료",
-              },
-              {
-                id: 3,
-                date: "2024-01-06",
-                category: "짧은 문장",
-                sentence: "안녕하세요, 시청자 여러분.",
-                scores: { pronunciation: 88, intonation: 85, tone: 86 },
-                status: "완료",
-              },
-            ].map((item) => {
+            {trainingRecords.map((item) => {
               const getScoreColor = (score: number) => {
                 if (score >= 90) return "text-onair-mint"
                 if (score >= 80) return "text-onair-orange"
@@ -136,7 +178,10 @@ export default function HistoryPage() {
                       </svg>
                       음성 재생
                     </button>
-                    <button className="px-3 py-1 text-sm bg-onair-mint text-onair-bg hover:bg-onair-mint/90 rounded flex items-center gap-1">
+                    <button 
+                      onClick={() => handleRetrain(item.sentence)}
+                      className="px-3 py-1 text-sm bg-onair-mint text-onair-bg hover:bg-onair-mint/90 rounded flex items-center gap-1"
+                    >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path
                           fillRule="evenodd"

@@ -1,12 +1,28 @@
+'use client';
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowRight, Play } from "lucide-react"
 import { AccuracyTrendChart } from "@/components/accuracy-trend-chart"
 import { WaveformVisualizer } from "@/components/waveform-visualizer"
-// import  Zonoss  from "@/components/Zonos"
+import { useRouter } from "next/navigation"
+import  Zonoss  from "@/components/Zonos"
+
+
+
+// 현재 한국 날짜를 가져오는 함수
+function getCurrentKoreanDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  return `${year}년 ${month}월 ${day}일`;
+}
+
+
 
 export default function HomePage() {
+  const router = useRouter()
   return (
     <div className="flex flex-col min-h-screen">
       {/* 히어로 섹션 */}
@@ -38,7 +54,7 @@ export default function HomePage() {
             </Button>
           </div>
           {/* TTS 불러오는 버튼 */}
-          {/* <Zonoss /> */}
+          <Zonoss />
         </div>
       </section>
 
@@ -50,7 +66,8 @@ export default function HomePage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-onair-text">오늘의 미션</h2>
-                <span className="bg-onair-mint/20 text-onair-mint text-xs px-2 py-1 rounded-full">2024년 6월 3일</span>
+                {/* <span className="bg-onair-mint/20 text-onair-mint text-xs px-2 py-1 rounded-full">2024년 6월 3일</span> */}
+                <span className="bg-onair-mint/20 text-onair-mint text-xs px-2 py-1 rounded-full">{getCurrentKoreanDate()}</span>
               </div>
 
               <div className="space-y-4">
@@ -74,7 +91,13 @@ export default function HomePage() {
                   <WaveformVisualizer />
                 </div>
 
-                <Button className="w-full bg-onair-orange/90 hover:bg-onair-orange text-onair-bg">
+                <Button 
+                  className="w-full bg-onair-orange/90 hover:bg-onair-orange text-onair-bg"
+                  onClick={() => {
+                    const sentence = "국내 주요 언론사들은 디지털 콘텐츠 제작에 온라인 뉴미디어 플랫폼을 오늘의 전략을 개선하고 있습니다.";
+                    router.push(`/training?customSentence=${encodeURIComponent(sentence)}`);
+                  }}
+                >
                   이 문장으로 훈련하기
                 </Button>
               </div>

@@ -56,10 +56,12 @@ export function TrainingTabs() {
   };
 
   const handleRecord = () => {
-    setIsRecording(!isRecording);
-    if (isRecording) {
-      setHasRecorded(true);
-    }
+    setIsRecording(prevIsRecording => {
+      if (prevIsRecording) { // 녹음 중이었다면 (이제 중지될 것이므로)
+        setHasRecorded(true); // 녹음이 완료되었음을 표시
+      }
+      return !prevIsRecording; // isRecording 상태 토글 (true -> false, false -> true)
+    });
   };
 
   const handleCustomSentenceSelect = (sentence: string) => {
@@ -120,37 +122,28 @@ export function TrainingTabs() {
 
           <CustomSentenceUpload onSentenceSelect={handleCustomSentenceSelect} />
 
-          {customSentence && (
-            <>
-              <SentenceCard 
-                sentence={customSentence} 
-                onRefresh={() => {}} 
-                currentTab={activeTab} 
-              />
-              <RecordController
-                isRecording={isRecording}
-                onRecord={handleRecord}
-                hasRecorded={hasRecorded}
-                onNext={() => {}}
-                canNext={false}
-              />
+          <SentenceCard 
+            sentence={customSentence} 
+            currentTab={activeTab} 
+            onSentenceChange={setCustomSentence}
+          />
+          <RecordController
+            isRecording={isRecording}
+            onRecord={handleRecord}
+            hasRecorded={hasRecorded}
+            onNext={() => {}}
+            canNext={false}
+          />
 
-              {hasRecorded && (
-                <div className="space-y-6">
-                  <AIResultPanel />
-                  <VoiceComparisonPanel />
-                </div>
-              )}
-            </>
+          {hasRecorded && (
+            <div className="space-y-6">
+              <AIResultPanel />
+              <VoiceComparisonPanel />
+            </div>
           )}
         </TabsContent>
 
         <TabsContent value="challenge" className="space-y-6">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-onair-text mb-2">발음 챌린지</h2>
-            <p className="text-onair-text-sub">어려운 발음에 도전하여 실력을 한 단계 업그레이드하세요</p>
-          </div>
-
           <PronunciationChallenge
             isRecording={isRecording}
             onRecord={handleRecord}
@@ -158,6 +151,7 @@ export function TrainingTabs() {
             onReset={() => setHasRecorded(false)}
           />
 
+          {/* AI 분석 결과 및 음성 비교 분석 패널 배치 */}
           {hasRecorded && (
             <div className="space-y-6">
               <AIResultPanel />
