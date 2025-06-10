@@ -119,23 +119,24 @@ export function Navigation() {
     }
   }, [])
 
-  // 외부 클릭 시 드롭다운 닫기
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (!profileMenuOpen) return
-      const target = e.target as Node
-      if (
-        (desktopMenuRef.current && desktopMenuRef.current.contains(target)) ||
-        (mobileMenuRef.current && mobileMenuRef.current.contains(target))
-      ) {
-        return
-      }
-      setProfileMenuOpen(false)
-    }
+  // 외부 클릭 시 드롭다운 닫기 ////// 이 이벤트와 같은 이벤트가 다른 곳에서도 동작
+                              // -> 닫힌 뒤 바로 열림
+  // useEffect(() => {
+  //   const handleClickOutside = (e: MouseEvent) => {
+  //     if (!profileMenuOpen) return
+  //     const target = e.target as Node
+  //     if (
+  //       (desktopMenuRef.current && desktopMenuRef.current.contains(target)) ||
+  //       (mobileMenuRef.current && mobileMenuRef.current.contains(target))
+  //     ) {
+  //       return
+  //     }
+  //     setProfileMenuOpen(false)
+  //   }
 
-    if (profileMenuOpen) document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [profileMenuOpen])
+  //   if (profileMenuOpen) document.addEventListener("mousedown", handleClickOutside)
+  //   return () => document.removeEventListener("mousedown", handleClickOutside)
+  // }, [profileMenuOpen])
 
   /* ------------------------------------------------------------------ */
   /* early‑return: auth pages                                            */
@@ -155,20 +156,20 @@ export function Navigation() {
   /* ------------------------------------------------------------------ */
   /* skeleton while mounting                                             */
   /* ------------------------------------------------------------------ */
-  if (!mounted) {
-    return (
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-onair-bg/95 backdrop-blur-sm border-b border-onair-text-sub/10">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-onair-mint rounded-full flex items-center justify-center">
-              <Mic className="w-5 h-5 text-onair-bg" />
-            </div>
-            <span className="text-xl font-bold text-onair-mint">ON AIR</span>
-          </Link>
-        </div>
-      </nav>
-    )
-  }
+  // if (!mounted) {
+  //   return (
+  //     <nav className="fixed top-0 left-0 right-0 z-50 bg-onair-bg/95 backdrop-blur-sm border-b border-onair-text-sub/10">
+  //       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+  //         <Link href="/" className="flex items-center space-x-2">
+  //           <div className="w-8 h-8 bg-onair-mint rounded-full flex items-center justify-center">
+  //             <Mic className="w-5 h-5 text-onair-bg" />
+  //           </div>
+  //           <span className="text-xl font-bold text-onair-mint">ON AIR</span>
+  //         </Link>
+  //       </div>
+  //     </nav>
+  //   )
+  // }
 
   /* ------------------------------------------------------------------ */
   /* render                                                              */
