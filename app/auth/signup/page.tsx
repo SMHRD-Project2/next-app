@@ -1,8 +1,14 @@
+'use client'
+
+import { useSearchParams } from 'next/navigation'
 import { SignupForm } from "@/components/auth/signup-form"
 import { Mic } from "lucide-react"
 import Link from "next/link"
+import { Suspense } from "react"
 
-export default function SignupPage() {
+function SignupContent() {
+  const searchParams = useSearchParams()
+
   return (
     <div className="min-h-screen flex">
       {/* 왼쪽 브랜딩 섹션 */}
@@ -18,44 +24,26 @@ export default function SignupPage() {
               </div>
               <span className="text-3xl font-bold text-onair-mint">ON AIR</span>
             </div>
-            <h1 className="text-4xl font-bold mb-4">지금 시작하세요</h1>
+            <h1 className="text-4xl font-bold mb-4">입으로 완성하는 꿈</h1>
             <p className="text-xl text-onair-text-sub mb-8">
-              수천 명의 아나운서 지망생들이
+              AI 기반 아나운서 발음 훈련으로
               <br />
-              ON AIR와 함께 꿈을 이루고 있습니다
+              완벽한 발음을 만들어보세요
             </p>
           </div>
 
-          <div className="bg-onair-bg-sub/50 rounded-lg p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-semibold text-onair-mint mb-4">ON AIR의 특별함</h3>
-            <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-onair-mint/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 bg-onair-mint rounded-full"></div>
-                </div>
-                <div>
-                  <p className="font-medium text-onair-text">실시간 AI 피드백</p>
-                  <p className="text-sm text-onair-text-sub">발음, 억양, 톤을 즉시 분석</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-onair-orange/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 bg-onair-orange rounded-full"></div>
-                </div>
-                <div>
-                  <p className="font-medium text-onair-text">맞춤형 훈련</p>
-                  <p className="text-sm text-onair-text-sub">개인별 약점 분석 및 개선</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-6 h-6 bg-onair-blue/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 bg-onair-blue rounded-full"></div>
-                </div>
-                <div>
-                  <p className="font-medium text-onair-text">진도 관리</p>
-                  <p className="text-sm text-onair-text-sub">체계적인 학습 진행 상황 추적</p>
-                </div>
-              </div>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-onair-mint rounded-full"></div>
+              <span className="text-onair-text-sub">실시간 AI 발음 분석</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-onair-orange rounded-full"></div>
+              <span className="text-onair-text-sub">아나운서 음성 클로닝</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-onair-blue rounded-full"></div>
+              <span className="text-onair-text-sub">맞춤형 훈련 커리큘럼</span>
             </div>
           </div>
         </div>
@@ -76,7 +64,7 @@ export default function SignupPage() {
 
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-onair-text mb-2">회원가입</h2>
-            <p className="text-onair-text-sub">간편하게 가입하고 훈련을 시작하세요</p>
+            <p className="text-onair-text-sub">ON AIR에 오신 것을 환영합니다</p>
           </div>
 
           <SignupForm />
@@ -92,5 +80,13 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupContent />
+    </Suspense>
   )
 }
