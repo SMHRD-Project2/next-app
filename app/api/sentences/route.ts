@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       ])
       .toArray()
     
-    console.log('Found sentence:', randomSentence) // 디버깅용 로그 // 250609 박남규
+    // console.log('Found sentence:', randomSentence) // 디버깅용 로그 // 250609 박남규
     
     if (!randomSentence) {
       return NextResponse.json({ error: `No sentence found for type: ${type}` }, { status: 404 })
