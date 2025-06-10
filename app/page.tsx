@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ArrowRight, Play } from "lucide-react"
 import { AccuracyTrendChart } from "@/components/accuracy-trend-chart"
 import { WaveformVisualizer } from "@/components/waveform-visualizer"
+// import  Zonoss  from "@/components/Zonos"
 
 export default function HomePage() {
   return (
@@ -36,6 +37,8 @@ export default function HomePage() {
               </Link>
             </Button>
           </div>
+          {/* TTS 불러오는 버튼 */}
+          {/* <Zonoss /> */}
         </div>
       </section>
 
