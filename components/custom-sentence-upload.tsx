@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,17 +23,18 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
 
   const handleTextSubmit = () => {
     if (textInput.trim()) {
+      setTextExtracted(textInput.trim())
       onSentenceSelect(textInput.trim())
     }
   }
 
   const handleUrlSubmit = async () => {
     if (!urlInput.trim()) return
-
     setIsLoading(true)
     try {
-      const extractedText = await extractTextFromUrl(urlInput)
-      onSentenceSelect(extractedText)
+      const extracted = await extractTextFromUrl(urlInput)
+      setUrlExtracted(extracted)
+      onSentenceSelect(extracted)
     } catch (error) {
       console.error("URL 처리 실패:", error)
     } finally {
@@ -59,12 +59,14 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         const reader = new FileReader()
         reader.onload = (e) => {
           const content = e.target?.result as string
+          setFileExtracted(content)
           onSentenceSelect(content)
         }
         reader.readAsText(file)
       } else if (file.type === "application/pdf") {
-        const extractedText = await extractTextFromPdf(file)
-        onSentenceSelect(extractedText)
+        const extracted = await extractTextFromPdf(file)
+        setFileExtracted(extracted)
+        onSentenceSelect(extracted)
       } else {
         console.error("지원하지 않는 파일 형식입니다.")
       }
@@ -101,7 +103,11 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="text" className="space-y-4">
+        <Tabs
+          defaultValue="text"
+          className="space-y-4"
+          onValueChange={(value) => setCurrentTab(value)}
+        >
           <TabsList className="grid w-full grid-cols-3 bg-onair-bg">
             <TabsTrigger value="text" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
               <Type className="w-4 h-4 mr-2" />
@@ -204,7 +210,12 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
             )}
           </TabsContent>
         </Tabs>
+
       </CardContent>
     </Card>
   )
 }
+
+
+
+
