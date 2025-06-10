@@ -31,7 +31,7 @@ export default function HistoryPage() {
           <CardContent className="p-6 text-center">
             <Award className="w-8 h-8 text-onair-blue mx-auto mb-2" />
             <h3 className="text-2xl font-bold text-onair-text">12개</h3>
-            <p className="text-onair-text-sub">획득 배지</p>
+            <p className="text-onair-text-sub">훈련 갯수</p>
           </CardContent>
         </Card>
       </div>
