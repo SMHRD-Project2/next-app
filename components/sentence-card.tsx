@@ -14,6 +14,7 @@ interface SentenceCardProps {
 
 export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab }: SentenceCardProps) {
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
+  const [isClient, setIsClient] = useState(false)
 
   // 250609 박남규 - 수정 모드 상태 추가
   const [isEditing, setIsEditing] = useState(false);
@@ -27,6 +28,8 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
   }, [sentence]);
 
   useEffect(() => {
+    // 클라이언트 마운트 확인
+    setIsClient(true)
     // 클라이언트 사이드에서만 랜덤 값 생성
     const heights = Array.from({ length: 40 }, () => Math.random() * 30 + 10)
     setWaveformHeights(heights)
@@ -102,7 +105,7 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
 
         {/* 250609 박남규 - 예시 음성 시각화 */}
         <div className="flex items-center justify-center space-x-1 h-12 bg-onair-bg rounded-lg p-2">
-          {
+          {isClient && waveformHeights.length > 0 ? (
             waveformHeights.map((height, i) => (
               <div
                 key={i}
@@ -114,7 +117,20 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
                 }}
               />
             ))
-          }
+          ) : (
+            // SSR 및 초기 로딩 시 정적 높이 사용
+            Array.from({ length: 40 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-onair-mint/60 rounded-full animate-wave"
+                style={{
+                  width: "3px",
+                  height: "20px", // 고정 높이
+                  animationDelay: `${i * 0.1}s`,
+                }}
+              />
+            ))
+          )}
         </div>
       </CardContent>
     </Card>

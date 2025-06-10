@@ -114,3 +114,87 @@ export const forceCheckAuth = () => {
   debugLog("강제 상태 확인")
   return getAuthStatus()
 }
+
+function getSupportedMimeType() {
+  const types = [
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg',
+    'audio/wav'
+  ];
+  
+  for (const type of types) {
+    if (MediaRecorder.isTypeSupported(type)) {
+      return type;
+    }
+  }
+  return 'audio/webm'; // 기본값
+}
+
+let recorder: MediaRecorder | null = null;
+
+// 녹음 시작
+async function handleStartRecording() {
+  try {
+    recorder = await startRecording();
+  } catch (err) {
+    console.error('녹음 시작 실패:', err);
+  }
+}
+
+// 녹음 중지 및 재생
+function handleStopRecording() {
+  if (recorder) {
+    stopRecording(recorder);
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mimeType = getSupportedMimeType();
+    const mediaRecorder = new MediaRecorder(stream, { mimeType });
+    const chunks: Blob[] = [];
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        chunks.push(e.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(chunks, { type: mimeType });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // 오디오 재생 전에 유효성 검사
+      const audio = new Audio();
+      audio.onerror = (e) => {
+        console.error('오디오 로드 오류:', e);
+      };
+      
+      audio.src = audioUrl;
+      audio.play().catch(err => {
+        console.error('재생 오류:', err);
+      });
+    };
+
+    // 녹음 시작
+    mediaRecorder.start();
+    
+    // 1초마다 데이터 수집
+    mediaRecorder.start(1000);
+    
+    return mediaRecorder;
+  } catch (err) {
+    console.error('녹음 시작 오류:', err);
+    throw err;
+  }
+}
+
+// 녹음 중지 함수
+function stopRecording(mediaRecorder: MediaRecorder) {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+  }
+}
