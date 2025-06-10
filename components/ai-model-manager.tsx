@@ -112,7 +112,6 @@ export function AIModelManager() {
           <h2 className="text-xl font-semibold text-onair-text">내 AI 모델</h2>
           <p className="text-onair-text-sub">총 {aiModels.length}개의 AI 음성 모델</p>
         </div>
-        <Button className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg">새 모델 추가</Button>
       </div>
 
       <div className="grid gap-4">

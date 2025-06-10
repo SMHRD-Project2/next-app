@@ -1,6 +1,6 @@
 "use client"
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts"
 
 const chartData = [
@@ -38,7 +38,7 @@ export function AccuracyTrendChart() {
             tick={{ fill: "#A0AEC0", fontSize: 10 }}
             dx={-10}
           />
-          <ChartTooltip content={<ChartTooltipContent />} />
+          <ChartTooltipContent />
           <Line
             type="monotone"
             dataKey="pronunciation"

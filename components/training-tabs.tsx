@@ -148,11 +148,6 @@ export function TrainingTabs() {
         </TabsContent>
 
         <TabsContent value="challenge" className="space-y-6">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-onair-text mb-2">발음 챌린지</h2>
-            <p className="text-onair-text-sub">어려운 발음에 도전하여 실력을 한 단계 업그레이드하세요</p>
-          </div>
-
           <PronunciationChallenge
             isRecording={isRecording}
             onRecord={handleRecord}
