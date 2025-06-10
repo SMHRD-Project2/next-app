@@ -22,7 +22,6 @@ const challenges = [
     tips: "각 글자를 천천히 구분하여 발음하세요",
     color: "bg-green-500/10 text-green-400 border-green-500/20",
   },
-  
   {
     id: 2,
     text: "경찰청철창살",
@@ -67,14 +66,98 @@ const challenges = [
 
 export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onReset }: PronunciationChallengeProps) {
   const [selectedChallenge, setSelectedChallenge] = useState(challenges[0])
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
 
   const handleChallengeSelect = (challenge: (typeof challenges)[0]) => {
     setSelectedChallenge(challenge)
     onReset()
   }
 
+  const filteredChallenges = selectedDifficulty
+    ? challenges.filter((challenge) => challenge.difficulty === selectedDifficulty)
+    : challenges
+
+  const handleRandomChallenge = () => {
+    const randomIndex = Math.floor(Math.random() * filteredChallenges.length)
+    setSelectedChallenge(filteredChallenges[randomIndex])
+    onReset()
+  }
+
   return (
     <div className="space-y-6">
+      {/* 난이도 필터 버튼 */}
+      <div className="flex gap-2 mb-4">
+        <Button
+          variant={selectedDifficulty === null ? "default" : "outline"}
+          onClick={() => setSelectedDifficulty(null)}
+          className="flex-1"
+        >
+          전체
+        </Button>
+        <Button
+          variant={selectedDifficulty === "초급" ? "default" : "outline"}
+          onClick={() => setSelectedDifficulty("초급")}
+          className="flex-1"
+        >
+          초급
+        </Button>
+        <Button
+          variant={selectedDifficulty === "중급" ? "default" : "outline"}
+          onClick={() => setSelectedDifficulty("중급")}
+          className="flex-1"
+        >
+          중급
+        </Button>
+        <Button
+          variant={selectedDifficulty === "고급" ? "default" : "outline"}
+          onClick={() => setSelectedDifficulty("고급")}
+          className="flex-1"
+        >
+          고급
+        </Button>
+      </div>
+
+      {/* 랜덤 버튼 */}
+      <Button
+        onClick={handleRandomChallenge}
+        className="w-full mb-4 bg-onair-orange hover:bg-onair-orange/90 text-white"
+      >
+        랜덤 챌린지 선택
+      </Button>
+      {/* 챌린지 선택 */}
+      <Card className="bg-onair-bg-sub border-onair-text-sub/20">
+        <CardHeader>
+          <CardTitle className="text-onair-text flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-onair-orange" />
+            발음 챌린지 선택
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3">
+            {filteredChallenges.map((challenge) => (
+              <div
+                key={challenge.id}
+                className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                  selectedChallenge.id === challenge.id
+                    ? "border-onair-mint bg-onair-mint/10"
+                    : "border-onair-text-sub/20 bg-onair-bg hover:bg-onair-bg-sub"
+                }`}
+                onClick={() => handleChallengeSelect(challenge)}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge className={challenge.color}>{challenge.difficulty}</Badge>
+                    {selectedChallenge.id === challenge.id && <Star className="w-4 h-4 text-onair-mint fill-current" />}
+                  </div>
+                </div>
+                <p className="text-onair-text font-medium mb-1">{challenge.text}</p>
+                <p className="text-sm text-onair-text-sub mb-1">{challenge.description}</p>
+                <p className="text-xs text-onair-text-sub italic">💡 {challenge.tips}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
 
       {/* 선택된 챌린지 */}
@@ -154,41 +237,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
             </div>
 
             {hasRecorded && <p className="text-onair-text-sub text-sm">AI가 발음을 분석하고 있습니다...</p>}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 챌린지 선택 */}
-      <Card className="bg-onair-bg-sub border-onair-text-sub/20">
-        <CardHeader>
-          <CardTitle className="text-onair-text flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-onair-orange" />
-            발음 챌린지 선택
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3">
-            {challenges.map((challenge) => (
-              <div
-                key={challenge.id}
-                className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                  selectedChallenge.id === challenge.id
-                    ? "border-onair-mint bg-onair-mint/10"
-                    : "border-onair-text-sub/20 bg-onair-bg hover:bg-onair-bg-sub"
-                }`}
-                onClick={() => handleChallengeSelect(challenge)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge className={challenge.color}>{challenge.difficulty}</Badge>
-                    {selectedChallenge.id === challenge.id && <Star className="w-4 h-4 text-onair-mint fill-current" />}
-                  </div>
-                </div>
-                <p className="text-onair-text font-medium mb-1">{challenge.text}</p>
-                <p className="text-sm text-onair-text-sub mb-1">{challenge.description}</p>
-                <p className="text-xs text-onair-text-sub italic">💡 {challenge.tips}</p>
-              </div>
-            ))}
           </div>
         </CardContent>
       </Card>
