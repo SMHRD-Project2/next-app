@@ -5,9 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Play, Pause, Settings, Trash2, Star } from "lucide-react"
+import { Play, Pause, Star, Volume2 } from "lucide-react"
 
-const aiModels = [
+export const aiModels = [
   {
     id: 1,
     name: "김주하 아나운서",
@@ -26,7 +26,7 @@ const aiModels = [
     quality: "프리미엄",
     description: "역동적이고 열정적인 스포츠 중계 스타일",
     avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: true,
+    isDefault: false,
     createdAt: "2024-01-01",
     usageCount: 89,
   },
@@ -37,7 +37,7 @@ const aiModels = [
     quality: "프리미엄",
     description: "부드럽고 친근한 교양 프로그램 진행 스타일",
     avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: true,
+    isDefault: false,
     createdAt: "2024-01-01",
     usageCount: 134,
   },
@@ -78,20 +78,13 @@ const aiModels = [
 
 export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)
-  const [selectedModel, setSelectedModel] = useState<number | null>(null)
 
   const handlePlay = (modelId: number) => {
     setPlayingModel(playingModel === modelId ? null : modelId)
   }
 
   const handleSetDefault = (modelId: number) => {
-    setSelectedModel(modelId)
-    // 실제로는 기본 모델 설정 API 호출
-  }
-
-  const handleDelete = (modelId: number) => {
-    // 실제로는 모델 삭제 API 호출
-    console.log("모델 삭제:", modelId)
+    console.log("기본 모델로 설정 (API 호출 필요):", modelId);
   }
 
   const getQualityColor = (quality: string) => {
@@ -100,8 +93,38 @@ export function AIModelManager() {
         return "bg-onair-mint/10 text-onair-mint border-onair-mint/20"
       case "사용자 생성":
         return "bg-onair-orange/10 text-onair-orange border-onair-orange/20"
+      case "교육용":
+        return "border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
       default:
         return "bg-onair-text-sub/10 text-onair-text-sub border-onair-text-sub/20"
+    }
+  }
+
+  // 재생 버튼의 클래스를 모델 타입에 따라 반환하는 헬퍼 함수
+  const getPlayButtonClasses = (type: string) => {
+    switch (type) {
+      case "뉴스 앵커":
+      case "스포츠 캐스터":
+      case "교양 프로그램":
+        return "border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
+      case "개인 맞춤":
+        return "border-onair-orange text-onair-orange hover:bg-onair-orange hover:text-onair-bg"
+      case "교육용":
+        return "border-onair-orange text-onair-orange hover:bg-onair-orange hover:text-onair-bg"
+      default:
+        return "border-onair-text-sub/20 text-onair-text-sub hover:bg-onair-text-sub hover:text-onair-bg"
+    }
+  }
+
+  // 음성 파형 막대 색상을 모델 타입에 따라 반환하는 헬퍼 함수
+  const getWaveformBarColor = (type: string) => {
+    switch (type) {
+      case "개인 맞춤":
+        return "bg-onair-orange/60" // 개인 맞춤 모델은 주황색 계열
+      case "교육용":
+        return "bg-onair-blue/60" // 교육용 모델은 민트색 계열
+      default:
+        return "bg-onair-mint/60" // 기본값은 민트색 계열 (프리미엄 모델 등)
     }
   }
 
@@ -145,11 +168,10 @@ export function AIModelManager() {
                       {Array.from({ length: 30 }).map((_, i) => (
                         <div
                           key={i}
-                          className={`bg-onair-mint/60 rounded-full ${playingModel === model.id ? "animate-wave" : ""}`}
+                          className={`${getWaveformBarColor(model.type)} rounded-full ${playingModel === model.id ? "animate-wave" : ""}`}
                           style={{
                             width: "2px",
-                            // height: `${Math.random() * 16 + 4}px`,
-                            height: `${0 * 16 + 4}px`,
+                            height: `${Math.random() * 16 + 4}px`,
                             animationDelay: playingModel === model.id ? `${i * 0.05}s` : "0s",
                           }}
                         />
@@ -163,29 +185,10 @@ export function AIModelManager() {
                     size="sm"
                     variant="outline"
                     onClick={() => handlePlay(model.id)}
-                    className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
+                    className={getPlayButtonClasses(model.type)}
                   >
                     {playingModel === model.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-
-                  {!model.isDefault && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDelete(model.id)}
-                      className="border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
                 </div>
               </div>
 
@@ -194,7 +197,7 @@ export function AIModelManager() {
                   <Button
                     size="sm"
                     onClick={() => handleSetDefault(model.id)}
-                    className="bg-onair-orange hover:bg-onair-orange/90 text-onair-bg"
+                    className="border border-onair-orange text-onair-orange bg-transparent hover:bg-onair-orange/10"
                   >
                     <Star className="w-4 h-4 mr-2" />
                     기본 모델로 설정
