@@ -5,8 +5,8 @@ export async function POST() {
   console.log("[API] 로그아웃 요청 받음")
   try {
     // 쿠키에서 로그인 상태 제거
-    const cookieStore = cookies()
-    cookieStore.delete('isLoggedIn')
+    const cookieStore = await cookies()
+    cookieStore.set('isLoggedIn', '', { expires: new Date(0) })
     console.log("[API] 쿠키 삭제 완료")
 
     return NextResponse.json({ 

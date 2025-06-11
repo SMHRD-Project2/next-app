@@ -134,28 +134,24 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
 
           <CustomSentenceUpload onSentenceSelect={handleCustomSentenceSelect} />
 
-          {customSentence && (
-            <>
-              <SentenceCard 
-                sentence={customSentence} 
-                onRefresh={() => {}} 
-                currentTab={activeTab} 
-              />
-              <RecordController
-                isRecording={isRecording}
-                onRecord={handleRecord}
-                hasRecorded={hasRecorded}
-                onNext={() => {}}
-                canNext={false}
-              />
+          <SentenceCard 
+            sentence={customSentence} 
+            currentTab={activeTab} 
+            onSentenceChange={setCustomSentence}
+          />
+          <RecordController
+            isRecording={isRecording}
+            onRecord={handleRecord}
+            hasRecorded={hasRecorded}
+            onNext={() => {}}
+            canNext={false}
+          />
 
-              {hasRecorded && (
-                <div className="space-y-6">
-                  <AIResultPanel />
-                  <VoiceComparisonPanel />
-                </div>
-              )}
-            </>
+          {hasRecorded && (
+            <div className="space-y-6">
+              <AIResultPanel />
+              <VoiceComparisonPanel />
+            </div>
           )}
         </TabsContent>
 

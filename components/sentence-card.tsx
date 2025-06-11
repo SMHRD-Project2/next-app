@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Pencil, Volume2 } from "lucide-react";
@@ -16,11 +16,19 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
 
-  // 250609 박남규 - 수정 모드 상태 추가
-  const [isEditing, setIsEditing] = useState(false);
-
   // 250609 박남규 - 내부 문장 상태를 따로 관리하도록 수정
   const [localSentence, setLocalSentence] = useState(sentence);
+
+  // textarea 참조를 위한 ref 추가
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // localSentence가 변경될 때마다 높이 조절
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '0px';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [localSentence]);
 
   // 250609 박남규 - 부모 props sentence 변경 시 내부 상태 동기화
   useEffect(() => {
@@ -35,11 +43,6 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
     setWaveformHeights(heights)
   }, [])
 
-  // 250609 박남규 - 수정 버튼 클릭 시 수정 모드 토글 함수
-  const handleEditClick = () => {
-    setIsEditing(prev => !prev)
-  }
-
   // 250609 박남규 - textarea onChange 핸들러에서 내부 상태 및 부모 콜백 호출
   const handleSentenceChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalSentence(e.target.value);
@@ -53,29 +56,16 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
           <span>훈련 문장</span>
           <div className="flex items-center space-x-2 ml-auto">
             {onRefresh && (
-              currentTab === "custom" ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
-                  onClick={handleEditClick}  // 250609 박남규 - 수정 버튼 클릭 시 수정 모드 토글
-                  aria-label="문장 수정"
-                  title={isEditing ? "수정 완료" : "문장 수정하기"}  // 상태에 따라 버튼 툴팁 변경
-                >
-                  <Pencil className="w-4 h-4" />
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
-                  onClick={onRefresh}
-                  aria-label="문장 새로고침"
-                  title="다른 문장으로 교체"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
-              )
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
+                onClick={onRefresh}
+                aria-label="문장 새로고침"
+                title="다른 문장으로 교체"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
             )}
 
             <Button
@@ -90,16 +80,16 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent>
         {/* 250609 박남규 - 훈련 문장을 직접 보여주고 수정 가능하도록 처리 */}
         <div className="p-6 bg-onair-bg rounded-lg border border-onair-text-sub/10">
           <textarea
-            className="w-full h-32 resize-none bg-onair-bg text-onair-text text-lg leading-relaxed text-center rounded-md border border-onair-text-sub/20 p-4"
-            value={localSentence}                         // 250609 박남규 - 내부 상태 사용
-            onChange={handleSentenceChange}               // 250609 박남규 - 수정 시 내부 상태 및 부모 콜백 호출
+            ref={textareaRef}
+            className="w-full min-h-[8rem] resize-none bg-onair-bg text-onair-text text-lg leading-relaxed text-center rounded-md border border-onair-text-sub/20 p-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            value={localSentence}
+            onChange={handleSentenceChange}
             spellCheck={false}
-            readOnly={!isEditing}                          // 250609 박남규 - 수정 모드가 아닐 땐 읽기 전용
-            style={{ cursor: isEditing ? "text" : "default" }} // 250609 박남규 - 커서 변경
+            readOnly={currentTab !== 'custom'}
           />
         </div>
 
@@ -136,3 +126,4 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
     </Card>
   )
 }
+

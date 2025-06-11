@@ -2,7 +2,9 @@
 
 // 디버깅을 위한 로그 함수
 const debugLog = (message: string, data?: any) => {
-  console.log(`[AUTH DEBUG] ${message}`, data || "")
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[AUTH] ${message}`, data || "")
+  }
 }
 
 // 로그인 상태 확인
@@ -102,10 +104,61 @@ export const logout = async () => {
   }
 }
 
-// SNS 계정 연동
+// SNS 계정 연동 - 팝업 대신 현재 창 리다이렉트 사용
 export const connectSNS = (provider: string) => {
   debugLog(`${provider} 계정 연동 시작`)
-  alert(`${provider} 계정 연동 기능이 실행됩니다.`)
+  
+  if (typeof window === "undefined") {
+    debugLog("서버 사이드에서 connectSNS 호출됨 - 무시")
+    return Promise.resolve(false)
+  }
+
+  const { userProfile } = getAuthStatus()
+  if (!userProfile?.email) {
+    alert('로그인이 필요합니다.')
+    return Promise.resolve(false)
+  }
+
+  console.log(`[${provider.toUpperCase()}] 연동 시작 - 사용자:`, userProfile.email)
+
+  // 팝업 대신 현재 창에서 직접 리다이렉트
+  let authUrl = ''
+  const state = encodeURIComponent(userProfile.email) // 사용자 이메일을 state로 전달
+  
+  switch (provider.toLowerCase()) {
+    case 'kakao':
+      authUrl = `https://kauth.kakao.com/oauth/authorize?` +
+        `client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&` +
+        `redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI!)}&` +
+        `response_type=code&` +
+        `scope=profile_nickname&` +
+        `state=${state}`
+      break
+    case 'naver':
+      authUrl = `https://nid.naver.com/oauth2.0/authorize?` +
+        `client_id=${process.env.NEXT_PUBLIC_NAVER_CLIENT_ID}&` +
+        `redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_NAVER_REDIRECT_URI!)}&` +
+        `response_type=code&` +
+        `state=${state}`
+      break
+    case 'google':
+      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&` +
+        `redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI!)}&` +
+        `response_type=code&` +
+        `scope=email profile&` +
+        `state=${state}`
+      break
+    default:
+      alert('지원하지 않는 SNS입니다.')
+      return Promise.resolve(false)
+  }
+
+  console.log(`[${provider.toUpperCase()}] OAuth URL:`, authUrl)
+  
+  // 현재 창에서 바로 이동
+  window.location.href = authUrl
+  
   return Promise.resolve(true)
 }
 
