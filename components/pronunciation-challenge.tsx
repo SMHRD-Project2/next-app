@@ -77,7 +77,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
 
   const handleDifficultySelect = (difficulty: string | null) => {
     setSelectedDifficulty(difficulty)
-    currentChallengeRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
   const filteredChallenges = selectedDifficulty
@@ -124,13 +123,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         </Button>
       </div>
 
-      {/* 랜덤 버튼 */}
-      <Button
-        onClick={handleRandomChallenge}
-        className="w-full mb-4 bg-onair-orange hover:bg-onair-orange/90 text-white"
-      >
-        랜덤 챌린지 선택
-      </Button>
       {/* 챌린지 선택 */}
       <Card className="bg-onair-bg-sub border-onair-text-sub/20">
         <CardHeader>
@@ -138,6 +130,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
             <Trophy className="w-5 h-5 text-onair-orange" />
             발음 챌린지 선택
           </CardTitle>
+          <p>어려운 발음에 도전하여 실력을 한 단계 업그레이드하세요</p>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3">

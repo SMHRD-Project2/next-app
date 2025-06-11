@@ -58,17 +58,18 @@ export default function HistoryPage() {
 
         <Card className="bg-onair-bg-sub border-onair-text-sub/20">
           <CardContent className="p-6 text-center">
-            <TrendingUp className="w-8 h-8 text-onair-orange mx-auto mb-2" />
-            <h3 className="text-2xl font-bold text-onair-text">87%</h3>
-            <p className="text-onair-text-sub">평균 정확도</p>
+            <Award className="w-8 h-8 text-onair-blue mx-auto mb-2" />
+            <h3 className="text-2xl font-bold text-onair-text">{trainingRecords.length}개</h3>
+            <p className="text-onair-text-sub">훈련 갯수</p>
           </CardContent>
         </Card>
 
         <Card className="bg-onair-bg-sub border-onair-text-sub/20">
           <CardContent className="p-6 text-center">
-            <Award className="w-8 h-8 text-onair-blue mx-auto mb-2" />
-            <h3 className="text-2xl font-bold text-onair-text">{trainingRecords.length}개</h3>
-            <p className="text-onair-text-sub">훈련 갯수</p>
+            <TrendingUp className="w-8 h-8 text-onair-orange mx-auto mb-2" />
+            <h3 className="text-2xl font-bold text-onair-text">87%</h3>
+            <p className="text-onair-text-sub">평균 정확도</p>
+
           </CardContent>
         </Card>
       </div>
