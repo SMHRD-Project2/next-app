@@ -1,5 +1,5 @@
 "use client"
-
+import { signIn } from "next-auth/react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -16,28 +16,77 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
     setLoadingProvider(provider)
 
     try {
-      // 실제 소셜 로그인 로직 구현 (예: NextAuth, Firebase Auth 등)
-      // 임시로 2초 후 성공으로 처리
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      switch (provider) {
+        case 'kakao':
+          const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?` +
+            `client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&` +
+            `redirect_uri=${encodeURIComponent('http://localhost:3000/api/auth/kakao/login')}&` +
+            `response_type=code&` +
+            `scope=profile_nickname`
+          
+          console.log('[KAKAO LOGIN] 카카오 로그인 URL:', kakaoUrl)
+          window.location.href = kakaoUrl
+          break
+          
+        case 'naver':
+          const state = Math.random().toString(36).substring(2, 15)
+          const naverUrl = `https://nid.naver.com/oauth2.0/authorize?` +
+            `client_id=${process.env.NEXT_PUBLIC_NAVER_CLIENT_ID}&` +
+            `redirect_uri=${encodeURIComponent('http://localhost:3000/api/auth/naver/login')}&` +
+            `response_type=code&` +
+            `state=${state}&` +
+            `scope=profile`
+          
+          console.log('[NAVER LOGIN] 네이버 로그인 URL:', naverUrl)
 
-      // 로그인 상태 변경 (실제로는 전역 상태 관리 사용)
-      localStorage.setItem("isLoggedIn", "true")
-      localStorage.setItem(
-        "userProfile",
-        JSON.stringify({
-          name: provider === "google" ? "Google 사용자" : provider === "naver" ? "Naver 사용자" : "Kakao 사용자",
-          email: `${provider}@example.com`,
-          image: "/placeholder.svg?height=32&width=32",
-        }),
-      )
+          const popup = window.open(
+            naverUrl,
+            'naver_login',
+            'width=500,height=700,scrollbars=yes'
+          )
 
-      // 커스텀 이벤트 발생시켜 네비게이션 상태 업데이트
-      window.dispatchEvent(new Event("localStorageChange"))
+          if (!popup) {
+            alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.')
+            return
+          }
 
-      // 로그인/회원가입 성공 시 메인 페이지로 이동
-      router.push("/")
+          // 감시: 팝업 닫히면 로딩 해제
+          const timer = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(timer)
+              setLoadingProvider(null)
+              // 메인 페이지 새로고침으로 로그인 상태 반영
+              window.location.reload()
+            }
+          }, 800)
+          break
+          
+        case 'google':
+          // const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+          // console.log('[GOOGLE LOGIN] 클라이언트 ID:', googleClientId)
+          
+          // if (!googleClientId) {
+          //   alert('구글 클라이언트 ID가 설정되지 않았습니다.')
+          //   return
+          // }
+          
+          const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+            `client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&` +
+            `redirect_uri=${encodeURIComponent('http://localhost:3000/api/auth/google/login')}&` +
+            `response_type=code&` +
+            `scope=email profile`
+          
+          console.log('[GOOGLE LOGIN] 구글 로그인 URL:', googleUrl)
+          
+          window.location.href = googleUrl
+          break
+          
+        default:
+          throw new Error('지원하지 않는 소셜 로그인 제공자입니다.')
+      }
     } catch (error) {
       console.error(`${provider} 로그인 실패:`, error)
+      alert(`${provider} 로그인 중 오류가 발생했습니다.`)
     } finally {
       setLoadingProvider(null)
     }

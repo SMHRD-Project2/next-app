@@ -31,8 +31,8 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
       secondary: "onair-blue/20",
     },
     female: {
-      primary: "onair-mint",
-      secondary: "onair-mint/20",
+      primary: "onair-female",
+      secondary: "onair-female/20",
     },
   }
 

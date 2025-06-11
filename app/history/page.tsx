@@ -1,8 +1,10 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, TrendingUp, Award } from "lucide-react"
+import { Calendar, TrendingUp, Award, Lock, LogIn } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/use-auth"
 
 const trainingRecords = [
   {
@@ -33,6 +35,34 @@ const trainingRecords = [
 
 export default function HistoryPage() {
   const router = useRouter()
+  const { isLoggedIn } = useAuth()
+
+  const handleLoginRedirect = () => {
+    router.push('/login')
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="fixed inset-0 bg-onair-bg/80 backdrop-blur-sm flex items-center justify-center">
+        <div className="text-center p-6 bg-onair-bg-sub rounded-lg border border-onair-text-sub/20 max-w-sm mx-4">
+          <Lock className="w-12 h-12 text-onair-mint mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-onair-text mb-2">
+            로그인이 필요합니다
+          </h3>
+          <p className="text-onair-text-sub text-sm mb-4">
+            훈련 기록을 확인하려면 로그인해주세요
+          </p>
+          <Button 
+            onClick={handleLoginRedirect}
+            className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            로그인하기
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const handleRetrain = (sentence: string) => {
     // Navigate to training page with the sentence as a query parameter
@@ -169,6 +199,47 @@ export default function HistoryPage() {
           </div>
         </CardContent>
       </Card>
+      {/* 스크롤 버튼 */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4">
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"
+          aria-label="맨 위로 스크롤"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
+        </button>
+        <button
+          onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+          className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"
+          aria-label="맨 아래로 스크롤"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 5v14M5 12l7 7 7-7" />
+          </svg>
+        </button>
+      </div>
     </div>
   )
 }

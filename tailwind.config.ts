@@ -58,7 +58,9 @@ const config: Config = {
           bg: "#1F2A3A",
           "bg-sub": "#2A3649",
           mint: "#3EE6C1",
+          female: "#FAD1E8",
           orange: "#FFB74D",
+          red : "#E02424",
           blue: "#5AC8FA",
           text: "#E2E8F0",
           "text-sub": "#A0AEC0",
@@ -96,6 +98,11 @@ const config: Config = {
       },
     },
   },
+  safelist: [
+    {
+      pattern: /(bg|text|hover:bg)-(onair-blue|onair-mint|onair-female)(?:\/(?:20|60|90))?/,
+    },
+  ],
   plugins: [require("tailwindcss-animate")],
 } satisfies Config
 

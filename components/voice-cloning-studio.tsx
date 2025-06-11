@@ -218,12 +218,13 @@ export function VoiceCloningStudio() {
 
                 <TabsContent value="upload" className="space-y-4">
                   <div
-                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
                       isDragging ? "border-onair-mint bg-onair-mint/10" : "border-onair-text-sub/20"
                     }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="w-12 h-12 text-onair-text-sub mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-onair-text mb-2">음성 파일 업로드</h3>
@@ -236,13 +237,6 @@ export function VoiceCloningStudio() {
                       className="hidden"
                       id="voice-upload"
                     />
-                    <Button
-                      className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
-                      onClick={() => fileInputRef.current?.click()}
-                      type="button"
-                    >
-                      파일 선택
-                    </Button>
                   </div>
 
                   {recordedSamples.length > 0 && (

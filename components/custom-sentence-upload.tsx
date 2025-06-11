@@ -6,9 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, FileText, LinkIcon, Type } from "lucide-react"
+import { Upload, FileText, LinkIcon } from "lucide-react"
 import { extractTextFromUrl, extractTextFromPdf } from "@/lib/api"
 
 interface CustomSentenceUploadProps {
@@ -16,28 +15,15 @@ interface CustomSentenceUploadProps {
 }
 
 export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadProps) {
-  const [textInput, setTextInput] = useState("")
   const [urlInput, setUrlInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
-  const [currentTab, setCurrentTab] = useState("text")
-  const [textExtracted, setTextExtracted] = useState<string>("")
-  const [urlExtracted, setUrlExtracted] = useState<string>("")
-  const [fileExtracted, setFileExtracted] = useState<string>("")
-
-  const handleTextSubmit = () => {
-    if (textInput.trim()) {
-      setTextExtracted(textInput.trim())
-      onSentenceSelect(textInput.trim())
-    }
-  }
 
   const handleUrlSubmit = async () => {
     if (!urlInput.trim()) return
     setIsLoading(true)
     try {
       const extracted = await extractTextFromUrl(urlInput)
-      setUrlExtracted(extracted)
       onSentenceSelect(extracted)
     } catch (error) {
       console.error("URL 처리 실패:", error)
@@ -63,13 +49,11 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         const reader = new FileReader()
         reader.onload = (e) => {
           const content = e.target?.result as string
-          setFileExtracted(content)
           onSentenceSelect(content)
         }
         reader.readAsText(file)
       } else if (file.type === "application/pdf") {
         const extracted = await extractTextFromPdf(file)
-        setFileExtracted(extracted)
         onSentenceSelect(extracted)
       } else {
         console.error("지원하지 않는 파일 형식입니다.")
@@ -84,17 +68,14 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setIsDragging(false)
-    
     const file = e.dataTransfer.files?.[0]
     if (!file) return
-
     await processFile(file)
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-
     await processFile(file)
   }
 
@@ -107,15 +88,8 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs
-          defaultValue="text"
-          className="space-y-4"
-        >
-          <TabsList className="grid w-full grid-cols-3 bg-onair-bg">
-            <TabsTrigger value="text" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
-              <Type className="w-4 h-4 mr-2" />
-              텍스트 입력
-            </TabsTrigger>
+        <Tabs defaultValue="url" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 bg-onair-bg">
             <TabsTrigger value="url" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
               <LinkIcon className="w-4 h-4 mr-2" />
               URL 링크
@@ -125,28 +99,6 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
               파일 업로드
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="text" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="text-input" className="text-onair-text">
-                연습할 문장을 입력하세요
-              </Label>
-              <Textarea
-                id="text-input"
-                placeholder="여기에 연습하고 싶은 문장을 입력하세요..."
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                className="min-h-[120px] bg-onair-bg border-onair-text-sub/20 text-onair-text placeholder:text-onair-text-sub focus:border-onair-mint"
-              />
-            </div>
-            <Button
-              onClick={handleTextSubmit}
-              disabled={!textInput.trim()}
-              className="w-full bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
-            >
-              이 문장으로 훈련하기
-            </Button>
-          </TabsContent>
 
           <TabsContent value="url" className="space-y-4">
             <div className="space-y-2">
@@ -213,12 +165,7 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
             )}
           </TabsContent>
         </Tabs>
-
       </CardContent>
     </Card>
   )
 }
-
-
-
-

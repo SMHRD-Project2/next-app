@@ -1,8 +1,28 @@
+'use client';
+
+
 import Link from "next/link"
 import { Button, type ButtonProps } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRight, Star, Quote } from "lucide-react"
-import { AIVoiceShowcase } from "../components/ai-voice-showcase"
+import { ArrowRight, Play, Quote, Star } from "lucide-react"
+import { AccuracyTrendChart } from "@/components/accuracy-trend-chart"
+import { WaveformVisualizer } from "@/components/waveform-visualizer"
+import { useRouter } from "next/navigation"
+import Zonoss from "@/components/Zonos"
+import { AIVoiceShowcase } from "@/components/ai-voice-showcase"
+
+
+
+// 현재 한국 날짜를 가져오는 함수
+function getCurrentKoreanDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  return `${year}년 ${month}월 ${day}일`;
+}
+
+
 
 export default function HomePage() {
   return (
@@ -35,6 +55,8 @@ export default function HomePage() {
               </Link>
             </Button>
           </div>
+          {/* TTS 불러오는 버튼 */}
+          {/* <Zonoss /> */}
         </div>
       </section>
 
@@ -173,6 +195,47 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </section>
+      {/* 스크롤 버튼 */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4">
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"
+          aria-label="맨 위로 스크롤"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
+        </button>
+        <button
+          onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+          className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"
+          aria-label="맨 아래로 스크롤"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 5v14M5 12l7 7 7-7" />
+          </svg>
+        </button>
+      </div>
     </div>
   )
 }
