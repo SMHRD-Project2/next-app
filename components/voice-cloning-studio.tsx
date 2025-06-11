@@ -138,7 +138,7 @@ export function VoiceCloningStudio() {
                 <Wand2 className="w-5 h-5 text-onair-mint" />
                 1단계: 음성 샘플 수집
               </CardTitle>
-              <p className="text-onair-text-sub">고품질 AI 모델 생성을 위해 최소 1개의 음성 샘플이 필요합니다.</p>
+              <p className="text-onair-text-sub">고품질 AI 모델 생성을 위해 음성 샘플이 필요합니다.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <Tabs defaultValue="record" className="space-y-4">
