@@ -2,36 +2,30 @@
 
 import { useState } from 'react';
 
-interface TTSComponentProps {
+interface TTSProps {
   text: string;
-  voice: string;
+  voice?: string;
+  onError?: (error: Error) => void;
 }
 
-export default function TTSComponent({ 
-  text,
-  voice
-}: TTSComponentProps) {
+export const TTS = ({ text, voice = 'SPK005.wav', onError }: TTSProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const handleTTS = async () => {
-    setIsLoading(true);
-    setError(null);
-
     try {
-      // 음성 파일 로드
+      setIsLoading(true);
+      
+      // 음성 파일 가져오기
       const voiceResponse = await fetch(`audio/${voice}`);
       const voiceBlob = await voiceResponse.blob();
-      
-      // 무음 파일 로드 (고정된 파일 사용)
-      const silenceResponse = await fetch('audio/silence_100ms.wav');
-      const silenceBlob = await silenceResponse.blob();
-      
-      const formData = new FormData();
-      formData.append('voice_file', voiceBlob, voice);
-      formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
 
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('text', text);
+      formData.append('voice_file', voiceBlob, voice);
+
+      // FastAPI 서버로 요청
       const response = await fetch(`http://localhost:8000/tts?text=${encodeURIComponent(text)}`, {
         method: 'POST',
         body: formData,
@@ -46,8 +40,9 @@ export default function TTSComponent({
       const url = URL.createObjectURL(audioBlob);
       setAudioUrl(url);
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+    } catch (error) {
+      console.error('TTS 오류:', error);
+      onError?.(error as Error);
     } finally {
       setIsLoading(false);
     }
@@ -65,12 +60,6 @@ export default function TTSComponent({
         {isLoading ? '변환 중...' : '음성으로 들려주기'}
       </button>
       
-      {error && (
-        <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-md">
-          {error}
-        </div>
-      )}
-
       {audioUrl && (
         <div className="mt-4">
           <audio controls src={audioUrl} className="w-full" />
@@ -78,4 +67,4 @@ export default function TTSComponent({
       )}
     </div>
   );
-} 
+}; 

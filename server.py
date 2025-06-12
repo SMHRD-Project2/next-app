@@ -20,9 +20,21 @@ import uuid
 from botocore.exceptions import ClientError
 import time
 import logging
+import sys
+import io
 
-# 로거 설정
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 logger = logging.getLogger("uvicorn")
+logger.setLevel(logging.INFO)
+logger.handlers = []
+
+handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+
 
 load_dotenv(".env.local")
 
@@ -260,4 +272,5 @@ async def create_tts(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="localhost", port=8000) 
+    # uvicorn.run(app, host="localhost", port=8000) 
+    uvicorn.run(app, host="localhost", port=8000, log_config=None)
