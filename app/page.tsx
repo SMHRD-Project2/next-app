@@ -8,7 +8,6 @@ import { ArrowRight, Play, Quote, Star } from "lucide-react"
 import { AccuracyTrendChart } from "@/components/accuracy-trend-chart"
 import { WaveformVisualizer } from "@/components/waveform-visualizer"
 import { useRouter } from "next/navigation"
-import Zonoss from "@/components/Zonos"
 import { AIVoiceShowcase } from "@/components/ai-voice-showcase"
 
 
@@ -58,7 +57,6 @@ export default function HomePage() {
             </Button>
           </div>
           {/* TTS 불러오는 버튼 */}
-          {/* <Zonoss /> */}
         </div>
       </section>
 
