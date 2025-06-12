@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const db = client.db('ONAIR'); // 몽고DB 데이터베이스명
 
     // 이메일 중복 확인
-    const existingUser = await db.collection('users').findOne({ email });
+    const existingUser = await db.collection('USER').findOne({ email });
     if (existingUser) {
       return NextResponse.json({ message: '이미 가입된 이메일입니다.' }, { status: 409 });
     }

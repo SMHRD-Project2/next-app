@@ -61,6 +61,8 @@ const config: Config = {
           female: "#FAD1E8",
           orange: "#FFB74D",
           red: "#BA3C3C",
+          // 풀 2개
+          // red : "#E02424", 
           blue: "#5AC8FA",
           text: "#E2E8F0",
           "text-sub": "#A0AEC0",

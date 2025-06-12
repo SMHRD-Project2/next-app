@@ -128,6 +128,7 @@ export default function HistoryPage() {
             <TrendingUp className="w-8 h-8 text-onair-orange mx-auto mb-2" />
             <h3 className="text-2xl font-bold text-onair-text">{averageAccuracy}%</h3>
             <p className="text-onair-text-sub">평균 정확도</p>
+
           </CardContent>
         </Card>
       </div>

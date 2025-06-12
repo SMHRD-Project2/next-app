@@ -115,6 +115,8 @@ export function AIModelManager() {
         return "bg-onair-orange/10 text-onair-orange border-onair-orange/20"
       case "교육용":
         return "border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
+      case "교육용":
+        return "border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
       default:
         return "bg-onair-text-sub/10 text-onair-text-sub border-onair-text-sub/20"
     }

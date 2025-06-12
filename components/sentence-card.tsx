@@ -41,6 +41,7 @@ export function SentenceCard({
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
 
+
   const MAX_LENGTH = 500;
 
   // 250609 박남규 - 내부 문장 상태를 따로 관리하도록 수정
@@ -434,6 +435,9 @@ export function SentenceCard({
             readOnly={currentTab !== 'custom' || isPlayingAIExample}
             maxLength={MAX_LENGTH}
           />
+          <p className="text-sm text-onair-text-sub text-right">
+            {localSentence.length}/500
+          </p>
           <p className="text-sm text-onair-text-sub text-right">
             {localSentence.length}/500
           </p>
