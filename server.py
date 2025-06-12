@@ -22,6 +22,7 @@ import time
 import logging
 import sys
 import io
+import subprocess
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -76,35 +77,51 @@ s3_client = boto3.client(
    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
         
-
-
 @app.post("/upload")
 async def upload_audio(file: UploadFile = File(...)):
     try:
+        # 250612 박남규 s3 수정: WebM 파일을 임시 저장
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp_in:
+            content = await file.read()
+            tmp_in.write(content)
+            tmp_in_path = tmp_in.name
 
-        file.file.seek(0)
-        sample_data = file.file.read(10)
-        print(f"[DEBUG] 파일에서 읽은 샘플 데이터: {sample_data}")
-        file.file.seek(0)
+        # 250612 박남규 s3 수정: .wav 파일로 변환할 경로 생성
+        tmp_out_path = tmp_in_path.replace(".webm", ".wav")
 
-        filename = f"recordings/{uuid.uuid4()}.{file.filename.split('.')[-1]}"
-        print(f"[DEBUG] S3 저장 경로: {filename}")
+        # 250612 박남규 s3 수정: ffmpeg를 이용한 변환 수행
+        cmd = [
+            "ffmpeg",
+            "-i", tmp_in_path,
+            "-ar", "16000",  # 16kHz 샘플레이트
+            "-ac", "1",      # 모노
+            "-y",            # 기존 파일 덮어쓰기
+            tmp_out_path
+        ]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg 변환 실패: {result.stderr.decode()}")
 
-        s3_client.upload_fileobj(
-            file.file,
-            S3_BUCKET_NAME,
-            filename,
-            ExtraArgs={"ContentType": file.content_type or "application/octet-stream"}
-        )
+        # 250612 박남규 s3 수정: 고유한 파일 이름 생성
+        unique_filename = f"recordings/{uuid.uuid4()}.wav"
 
-         # 250611 박남규 S3 URL 생성
-        s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{filename}"
-        print(f"[DEBUG] 접근 가능한 S3 URL: {s3_url}")
+        # 250612 박남규 s3 수정: S3에 업로드
+        with open(tmp_out_path, "rb") as wav_file:
+            s3_client.upload_fileobj(
+                wav_file,
+                S3_BUCKET_NAME,
+                unique_filename,
+                ExtraArgs={"ContentType": "audio/wav"}
+            )
 
-        return {"success": True,
-                 "filename": filename,
-                 "url": s3_url  # 250611 박남규 
-                 }
+        # 250612 박남규 s3 수정: S3 URL 생성
+        s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{unique_filename}"
+
+        return {
+            "success": True,
+            "filename": unique_filename,
+            "url": s3_url  # 250612 박남규 s3 수정
+        }
 
     except ClientError as e:
         print(f"[ERROR] AWS ClientError: {e}")
@@ -115,6 +132,11 @@ async def upload_audio(file: UploadFile = File(...)):
     except Exception as e:
         print(f"[ERROR] 예외 발생: {e}")
         return {"success": False, "error": str(e)}
+    finally:
+        # 250612 박남규 s3 수정: 임시 파일 정리
+        for path in [locals().get("tmp_in_path"), locals().get("tmp_out_path")]:
+            if path and os.path.exists(path):
+                os.unlink(path)
 
 
 @app.get("/health")
