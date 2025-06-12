@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
         </head>
         <body>
           <script>
-            console.error('[NAVER LOGIN] 데이터 파싱 오류:', ${JSON.stringify(error.message)});
+            console.error('[NAVER LOGIN] 데이터 파싱 오류:', ${JSON.stringify(error instanceof Error ? error.message : '알 수 없는 오류')});
             if (window.opener) {
               window.opener.postMessage({ 
                 type: 'SOCIAL_LOGIN_ERROR', 

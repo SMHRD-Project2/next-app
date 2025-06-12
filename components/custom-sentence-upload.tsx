@@ -19,12 +19,14 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
   const [isLoading, setIsLoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
+  const MAX_LENGTH = 500;
+
   const handleUrlSubmit = async () => {
     if (!urlInput.trim()) return
     setIsLoading(true)
     try {
       const extracted = await extractTextFromUrl(urlInput)
-      onSentenceSelect(extracted)
+      onSentenceSelect(extracted.slice(0, MAX_LENGTH))
     } catch (error) {
       console.error("URL 처리 실패:", error)
     } finally {
@@ -49,12 +51,12 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         const reader = new FileReader()
         reader.onload = (e) => {
           const content = e.target?.result as string
-          onSentenceSelect(content)
+          onSentenceSelect(content.slice(0, MAX_LENGTH))
         }
         reader.readAsText(file)
       } else if (file.type === "application/pdf") {
         const extracted = await extractTextFromPdf(file)
-        onSentenceSelect(extracted)
+        onSentenceSelect(extracted.slice(0, MAX_LENGTH))
       } else {
         console.error("지원하지 않는 파일 형식입니다.")
       }
@@ -100,7 +102,7 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="url" className="space-y-4">
+          <TabsContent value="url" className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="url-input" className="text-onair-text">
                 웹페이지 URL을 입력하세요
@@ -126,7 +128,7 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
             </Button>
           </TabsContent>
 
-          <TabsContent value="file" className="space-y-4">
+          <TabsContent value="file" className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="file-input" className="text-onair-text">
                 파일을 업로드하세요

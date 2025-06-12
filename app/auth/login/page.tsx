@@ -30,24 +30,24 @@ function LoginContent() {
     <div className="min-h-screen flex">
       {/* 왼쪽 브랜딩 섹션 */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-onair-mint/20 to-onair-blue/20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/images/studio-background.jpg')] bg-cover bg-center opacity-30"></div>
+        <div className="absolute inset-0 bg-[url('/images/new-bg.jpg')] bg-cover bg-center opacity-50"></div>
         <div className="absolute inset-0 bg-gradient-to-br from-onair-bg/90 to-onair-bg/70"></div>
 
-        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+        <div className="relative z-10 flex flex-col justify-center px-20 text-white">
           <div className="mb-8">
-            <div className="flex items-center space-x-3 mb-6">
+            <Link href="/" className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-onair-mint rounded-full flex items-center justify-center">
                 <Mic className="w-7 h-7 text-onair-bg" />
               </div>
               <span className="text-3xl font-bold text-onair-mint">ON AIR</span>
-            </div>
-            <h1 className="text-4xl font-bold mb-4">입으로 완성하는 꿈</h1>
-            <p className="text-xl text-onair-text-sub mb-8">
-              AI 기반 아나운서 발음 훈련으로
-              <br />
-              완벽한 발음을 만들어보세요
-            </p>
+            </Link>
           </div>
+          <h1 className="text-4xl font-bold mb-4">입으로 완성하는 꿈</h1>
+          <p className="text-xl text-onair-text-sub mb-8">
+            AI 기반 아나운서 발음 훈련으로
+            <br />
+            완벽한 발음을 만들어보세요
+          </p>
 
           <div className="space-y-4">
             <div className="flex items-center space-x-3">

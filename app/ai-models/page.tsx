@@ -13,7 +13,7 @@ export default function AIModelsPage() {
   const { isLoggedIn } = useAuth()
 
   const handleLoginRedirect = () => {
-    router.push('/auth/login')
+    router.push('/login')
   }
 
   if (!isLoggedIn) {
@@ -64,6 +64,47 @@ export default function AIModelsPage() {
           <VoiceCloningStudio />
         </TabsContent>
       </Tabs>
+      {/* 스크롤 버튼 */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4">
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"
+          aria-label="맨 위로 스크롤"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
+        </button>
+        <button
+          onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+          className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"
+          aria-label="맨 아래로 스크롤"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 5v14M5 12l7 7 7-7" />
+          </svg>
+        </button>
+      </div>
     </div>
   )
 }

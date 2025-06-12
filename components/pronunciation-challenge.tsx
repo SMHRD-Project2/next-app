@@ -4,7 +4,15 @@ import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Mic, Square, RotateCcw, Trophy, Star } from "lucide-react"
+import { Mic, Square, RotateCcw, Trophy, Star, ChevronDown, Play, Pause, Volume2 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { aiModels } from "@/components/ai-model-manager"
 
 interface PronunciationChallengeProps {
   isRecording: boolean
@@ -68,6 +76,8 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const [selectedChallenge, setSelectedChallenge] = useState(challenges[0])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const currentChallengeRef = useRef<HTMLDivElement>(null)
+  const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id || null)
+  const [playingModel, setPlayingModel] = useState<number | null>(null)
 
   const handleChallengeSelect = (challenge: (typeof challenges)[0]) => {
     setSelectedChallenge(challenge)
@@ -87,6 +97,16 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
     const randomIndex = Math.floor(Math.random() * filteredChallenges.length)
     setSelectedChallenge(filteredChallenges[randomIndex])
     onReset()
+  }
+
+  const handlePlayExample = () => {
+    if (selectedModel) {
+      setPlayingModel(playingModel === selectedModel ? null : selectedModel)
+      // 실제 AI 예시 듣기 로직 (예: API 호출 또는 오디오 재생)
+      console.log(`AI 예시 듣기: 모델 ID ${selectedModel} (재생/일시정지 토글)`)
+    } else {
+      console.log("재생할 AI 모델이 선택되지 않았습니다.")
+    }
   }
 
   return (
@@ -164,8 +184,64 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
       <Card ref={currentChallengeRef} className="bg-onair-bg-sub border-onair-text-sub/20">
         <CardHeader>
           <CardTitle className="text-onair-text flex items-center justify-between">
-            <span>현재 챌린지</span>
-            <Badge className={selectedChallenge.color}>{selectedChallenge.difficulty}</Badge>
+            <div className="flex items-center gap-2">
+              <span>현재 챌린지</span>
+              <Badge className={selectedChallenge.color}>{selectedChallenge.difficulty}</Badge>
+            </div>
+            <div className="inline-flex rounded-md shadow-sm border border-onair-mint">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
+                onClick={handlePlayExample}
+              >
+                {playingModel === selectedModel ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
+                AI 예시 듣기
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="relative inline-flex items-center rounded-r-md rounded-l-none text-onair-mint hover:bg-onair-mint hover:text-onair-bg px-2 focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
+                    aria-label="AI 모델 선택"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px]">
+                  {aiModels.map((model) => (
+                    <DropdownMenuItem
+                      key={model.id}
+                      onClick={() => {
+                        setSelectedModel(model.id);
+                        if (playingModel !== null) {
+                          setPlayingModel(null);
+                        }
+                      }}
+                      className="flex items-center space-x-2 cursor-pointer"
+                    >
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={model.avatar} />
+                        <AvatarFallback className="bg-onair-bg text-onair-mint">
+                          {model.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{model.name}</span>
+                        <span className="text-xs text-onair-text-sub">{model.type}</span>
+                      </div>
+                      {selectedModel === model.id && (
+                        <span className="ml-auto text-onair-mint">✓</span>
+                      )}
+                      {model.isDefault && selectedModel !== model.id && (
+                        <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -21,11 +21,6 @@ export function VoiceCloningStudio() {
   const [processingProgress, setProcessingProgress] = useState(0)
   const [modelName, setModelName] = useState("")
   const [modelDescription, setModelDescription] = useState("")
-  const [currentRecordingIndex, setCurrentRecordingIndex] = useState(-1)
-
-  // MediaRecorder 관련 상태
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
 
   const allSampleTexts = [
     "안녕하세요, 저는 AI 음성 모델 생성을 위한 샘플 음성을 녹음하고 있습니다. 오늘은 제 목소리로 여러분과 함께하게 되어 기쁩니다. 앞으로 다양한 콘텐츠를 제작하는데 도움이 되었으면 좋겠습니다.",
@@ -48,6 +43,32 @@ export function VoiceCloningStudio() {
     
     "운동은 건강한 삶을 위한 필수 요소입니다. 규칙적인 운동은 우리의 신체적, 정신적 건강을 모두 향상시켜줍니다. 하루 30분만이라도 운동하는 습관을 들여보세요."
   ]
+
+  const [sampleTexts, setSampleTexts] = useState<string[]>([])
+
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // 랜덤 샘플 텍스트 생성 함수
+  const generateRandomSample = () => {
+    const randomIndex = Math.floor(Math.random() * allSampleTexts.length)
+    setSampleTexts([allSampleTexts[randomIndex]])
+    // 녹음된 샘플이 있다면 초기화
+    setRecordedSamples([])
+  }
+
+  // TTS 예시 듣기
+  const handlePlaySampleTTS = () => {
+    if (!sampleTexts[0]) return
+    const utter = new window.SpeechSynthesisUtterance(sampleTexts[0])
+    utter.lang = "ko-KR"
+    window.speechSynthesis.speak(utter)
+  }
+
+  // 컴포넌트가 마운트될 때 랜덤 샘플 텍스트 선택
+  useEffect(() => {
+    generateRandomSample()
+  }, [])
 
   const [sampleTexts, setSampleTexts] = useState<string[]>([])
 
@@ -220,41 +241,38 @@ export function VoiceCloningStudio() {
       newUrls[0] = URL.createObjectURL(file)
       
       setRecordedSamples(newSamples)
-      setRecordedUrls(newUrls)
-      
-      console.log('📁 파일 업로드됨:', {
-        name: file.name,
-        size: `${(file.size / 1024).toFixed(2)} KB`,
-        type: file.type
-      })
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      setRecordedSamples([files[0].name])
     }
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files && files.length > 0) {
-      const file = files[0]
-      const newSamples = [...recordedSamples]
-      const newUrls = [...recordedUrls]
-      
-      newSamples[0] = file
-      newUrls[0] = URL.createObjectURL(file)
-      
-      setRecordedSamples(newSamples)
-      setRecordedUrls(newUrls)
-      
-      console.log('📁 파일 선택됨:', {
-        name: file.name,
-        size: `${(file.size / 1024).toFixed(2)} KB`,
-        type: file.type
-      })
+      setRecordedSamples([files[0].name])
     }
   }
 
-  // Fast API로 데이터 전송하고 실시간 진행률 수신하는 함수
-  const sendToFastAPI = async () => {
-    if (!recordedSamples[0] || !sampleTexts[0]) {
-      alert("음성 샘플과 텍스트가 필요합니다.")
+  const handleCreateModel = async () => {
+    if (!modelName.trim()) {
+      alert("모델 이름을 입력해주세요.")
       return
     }
 
@@ -605,10 +623,10 @@ export function VoiceCloningStudio() {
               </Tabs>
 
               <div className="flex justify-between items-center pt-4 border-t border-onair-text-sub/10">
-                <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.filter(sample => sample).length}/1 샘플 완료</div>
+                <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.length}/1 샘플 완료</div>
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={recordedSamples.filter(sample => sample).length < 1}
+                  disabled={recordedSamples.length < 1}
                   className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                 >
                   다음 단계
