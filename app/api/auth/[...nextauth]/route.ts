@@ -4,7 +4,6 @@ import clientPromise from "@/lib/mongodb"
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
 import { Session } from "next-auth"
 
-
 export const authOptions = {
   providers: [
     GoogleProvider({

@@ -11,6 +11,13 @@ import fitz
 from pykospacing import Spacing
 import tempfile
 import os
+import boto3
+from botocore.exceptions import NoCredentialsError
+from dotenv import load_dotenv
+import uuid
+from botocore.exceptions import ClientError
+
+load_dotenv(".env.local")
 
 app = FastAPI()
 
@@ -22,6 +29,61 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+        # AWS S3 설정
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+S3_REGION = os.getenv("S3_REGION")
+
+s3_client = boto3.client(
+    "s3",
+   region_name=S3_REGION,
+   aws_access_key_id=AWS_ACCESS_KEY_ID,
+   aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+)
+        
+
+
+@app.post("/upload")
+async def upload_audio(file: UploadFile = File(...)):
+    try:
+
+        file.file.seek(0)
+        sample_data = file.file.read(10)
+        print(f"[DEBUG] 파일에서 읽은 샘플 데이터: {sample_data}")
+        file.file.seek(0)
+
+        filename = f"recordings/{uuid.uuid4()}.{file.filename.split('.')[-1]}"
+        print(f"[DEBUG] S3 저장 경로: {filename}")
+
+        s3_client.upload_fileobj(
+            file.file,
+            S3_BUCKET_NAME,
+            filename,
+            ExtraArgs={"ContentType": file.content_type or "application/octet-stream"}
+        )
+
+         # 250611 박남규 S3 URL 생성
+        s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{filename}"
+        print(f"[DEBUG] 접근 가능한 S3 URL: {s3_url}")
+
+        return {"success": True,
+                 "filename": filename,
+                 "url": s3_url  # 250611 박남규 
+                 }
+
+    except ClientError as e:
+        print(f"[ERROR] AWS ClientError: {e}")
+        return {"success": False, "error": f"AWS ClientError: {e}"}
+    except NoCredentialsError:
+        print("[ERROR] AWS 인증 오류 발생")
+        return {"success": False, "error": "AWS 인증 오류"}
+    except Exception as e:
+        print(f"[ERROR] 예외 발생: {e}")
+        return {"success": False, "error": str(e)}
+
 
 @app.get("/health")
 async def health_check():

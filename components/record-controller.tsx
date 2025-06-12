@@ -30,13 +30,13 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
 
     // 오디오 엘리먼트 생성
     audioRef.current = new Audio()
-    
+
     // 오디오 재생 종료 이벤트 처리
     if (audioRef.current) {
       audioRef.current.addEventListener('ended', () => {
         setIsPlaying(false)
       })
-      
+
       audioRef.current.addEventListener('error', (e) => {
         console.error('오디오 재생 오류:', e)
         setIsPlaying(false)
@@ -65,7 +65,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
         }
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints)
-        
+
         // 지원되는 MIME 타입 확인
         let mimeType = 'audio/webm;codecs=opus'
         if (!MediaRecorder.isTypeSupported(mimeType)) {
@@ -79,7 +79,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
         }
 
         const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
-        
+
         mediaRecorderRef.current = mediaRecorder
         audioChunksRef.current = []
 
@@ -91,17 +91,20 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
 
         // 녹음 완료 시 처리
         mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunksRef.current, { 
-            type: mimeType || 'audio/webm' 
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: mimeType || 'audio/webm'
           })
-          
+
           // 이전 URL이 있다면 해제
           if (audioURL) {
             URL.revokeObjectURL(audioURL)
           }
-          
+
           const url = URL.createObjectURL(audioBlob)
           setAudioURL(url)
+
+          // 250611 박남규 업로드
+          uploadToS3(audioBlob)
           audioChunksRef.current = []
         }
 
@@ -152,6 +155,45 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
     }
   }
 
+  //  2506011 박남규 aws 업로드하기
+  const uploadToS3 = async (blob: Blob) => {
+
+    console.log("전달된 blob:", blob) // 1. blob 확인 남규 테스트
+
+    const formData = new FormData()
+    const file = new File([blob], "recording.wav", { type: "audio/wav" }) // 250611 박남규 확장자 변경
+
+    console.log("생성된 File 객체:", file) // 2. file 확인 남규 테스트
+    console.log("File 타입:", file.type)
+    console.log("File 크기:", file.size)
+
+
+    formData.append("file", file)
+
+
+    for (let [key, value] of formData.entries()) {
+      console.log("FormData 항목:", key, value) // 3. formData 확인 남규 테스트
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/upload", {
+        method: "POST",
+        body: formData,
+      })
+      console.log("응답 상태:", res.status) // 4. 응답 확인 남규 테스트
+      const data = await res.json()
+      if (data.success) {
+        console.log("업로드 성공:", data.url)
+      } else {
+        const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."
+        console.error("업로드 실패:", data.error)
+      }
+    } catch (error) {
+      console.error("에러:", error)
+    }
+  }
+
+
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20">
       <CardContent className="p-6">
@@ -195,11 +237,10 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
             <Button
               onClick={handleRecord}
               size="lg"
-              className={`${
-                isRecording
-                  ? "bg-red-500 hover:bg-red-600 text-white"
-                  : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
-              } font-semibold`}
+              className={`${isRecording
+                ? "bg-red-500 hover:bg-red-600 text-white"
+                : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                } font-semibold`}
             >
               {isRecording ? (
                 <>
