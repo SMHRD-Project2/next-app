@@ -88,6 +88,7 @@ async def extract_text(request: URLRequest):
         return {"text": filtered_text}
     except Exception as e:
         return {"error": str(e)}
+        
 
 @app.post("/extract-pdf")
 async def extract_pdf(file: UploadFile = File(...)):

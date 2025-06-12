@@ -1,19 +1,20 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, TrendingUp, Award, Lock, LogIn } from "lucide-react"
+import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
+import { useState } from "react"
 
-const trainingRecords = [
+const initialTrainingRecords = [
   {
     id: 1,
     date: "2024-01-07",
     category: "뉴스 읽기",
     sentence: "오늘 서울 지역에 첫눈이 내렸습니다.",
     scores: { pronunciation: 91, intonation: 88, tone: 92 },
-    status: "완료",
+    // status: "완료",
   },
   {
     id: 2,
@@ -21,7 +22,7 @@ const trainingRecords = [
     category: "긴 문장",
     sentence: "정부는 새로운 경제 정책을 발표하며...",
     scores: { pronunciation: 85, intonation: 82, tone: 89 },
-    status: "완료",
+    // status: "완료",
   },
   {
     id: 3,
@@ -29,13 +30,32 @@ const trainingRecords = [
     category: "짧은 문장",
     sentence: "안녕하세요, 시청자 여러분.",
     scores: { pronunciation: 88, intonation: 85, tone: 86 },
-    status: "완료",
+    // status: "완료",
   },
 ];
 
 export default function HistoryPage() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
+  const [trainingRecords, setTrainingRecords] = useState(initialTrainingRecords);
+
+  // 평균 정확도 계산
+  const calculateAverageAccuracy = () => {
+    if (trainingRecords.length === 0) {
+      return 0
+    }
+
+    let totalScoreSum = 0
+    trainingRecords.forEach(record => {
+      const { pronunciation, intonation, tone } = record.scores
+      const itemAverage = (pronunciation + intonation + tone) / 3
+      totalScoreSum += itemAverage
+    })
+
+    return Math.round(totalScoreSum / trainingRecords.length)
+  }
+
+  const averageAccuracy = calculateAverageAccuracy()
 
   const handleLoginRedirect = () => {
     router.push('/login')
@@ -69,6 +89,15 @@ export default function HistoryPage() {
     router.push(`/training?customSentence=${encodeURIComponent(sentence)}`)
   }
 
+  // 삭제 핸들러 추가
+  const handleDelete = (id: number) => {
+    if (confirm("정말로 이 기록을 삭제하시겠습니까?")) {
+      setTrainingRecords(prevRecords => prevRecords.filter(record => record.id !== id));
+      /* 기록 삭제 완료 알림 */
+      alert("기록이 삭제되었습니다.");
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="text-center space-y-4">
@@ -97,9 +126,8 @@ export default function HistoryPage() {
         <Card className="bg-onair-bg-sub border-onair-text-sub/20">
           <CardContent className="p-6 text-center">
             <TrendingUp className="w-8 h-8 text-onair-orange mx-auto mb-2" />
-            <h3 className="text-2xl font-bold text-onair-text">87%</h3>
+            <h3 className="text-2xl font-bold text-onair-text">{averageAccuracy}%</h3>
             <p className="text-onair-text-sub">평균 정확도</p>
-
           </CardContent>
         </Card>
       </div>
@@ -143,9 +171,9 @@ export default function HistoryPage() {
                       </span>
                       <span className="text-onair-text-sub text-sm">{item.date}</span>
                     </div>
-                    <span className="px-2 py-1 rounded text-xs font-medium border border-onair-mint text-onair-mint">
+                    {/* <span className="px-2 py-1 rounded text-xs font-medium border border-onair-mint text-onair-mint">
                       {item.status}
-                    </span>
+                    </span> */}
                   </div>
 
                   {/* 문장 */}
@@ -172,25 +200,38 @@ export default function HistoryPage() {
                   </div>
 
                   {/* 액션 버튼 */}
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M8 5v10l7-5-7-5z" />
-                      </svg>
-                      음성 재생
-                    </button>
-                    <button 
-                      onClick={() => handleRetrain(item.sentence)}
-                      className="px-3 py-1 text-sm bg-onair-mint text-onair-bg hover:bg-onair-mint/90 rounded flex items-center gap-1"
+                  <div className="flex justify-between items-end">
+                    {/* 음성 재생 및 다시 훈련 버튼 그룹 */}
+                    <div className="flex gap-2">
+                      {/* 음성 재생 버튼 */}
+                      <button className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M8 5v10l7-5-7-5z" />
+                        </svg>
+                        음성 재생
+                      </button>
+                      {/* 다시 훈련 버튼 */}
+                      <button
+                        onClick={() => handleRetrain(item.sentence)}
+                        className="px-3 py-1 text-sm bg-onair-mint text-onair-bg hover:bg-onair-mint/90 rounded flex items-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        다시 훈련
+                      </button>
+                    </div>
+                    {/* 삭제 버튼 */}
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-red-400 hover:bg-onair-bg-sub rounded flex items-center gap-1"
                     >
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      다시 훈련
+                      <Trash2 className="w-4 h-4" />
+                      삭제
                     </button>
                   </div>
                 </div>

@@ -10,16 +10,27 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2 } from "lucide-react"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { aiModels } from "@/components/ai-model-manager"
 
 export function VoiceCloningStudio() {
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
-  const [recordedSamples, setRecordedSamples] = useState<string[]>([])
+  const [recordedSamples, setRecordedSamples] = useState<{ name: string; duration: number | null }[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
   const [modelName, setModelName] = useState("")
   const [modelDescription, setModelDescription] = useState("")
+
+  const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id || null)
+  const [playingModel, setPlayingModel] = useState<number | null>(null)
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+
+  const [currentRecordingIndex, setCurrentRecordingIndex] = useState<number | null>(null)
+  const [activeRecordingTime, setActiveRecordingTime] = useState(0)
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const allSampleTexts = [
     "안녕하세요, 저는 AI 음성 모델 생성을 위한 샘플 음성을 녹음하고 있습니다. 오늘은 제 목소리로 여러분과 함께하게 되어 기쁩니다. 앞으로 다양한 콘텐츠를 제작하는데 도움이 되었으면 좋겠습니다.",
@@ -48,15 +59,20 @@ export function VoiceCloningStudio() {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  // 랜덤 샘플 텍스트 생성 함수
   const generateRandomSample = () => {
     const randomIndex = Math.floor(Math.random() * allSampleTexts.length)
-    setSampleTexts([allSampleTexts[randomIndex]])
-    // 녹음된 샘플이 있다면 초기화
-    setRecordedSamples([])
+    const newSampleText = allSampleTexts[randomIndex]
+    setSampleTexts([newSampleText])
+    setRecordedSamples([{ name: '', duration: null }])
+    setCurrentRecordingIndex(null)
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current)
+      recordingTimerRef.current = null
+    }
+    setIsRecording(false)
+    setActiveRecordingTime(0)
   }
 
-  // TTS 예시 듣기
   const handlePlaySampleTTS = () => {
     if (!sampleTexts[0]) return
     const utter = new window.SpeechSynthesisUtterance(sampleTexts[0])
@@ -64,20 +80,112 @@ export function VoiceCloningStudio() {
     window.speechSynthesis.speak(utter)
   }
 
-  // 컴포넌트가 마운트될 때 랜덤 샘플 텍스트 선택
+  const handlePlayExample = () => {
+    if (selectedModel) {
+      if (playingModel === selectedModel) {
+        audio?.pause();
+        setPlayingModel(null);
+      } else {
+        if (audio) {
+          audio.play();
+          setPlayingModel(selectedModel);
+        } else {
+          const newAudio = new Audio(`/audio/female.wav`);
+          newAudio.play();
+          setAudio(newAudio);
+          setPlayingModel(selectedModel);
+
+          newAudio.onended = () => {
+            setPlayingModel(null);
+            setAudio(null);
+          };
+        }
+      }
+    }
+  }
+
   useEffect(() => {
     generateRandomSample()
   }, [])
 
   const handleRecord = (index: number) => {
-    setIsRecording(!isRecording)
-    if (isRecording) {
-      // 녹음 완료 처리
-      const newSamples = [...recordedSamples]
-      newSamples[index] = `sample_${index + 1}.wav`
-      setRecordedSamples(newSamples)
+    if (isRecording && currentRecordingIndex === index) {
+      setIsRecording(false)
+      setCurrentRecordingIndex(null)
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = null
+      }
+
+      setRecordedSamples((prevSamples) => {
+        const newSamples = [...prevSamples]
+        while(newSamples.length <= index) {
+            newSamples.push({ name: '', duration: null });
+        }
+        newSamples[index] = { name: `sample_${index + 1}.wav`, duration: activeRecordingTime }
+        return newSamples
+      })
+
+    } else if (isRecording && currentRecordingIndex !== index) {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+        recordingTimerRef.current = null
+      }
+      setRecordedSamples((prevSamples) => {
+        const newSamples = [...prevSamples]
+        if (currentRecordingIndex !== null) {
+          while(newSamples.length <= currentRecordingIndex) {
+              newSamples.push({ name: '', duration: null });
+          }
+          newSamples[currentRecordingIndex] = {
+            name: `sample_${currentRecordingIndex + 1}.wav`,
+            duration: activeRecordingTime,
+          }
+        }
+        return newSamples
+      })
+
+      setCurrentRecordingIndex(index)
+      setActiveRecordingTime(0)
+      recordingTimerRef.current = setInterval(() => {
+        setActiveRecordingTime((prev) => prev + 1)
+      }, 1000)
+      setIsRecording(true)
+
+      setRecordedSamples((prevSamples) => {
+        const newSamples = [...prevSamples]
+        while(newSamples.length <= index) {
+            newSamples.push({ name: '', duration: null });
+        }
+        newSamples[index] = { name: `sample_${index + 1}.wav`, duration: null }
+        return newSamples
+      })
+    } else {
+      setCurrentRecordingIndex(index)
+      setActiveRecordingTime(0)
+      recordingTimerRef.current = setInterval(() => {
+        setActiveRecordingTime((prev) => prev + 1)
+      }, 1000)
+      setIsRecording(true)
+
+      setRecordedSamples((prevSamples) => {
+        const newSamples = [...prevSamples]
+        while(newSamples.length <= index) {
+            newSamples.push({ name: '', duration: null });
+        }
+        newSamples[index] = { name: `sample_${index + 1}.wav`, duration: null }
+        return newSamples
+      })
     }
   }
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current)
+      }
+    }
+  }, [])
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -94,14 +202,14 @@ export function VoiceCloningStudio() {
     setIsDragging(false)
     const files = e.dataTransfer.files
     if (files && files.length > 0) {
-      setRecordedSamples([files[0].name])
+      setRecordedSamples([{ name: files[0].name, duration: null }])
     }
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files && files.length > 0) {
-      setRecordedSamples([files[0].name])
+      setRecordedSamples([{ name: files[0].name, duration: null }])
     }
   }
 
@@ -114,18 +222,23 @@ export function VoiceCloningStudio() {
     setIsProcessing(true)
     setProcessingProgress(0)
 
-    // 진행률 시뮬레이션
     const interval = setInterval(() => {
       setProcessingProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval)
           setIsProcessing(false)
-          setStep(4) // 완료 단계로 이동
+          setStep(4)
           return 100
         }
         return prev + Math.random() * 15
       })
     }, 500)
+  }
+
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
   }
 
   const renderStep = () => {
@@ -138,9 +251,11 @@ export function VoiceCloningStudio() {
                 <Wand2 className="w-5 h-5 text-onair-mint" />
                 1단계: 음성 샘플 수집
               </CardTitle>
-              <p className="text-onair-text-sub">고품질 AI 모델 생성을 위해 음성 샘플이 필요합니다.</p>
+              <p className="text-onair-text-sub">
+              고품질 AI 모델 생성을 위해 음성 샘플이 필요합니다.
+              </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
               <Tabs defaultValue="record" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-2 bg-onair-bg">
                   <TabsTrigger
@@ -160,38 +275,76 @@ export function VoiceCloningStudio() {
                 <TabsContent value="record" className="space-y-4">
                   <div className="flex gap-2 justify-end mb-2">
                     <Button
-                      size="icon"
-                      variant="outline"
-                      className="border-onair-mint text-onair-mint"
+                      size="sm"
+                      variant="ghost"
+                      className="relative inline-flex items-center rounded-md border border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
                       onClick={generateRandomSample}
                     >
-                      <RefreshCw className="w-5 h-5" />
+                      <RefreshCw className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="border-onair-mint text-onair-mint flex items-center gap-2"
-                      onClick={handlePlaySampleTTS}
-                    >
-                      <Volume2 className="w-5 h-5" />
-                      <span>AI 예시 듣기</span>
-                    </Button>
+                    <div className="inline-flex rounded-md shadow-sm border border-onair-mint">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
+                        onClick={handlePlayExample}
+                      >
+                        {playingModel === selectedModel ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
+                        {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="relative inline-flex items-center rounded-r-md rounded-l-none text-onair-mint hover:bg-onair-mint hover:text-onair-bg px-2 focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
+                            aria-label="AI 모델 선택"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px]">
+                          {aiModels.map((model) => (
+                            <DropdownMenuItem
+                              key={model.id}
+                              onClick={() => {
+                                setSelectedModel(model.id);
+                                if (playingModel !== null) {
+                                  setPlayingModel(null);
+                                  audio?.pause();
+                                }
+                              }}
+                              className="flex items-center space-x-2 cursor-pointer"
+                            >
+                              <Avatar className="w-6 h-6">
+                                <AvatarImage src={model.avatar} />
+                                <AvatarFallback className="bg-onair-bg text-onair-mint">
+                                  {model.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{model.name}</span>
+                                <span className="text-xs text-onair-text-sub">{model.type}</span>
+                              </div>
+                              {selectedModel === model.id && (
+                                <span className="ml-auto text-onair-mint">✓</span>
+                              )}
+                              {model.isDefault && selectedModel !== model.id && (
+                                <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
+                              )}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
-                  <div className="bg-onair-bg/50 rounded-lg p-4">
-                    <h4 className="font-medium text-onair-text mb-2">녹음 가이드</h4>
-                    <ul className="text-sm text-onair-text-sub space-y-1">
-                      <li>• 조용한 환경에서 녹음해주세요</li>
-                      <li>• 마이크와 30cm 정도 거리를 유지하세요</li>
-                      <li>• 자연스럽고 일정한 속도로 읽어주세요</li>
-                      <li>• 각 문장을 3-5초 정도로 녹음하세요</li>
-                    </ul>
-                  </div>
 
                   {sampleTexts.map((text, index) => (
                     <div key={index} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-onair-mint">샘플 {index + 1}</span>
-                        {recordedSamples[index] && <CheckCircle className="w-4 h-4 text-green-400" />}
+                        {recordedSamples[index] && recordedSamples[index].duration !== null && <CheckCircle className="w-4 h-4 text-green-400" />}
                       </div>
                       <p className="text-onair-text mb-3">{text}</p>
                       <div className="flex items-center gap-2">
@@ -199,17 +352,24 @@ export function VoiceCloningStudio() {
                           size="sm"
                           onClick={() => handleRecord(index)}
                           className={
-                            isRecording
+                            isRecording && currentRecordingIndex === index
                               ? "bg-red-500 hover:bg-red-600 text-white"
                               : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                           }
                         >
-                          {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          {isRecording && currentRecordingIndex === index ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                         </Button>
-                        {recordedSamples[index] && (
+                        {recordedSamples[index] && recordedSamples[index].duration !== null && (
                           <Button size="sm" variant="outline" className="border-onair-blue text-onair-blue">
                             <Play className="w-4 h-4" />
                           </Button>
+                        )}
+                        {(isRecording && currentRecordingIndex === index) ? (
+                          <span className="text-onair-text-sub">{formatTime(activeRecordingTime)}</span>
+                        ) : (
+                          recordedSamples[index] && recordedSamples[index].duration !== null && (
+                            <span className="text-onair-text-sub">{formatTime(recordedSamples[index].duration!)}</span>
+                          )
                         )}
                       </div>
                     </div>
@@ -244,8 +404,8 @@ export function VoiceCloningStudio() {
                       <h4 className="font-medium text-onair-text">업로드된 파일</h4>
                       {recordedSamples.map((sample, index) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-onair-bg rounded">
-                          <span className="text-onair-text-sub">{sample}</span>
-                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <span className="text-onair-text-sub">{sample.name}</span>
+                          {sample.duration !== null && <CheckCircle className="w-4 h-4 text-green-400" />}
                         </div>
                       ))}
                     </div>
@@ -253,11 +413,20 @@ export function VoiceCloningStudio() {
                 </TabsContent>
               </Tabs>
 
+                  <div className="bg-onair-bg/50 rounded-lg p-4">
+                    <h4 className="font-medium text-onair-text mb-2">녹음 가이드</h4>
+                    <ul className="text-sm text-onair-text-sub space-y-1">
+                      <li>• 조용한 환경에서 녹음해주세요</li>
+                      <li>• 마이크와 30cm 정도 거리를 유지하세요</li>
+                      <li>• 자연스럽고 일정한 속도로 읽어주세요</li>
+                      <li>• 각 문장을 3-5초 정도로 녹음하세요</li>
+                    </ul>
+                  </div>
               <div className="flex justify-between items-center pt-4 border-t border-onair-text-sub/10">
                 <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.length}/1 샘플 완료</div>
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={recordedSamples.length < 1}
+                  disabled={recordedSamples.length < 1 || recordedSamples.some(s => s.duration === null)}
                   className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                 >
                   다음 단계
@@ -307,7 +476,7 @@ export function VoiceCloningStudio() {
                   {recordedSamples.map((sample, index) => (
                     <div key={index} className="flex items-center space-x-2 text-sm text-onair-text-sub">
                       <CheckCircle className="w-4 h-4 text-green-400" />
-                      <span>샘플 {index + 1}</span>
+                      <span>샘플 {index + 1} ({formatTime(sample.duration || 0)})</span>
                     </div>
                   ))}
                 </div>
@@ -318,7 +487,7 @@ export function VoiceCloningStudio() {
                   이전 단계
                 </Button>
                 <Button
-                  onClick={() => setStep(3)}
+                  onClick={() => handleCreateModel()}
                   disabled={!modelName.trim()}
                   className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                 >
@@ -447,7 +616,6 @@ export function VoiceCloningStudio() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* 진행 단계 표시 */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           {[1, 2, 3, 4].map((stepNumber) => (
