@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from ZonosTTS import upload_file, call_api, wait_for_result, download_audio, set_server_url
 import requests as req
 from bs4 import BeautifulSoup as bs
 from pydantic import BaseModel
@@ -16,6 +18,11 @@ from botocore.exceptions import NoCredentialsError
 from dotenv import load_dotenv
 import uuid
 from botocore.exceptions import ClientError
+import time
+import logging
+
+# 로거 설정
+logger = logging.getLogger("uvicorn")
 
 load_dotenv(".env.local")
 
@@ -30,8 +37,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# TTS 서버 설정
+BASE_URL = "http://bore.pub"
+PORT = os.getenv("TTS_PORT")
+if not PORT:
+    raise ValueError("TTS_PORT 환경 변수가 설정되지 않았습니다.")
+SERVER_URL = f"{BASE_URL}:{PORT}"
 
-        # AWS S3 설정
+# TTS 설정
+MODEL_NAME = "Zyphra/Zonos-v0.1-transformer"
+LANGUAGE = "ko"
+
+# ZonosTTS 모듈에 서버 URL 설정
+set_server_url(SERVER_URL)
+
+# AWS S3 설정
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
@@ -175,6 +195,69 @@ async def extract_pdf(file: UploadFile = File(...)):
     except Exception as e:
         return {"error": str(e)}
 
+@app.post("/tts")
+async def create_tts(
+    text: str = Query(..., description="TTS로 변환할 텍스트"),
+    voice_file: UploadFile = File(...),
+    silence_file: UploadFile = File(...)
+):
+    
+    logger.info("/tts 엔드포인트 호출됨")
+    # 임시 파일 저장
+    temp_dir = "temp"
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    logger.info("/tts 임시 파일 저장됨")
+    voice_path = os.path.join(temp_dir, "voice.wav")
+    silence_path = os.path.join(temp_dir, "silence.wav")
+    
+    # 파일 저장
+    with open(voice_path, "wb") as f:
+        f.write(await voice_file.read())
+    with open(silence_path, "wb") as f:
+        f.write(await silence_file.read())
+    
+    logger.info("파일 저장됨")
+    # 세션 해시 생성 (현재 시간 기반)
+    session_hash = str(int(time.time()))
+    
+    try:
+        logger.info("try")
+        # 파일 업로드
+        logger.info("음성 파일 업로드 시작")
+        uploaded_voice_path = upload_file(voice_path, session_hash)
+        logger.info("무음 파일 업로드 시작")
+        uploaded_silence_path = upload_file(silence_path, session_hash)
+        
+        # API 호출
+        logger.info("API 호출 시작")
+        call_api(
+            session_hash=session_hash,
+            audio_path=uploaded_voice_path,
+            silence_path=uploaded_silence_path,
+            tts_text=text
+        )
+        
+        # 결과 대기 및 다운로드
+        logger.info("결과 대기 시작")
+        result = wait_for_result(session_hash)
+        if result:
+            logger.info("결과 다운로드 시작")
+            output_path = os.path.join("temp", "output.wav")
+            download_audio(result, output_path)
+            logger.info("TTS 변환 완료")
+            return FileResponse(output_path, media_type="audio/wav")
+            
+    except Exception as e:
+        logger.error(f"에러 발생: {str(e)}")
+        return {"error": str(e)}
+    finally:
+        # 임시 파일 정리
+        if os.path.exists(voice_path):
+            os.remove(voice_path)
+        if os.path.exists(silence_path):
+            os.remove(silence_path)
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="localhost", port=8000) 
