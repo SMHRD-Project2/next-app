@@ -5,14 +5,38 @@ export async function GET(request: NextRequest) {
   const userStr = searchParams.get('user')
 
   if (!userStr) {
-    return NextResponse.redirect(new URL('/auth/login?error=no_user_data', request.url))
+    return new NextResponse(`
+      <!DOCTYPE html>
+      <html lang="ko">
+        <head>
+          <meta charset="UTF-8">
+          <title>카카오 로그인 오류</title>
+        </head>
+        <body>
+          <script>
+            console.error('[KAKAO LOGIN] 사용자 데이터가 없습니다');
+            if (window.opener) {
+              window.opener.postMessage({ 
+                type: 'SOCIAL_LOGIN_ERROR', 
+                provider: 'kakao',
+                error: '사용자 데이터가 없습니다'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '/auth/login?error=no_user_data';
+            }
+          </script>
+        </body>
+      </html>
+    `, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    })
   }
 
   try {
     const userProfile = JSON.parse(decodeURIComponent(userStr))
     console.log('[KAKAO LOGIN SUCCESS] 사용자 프로필:', userProfile)
 
-    // 로그인 성공 처리 HTML 반환 (UTF-8 인코딩 명시)
     return new NextResponse(`
       <!DOCTYPE html>
       <html lang="ko">
@@ -24,8 +48,8 @@ export async function GET(request: NextRequest) {
         <body>
           <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
             <div style="text-align: center;">
-              <h2>로그인 중...</h2>
-              <p>잠시만 기다려주세요.</p>
+              <h2>카카오 로그인 성공!</h2>
+              <p>창을 닫는 중...</p>
             </div>
           </div>
           
@@ -42,21 +66,26 @@ export async function GET(request: NextRequest) {
               role: "${userProfile.role || 'user'}"
             }));
             
-            console.log('[KAKAO LOGIN SUCCESS] localStorage에 저장된 정보:', {
-              id: "${userProfile.id}",
-              email: "${userProfile.email}",
-              name: "${userProfile.name}",
-              role: "${userProfile.role || 'user'}"
-            });
-            
-            // 로그인 상태 변경 이벤트 발생
-            window.dispatchEvent(new Event('localStorageChange'));
-            
-            // 메인 페이지로 이동
-            setTimeout(() => {
-              alert('${userProfile.name}님, 카카오 로그인이 완료되었습니다!');
-              window.location.href = '/';
-            }, 1000);
+            // 부모 창에 성공 메시지 전송
+            if (window.opener) {
+              window.opener.postMessage({ 
+                type: 'SOCIAL_LOGIN_SUCCESS', 
+                provider: 'kakao',
+                user: {
+                  id: "${userProfile.id}",
+                  email: "${userProfile.email}",
+                  name: "${userProfile.name}",
+                  role: "${userProfile.role || 'user'}"
+                }
+              }, '*');
+              window.close();
+            } else {
+              // 팝업이 아닌 경우 메인 페이지로 이동
+              setTimeout(() => {
+                alert('${userProfile.name}님, 카카오 로그인이 완료되었습니다!');
+                window.location.href = '/';
+              }, 1000);
+            }
           </script>
         </body>
       </html>
@@ -64,11 +93,36 @@ export async function GET(request: NextRequest) {
       headers: { 
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'no-cache'
-      },
+      }
     })
 
   } catch (error) {
     console.error('[KAKAO LOGIN SUCCESS] 사용자 데이터 파싱 오류:', error)
-    return NextResponse.redirect(new URL('/auth/login?error=user_data_parse_failed', request.url))
+    return new NextResponse(`
+      <!DOCTYPE html>
+      <html lang="ko">
+        <head>
+          <meta charset="UTF-8">
+          <title>카카오 로그인 오류</title>
+        </head>
+        <body>
+          <script>
+            console.error('[KAKAO LOGIN] 데이터 파싱 오류:', ${JSON.stringify(error instanceof Error ? error.message : '알 수 없는 오류')});
+            if (window.opener) {
+              window.opener.postMessage({ 
+                type: 'SOCIAL_LOGIN_ERROR', 
+                provider: 'kakao',
+                error: '사용자 데이터 파싱 실패'
+              }, '*');
+              window.close();
+            } else {
+              window.location.href = '/auth/login?error=user_data_parse_failed';
+            }
+          </script>
+        </body>
+      </html>
+    `, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    })
   }
-} 
+}

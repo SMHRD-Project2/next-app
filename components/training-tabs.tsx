@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SentenceCard } from "@/components/sentence-card";
-import { RecordController } from "@/components/record-controller";
 import { AIResultPanel } from "@/components/ai-result-panel";
 import { VoiceComparisonPanel } from "@/components/voice-comparison-panel";
 import { CustomSentenceUpload } from "@/components/custom-sentence-upload";
@@ -102,14 +101,11 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
               </h2>
             </div>
 
-            <SentenceCard 
-              sentence={sentence} 
-              onRefresh={handleRefreshSentence} 
+            <SentenceCard
+              sentence={sentence}
+              onRefresh={handleRefreshSentence}
               currentTab={activeTab}
-              onSentenceChange={setSentence} 
-            />
-
-            <RecordController
+              onSentenceChange={setSentence}
               isRecording={isRecording}
               onRecord={handleRecord}
               hasRecorded={hasRecorded}
@@ -134,12 +130,10 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
 
           <CustomSentenceUpload onSentenceSelect={handleCustomSentenceSelect} />
 
-          <SentenceCard 
-            sentence={customSentence} 
-            currentTab={activeTab} 
+          <SentenceCard
+            sentence={customSentence}
+            currentTab={activeTab}
             onSentenceChange={setCustomSentence}
-          />
-          <RecordController
             isRecording={isRecording}
             onRecord={handleRecord}
             hasRecorded={hasRecorded}

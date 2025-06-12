@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Mic, Square, ArrowRight, Play, Download } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
+import { LoadingMessage } from "@/components/loading-message"
 
 interface RecordControllerProps {
   isRecording: boolean
@@ -21,6 +22,8 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     // 클라이언트 마운트 확인 및 랜덤 높이 생성
@@ -106,10 +109,23 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
           // 250611 박남규 업로드
           uploadToS3(audioBlob)
           audioChunksRef.current = []
+
+          // 녹음 종료 시
+          if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+          }
+          setRecordingTime(0)
         }
 
         mediaRecorder.start()
         onRecord()
+        
+        // 타이머 시작
+        setRecordingTime(0)
+        timerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1)
+        }, 1000)
       } catch (err) {
         console.error('녹음 권한을 얻을 수 없습니다:', err)
         alert('마이크 접근 권한이 필요합니다. 브라우저 설정에서 마이크 권한을 확인해주세요.')
@@ -203,34 +219,39 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
           </h3>
 
           {isRecording && (
-            <div className="flex items-center justify-center space-x-1 h-16">
-              {isClient && waveHeights.length > 0 ? (
-                waveHeights.map((height, i) => (
-                  <div
-                    key={i}
-                    className="bg-onair-orange rounded-full animate-wave"
-                    style={{
-                      width: "4px",
-                      height: `${height}px`,
-                      animationDelay: `${i * 0.1}s`,
-                    }}
-                  />
-                ))
-              ) : (
-                // SSR 및 초기 로딩 시 정적 높이 사용
-                Array.from({ length: 20 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-onair-orange rounded-full animate-wave"
-                    style={{
-                      width: "4px",
-                      height: "30px", // 고정 높이
-                      animationDelay: `${i * 0.1}s`,
-                    }}
-                  />
-                ))
-              )}
-            </div>
+            <>
+              <div className="flex items-center justify-center space-x-1 h-16">
+                {isClient && waveHeights.length > 0 ? (
+                  waveHeights.map((height, i) => (
+                    <div
+                      key={i}
+                      className="bg-onair-orange rounded-full animate-wave"
+                      style={{
+                        width: "4px",
+                        height: `${height}px`,
+                        animationDelay: `${i * 0.1}s`,
+                      }}
+                    />
+                  ))
+                ) : (
+                  // SSR 및 초기 로딩 시 정적 높이 사용
+                  Array.from({ length: 20 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-onair-orange rounded-full animate-wave"
+                      style={{
+                        width: "4px",
+                        height: "30px", // 고정 높이
+                        animationDelay: `${i * 0.1}s`,
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+              <p className="text-onair-text-sub text-sm mt-2">
+                {` ${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')}`}
+              </p>
+            </>
           )}
 
           <div className="flex flex-col items-center gap-2">
@@ -255,7 +276,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
               )}
             </Button>
 
-            {hasRecorded && audioURL && (
+            {hasRecorded && !isRecording && audioURL && (
               <div className="flex gap-2">
                 <Button
                   onClick={handlePlay}
@@ -277,21 +298,9 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
                 </Button>
               </div>
             )}
-
-            {hasRecorded && canNext && (
-              <Button
-                onClick={onNext}
-                size="lg"
-                variant="outline"
-                className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
-              >
-                다음 문장
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            )}
           </div>
 
-          {hasRecorded && <p className="text-onair-text-sub text-sm">AI가 발음을 분석하고 있습니다...</p>}
+          {hasRecorded && !isRecording && <LoadingMessage />}
         </div>
       </CardContent>
     </Card>

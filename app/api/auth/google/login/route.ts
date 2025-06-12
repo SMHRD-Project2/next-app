@@ -25,11 +25,13 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     console.error('[GOOGLE LOGIN] Authorization code가 없습니다')
-    return NextResponse.redirect(new URL('/auth/login?error=no_code&message=인증 코드를 받지 못했습니다', request.url))
+    return NextResponse.redirect(new URL('/auth/login?error=no_code', request.url))
   }
 
   try {
     console.log('[GOOGLE LOGIN] 토큰 요청 시작')
+    
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
     
     // 1. 구글에서 액세스 토큰 받기
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -41,8 +43,8 @@ export async function GET(request: NextRequest) {
         grant_type: 'authorization_code',
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: `${baseUrl}/api/auth/google/login`,
         code: code,
-        redirect_uri: 'http://localhost:3000/api/auth/google/login',
       }),
     })
 

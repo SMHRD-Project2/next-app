@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
   try {
     console.log('[GOOGLE] 토큰 요청 시작')
     
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
+    
     // 구글에서 액세스 토큰 받기
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -28,8 +30,8 @@ export async function GET(request: NextRequest) {
         grant_type: 'authorization_code',
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: `${baseUrl}/api/auth/google`,
         code: code,
-        redirect_uri: 'http://localhost:3000/api/auth/google',
       }),
     })
 
@@ -97,7 +99,7 @@ export async function GET(request: NextRequest) {
       tokenLength: savedUser?.USER_GOOGLETOKEN?.length
     })
 
-    // 성공 응답과 함께 메인 페이지로 리다이렉트
+    // 성공 응답과 함께 창 닫기
     return new NextResponse(`
       <!DOCTYPE html>
       <html lang="ko">
@@ -107,19 +109,20 @@ export async function GET(request: NextRequest) {
           <title>구글 연동 완료</title>
         </head>
         <body>
-          <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
-            <div style="text-align: center;">
-              <h2>구글 연동 완료</h2>
-              <p>잠시 후 메인 페이지로 이동합니다...</p>
-            </div>
-          </div>
-          
           <script>
-            console.log('[GOOGLE] 구글 연동 성공!');
-            console.log('[GOOGLE] 구글 ID: ${googleId}');
-            
-            alert('구글 계정이 성공적으로 연동되었습니다!');
-            window.location.href = '/';
+            console.log('[GOOGLE POPUP] 구글 연동 성공!');
+            console.log('[GOOGLE POPUP] 구글 ID: ${googleId}');
+            if (window.opener) {
+              window.opener.postMessage({ 
+                type: 'SNS_CONNECT_SUCCESS', 
+                provider: 'google',
+                success: true 
+              }, '*');
+              window.close();
+            } else {
+              alert('구글 연동이 완료되었습니다!');
+              window.location.href = '/';
+            }
           </script>
         </body>
       </html>
