@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
   try {
     console.log('[KAKAO LOGIN] 토큰 요청 시작')
     
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
+    
     // 1. 카카오에서 액세스 토큰 받기
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
@@ -24,8 +26,8 @@ export async function GET(request: NextRequest) {
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
-        client_id: process.env.KAKAO_CLIENT_ID!,
-        redirect_uri: 'http://localhost:3000/api/auth/kakao/login',
+        client_id: process.env.KAKAO_REST_API_KEY!,
+        redirect_uri: `${baseUrl}/api/auth/kakao/login`,
         code: code,
       }),
     })

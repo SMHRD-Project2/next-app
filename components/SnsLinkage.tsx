@@ -21,7 +21,7 @@ export default function SnsLinkage({ userId }: SnsLinkageProps) {
   const handleKakaoLink = () => {
     setLoading('kakao')
     
-    const clientId = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID
+    const clientId = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY
     const redirectUri = `${currentOrigin}/api/auth/kakao/callback`
     
     console.log('카카오 클라이언트 ID:', clientId)

@@ -104,7 +104,7 @@ export const logout = async () => {
   }
 }
 
-// SNS 계정 연동 - 팝업 대신 현재 창 리다이렉트 사용
+// SNS 계정 연동 - 팝업 방식으로 변경
 export const connectSNS = (provider: string) => {
   debugLog(`${provider} 계정 연동 시작`)
   
@@ -121,15 +121,15 @@ export const connectSNS = (provider: string) => {
 
   console.log(`[${provider.toUpperCase()}] 연동 시작 - 사용자:`, userProfile.email)
 
-  // 팝업 대신 현재 창에서 직접 리다이렉트
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
   let authUrl = ''
   const state = encodeURIComponent(userProfile.email) // 사용자 이메일을 state로 전달
   
   switch (provider.toLowerCase()) {
     case 'kakao':
       authUrl = `https://kauth.kakao.com/oauth/authorize?` +
-        `client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&` +
-        `redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI!)}&` +
+        `client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&` +
+        `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/kakao`)}&` +
         `response_type=code&` +
         `scope=profile_nickname&` +
         `state=${state}`
@@ -137,14 +137,14 @@ export const connectSNS = (provider: string) => {
     case 'naver':
       authUrl = `https://nid.naver.com/oauth2.0/authorize?` +
         `client_id=${process.env.NEXT_PUBLIC_NAVER_CLIENT_ID}&` +
-        `redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_NAVER_REDIRECT_URI!)}&` +
+        `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/naver`)}&` +
         `response_type=code&` +
         `state=${state}`
       break
     case 'google':
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&` +
-        `redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI!)}&` +
+        `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/google`)}&` +
         `response_type=code&` +
         `scope=email profile&` +
         `state=${state}`
@@ -155,11 +155,53 @@ export const connectSNS = (provider: string) => {
   }
 
   console.log(`[${provider.toUpperCase()}] OAuth URL:`, authUrl)
-  
-  // 현재 창에서 바로 이동
-  window.location.href = authUrl
-  
-  return Promise.resolve(true)
+
+  // 팝업으로 연동 페이지 열기
+  const popup = window.open(
+    authUrl,
+    `${provider}_connect`,
+    'width=500,height=700,scrollbars=yes,resizable=yes'
+  )
+
+  if (!popup) {
+    alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.')
+    return Promise.resolve(false)
+  }
+
+  return new Promise((resolve) => {
+    // 팝업에서 메시지 받기
+    const messageHandler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      
+      if (event.data.type === 'SNS_CONNECT_SUCCESS') {
+        console.log(`[${provider.toUpperCase()}] 연동 성공:`, event.data)
+        clearInterval(timer)
+        window.removeEventListener('message', messageHandler)
+        popup.close()
+        alert(`${provider} 계정 연동이 완료되었습니다!`)
+        resolve(true)
+      } else if (event.data.type === 'SNS_CONNECT_ERROR') {
+        console.error(`[${provider.toUpperCase()}] 연동 에러:`, event.data.error)
+        clearInterval(timer)
+        window.removeEventListener('message', messageHandler)
+        popup.close()
+        alert(`${provider} 계정 연동 중 오류가 발생했습니다: ${event.data.error}`)
+        resolve(false)
+      }
+    }
+
+    window.addEventListener('message', messageHandler)
+
+    // 팝업 상태 감시
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(timer)
+        window.removeEventListener('message', messageHandler)
+        console.log(`[${provider.toUpperCase()}] 연동 팝업이 닫혔습니다.`)
+        resolve(false)
+      }
+    }, 800)
+  })
 }
 
 // 강제 상태 확인 (디버깅용)

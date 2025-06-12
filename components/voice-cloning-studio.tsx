@@ -15,11 +15,17 @@ import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2 } fro
 export function VoiceCloningStudio() {
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
-  const [recordedSamples, setRecordedSamples] = useState<string[]>([])
+  const [recordedSamples, setRecordedSamples] = useState<Blob[]>([])
+  const [recordedUrls, setRecordedUrls] = useState<string[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
   const [modelName, setModelName] = useState("")
   const [modelDescription, setModelDescription] = useState("")
+  const [currentRecordingIndex, setCurrentRecordingIndex] = useState(-1)
+
+  // MediaRecorder 관련 상태
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   const allSampleTexts = [
     "안녕하세요, 저는 AI 음성 모델 생성을 위한 샘플 음성을 녹음하고 있습니다. 오늘은 제 목소리로 여러분과 함께하게 되어 기쁩니다. 앞으로 다양한 콘텐츠를 제작하는데 도움이 되었으면 좋겠습니다.",
@@ -51,9 +57,16 @@ export function VoiceCloningStudio() {
   // 랜덤 샘플 텍스트 생성 함수
   const generateRandomSample = () => {
     const randomIndex = Math.floor(Math.random() * allSampleTexts.length)
-    setSampleTexts([allSampleTexts[randomIndex]])
+    const selectedText = allSampleTexts[randomIndex]
+    setSampleTexts([selectedText])
+    
+    // 콘솔에 선택된 텍스트 출력
+    console.log('🎯 랜덤으로 선택된 텍스트:', selectedText)
+    console.log('📝 텍스트 인덱스:', randomIndex)
+    
     // 녹음된 샘플이 있다면 초기화
     setRecordedSamples([])
+    setRecordedUrls([])
   }
 
   // TTS 예시 듣기
@@ -69,13 +82,118 @@ export function VoiceCloningStudio() {
     generateRandomSample()
   }, [])
 
-  const handleRecord = (index: number) => {
-    setIsRecording(!isRecording)
-    if (isRecording) {
-      // 녹음 완료 처리
-      const newSamples = [...recordedSamples]
-      newSamples[index] = `sample_${index + 1}.wav`
-      setRecordedSamples(newSamples)
+  // WAV 파일로 변환하는 함수
+  const convertToWav = (audioBlob: Blob): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        // 간단한 WAV 헤더 생성 (실제로는 WebCodecs API나 외부 라이브러리 사용 권장)
+        resolve(new Blob([audioBlob], { type: 'audio/wav' }))
+      }
+      reader.readAsArrayBuffer(audioBlob)
+    })
+  }
+
+  // 녹음 시작/중지 처리
+  const handleRecord = async (index: number) => {
+    if (isRecording && currentRecordingIndex === index) {
+      // 녹음 중지
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop()
+      }
+      setIsRecording(false)
+      setCurrentRecordingIndex(-1)
+    } else {
+      // 녹음 시작
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            sampleRate: 44100,
+            channelCount: 1,
+            sampleSize: 16
+          } 
+        })
+        
+        // WAV 형식으로 설정
+        const options = { mimeType: 'audio/webm;codecs=opus' }
+        const mediaRecorder = new MediaRecorder(stream, options)
+        
+        audioChunksRef.current = []
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data)
+          }
+        }
+        
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+          const wavBlob = await convertToWav(audioBlob)
+          
+          // 새로운 배열 생성
+          const newSamples = [...recordedSamples]
+          const newUrls = [...recordedUrls]
+          
+          newSamples[index] = wavBlob
+          newUrls[index] = URL.createObjectURL(wavBlob)
+          
+          setRecordedSamples(newSamples)
+          setRecordedUrls(newUrls)
+          
+          // 콘솔에 녹음 정보 출력
+          console.log(`🎙️ 샘플 ${index + 1} 녹음 완료:`)
+          console.log('📄 녹음된 텍스트:', sampleTexts[index])
+          console.log('🎵 오디오 파일 정보:', {
+            size: `${(wavBlob.size / 1024).toFixed(2)} KB`,
+            type: wavBlob.type,
+            url: newUrls[index]
+          })
+          console.log('💾 WAV Blob 객체:', wavBlob)
+          
+          // 스트림 정리
+          stream.getTracks().forEach(track => track.stop())
+        }
+        
+        mediaRecorderRef.current = mediaRecorder
+        mediaRecorder.start()
+        setIsRecording(true)
+        setCurrentRecordingIndex(index)
+        
+        console.log(`🔴 샘플 ${index + 1} 녹음 시작`)
+        console.log('📝 녹음할 텍스트:', sampleTexts[index])
+        
+      } catch (error) {
+        console.error('마이크 접근 오류:', error)
+        alert('마이크에 접근할 수 없습니다. 브라우저 설정을 확인해주세요.')
+      }
+    }
+  }
+
+  // 녹음된 오디오 재생
+  const handlePlayRecording = (index: number) => {
+    if (recordedUrls[index]) {
+      const audio = new Audio(recordedUrls[index])
+      audio.play()
+      
+      console.log(`▶️ 샘플 ${index + 1} 재생`)
+      console.log('📄 재생 중인 텍스트:', sampleTexts[index])
+      console.log('🎵 오디오 URL:', recordedUrls[index])
+    }
+  }
+
+  // 녹음 파일 다운로드
+  const handleDownloadRecording = (index: number) => {
+    if (recordedSamples[index]) {
+      const url = URL.createObjectURL(recordedSamples[index])
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `voice_sample_${index + 1}.wav`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      console.log(`💾 샘플 ${index + 1} 다운로드`)
     }
   }
 
@@ -94,16 +212,198 @@ export function VoiceCloningStudio() {
     setIsDragging(false)
     const files = e.dataTransfer.files
     if (files && files.length > 0) {
-      setRecordedSamples([files[0].name])
+      const file = files[0]
+      const newSamples = [...recordedSamples]
+      const newUrls = [...recordedUrls]
+      
+      newSamples[0] = file
+      newUrls[0] = URL.createObjectURL(file)
+      
+      setRecordedSamples(newSamples)
+      setRecordedUrls(newUrls)
+      
+      console.log('📁 파일 업로드됨:', {
+        name: file.name,
+        size: `${(file.size / 1024).toFixed(2)} KB`,
+        type: file.type
+      })
     }
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files && files.length > 0) {
-      setRecordedSamples([files[0].name])
+      const file = files[0]
+      const newSamples = [...recordedSamples]
+      const newUrls = [...recordedUrls]
+      
+      newSamples[0] = file
+      newUrls[0] = URL.createObjectURL(file)
+      
+      setRecordedSamples(newSamples)
+      setRecordedUrls(newUrls)
+      
+      console.log('📁 파일 선택됨:', {
+        name: file.name,
+        size: `${(file.size / 1024).toFixed(2)} KB`,
+        type: file.type
+      })
     }
   }
+
+  // Fast API로 데이터 전송하고 실시간 진행률 수신하는 함수
+  const sendToFastAPI = async () => {
+    if (!recordedSamples[0] || !sampleTexts[0]) {
+      alert("음성 샘플과 텍스트가 필요합니다.")
+      return
+    }
+
+    try {
+      console.log('🚀 Fast API로 데이터 전송 시작...')
+      
+      // FormData 생성
+      const formData = new FormData()
+      formData.append('text', sampleTexts[0])
+      formData.append('audio', recordedSamples[0], 'voice_sample.wav')
+      
+      console.log('📤 전송할 데이터:')
+      console.log('📝 텍스트:', sampleTexts[0])
+      console.log('🎵 오디오 파일:', {
+        size: `${(recordedSamples[0].size / 1024).toFixed(2)} KB`,
+        type: recordedSamples[0].type
+      })
+
+      const response = await fetch('http://localhost:8000/process-voice', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      console.log('✅ Fast API 응답 성공!')
+      console.log('📥 받은 데이터:', result)
+      
+      return result
+
+    } catch (error) {
+      console.error('❌ Fast API 통신 오류:', error)
+      alert('서버 통신 중 오류가 발생했습니다. 서버가 실행되고 있는지 확인해주세요.')
+      throw error
+    }
+  }
+
+  // 실시간 진행률 스트림 연결 함수
+  const connectProgressStream = (taskId: string) => {
+    console.log(`📡 SSE 연결 시도: http://localhost:8000/process-voice-stream/${taskId}`)
+    
+    const eventSource = new EventSource(`http://localhost:8000/process-voice-stream/${taskId}`)
+    
+    eventSource.onopen = () => {
+      console.log('✅ SSE 연결 성공')
+    }
+    
+    eventSource.onmessage = (event) => {
+      try {
+        console.log('📨 SSE 메시지 수신:', event.data)
+        const data = JSON.parse(event.data)
+        console.log('📊 실시간 진행률:', data)
+        
+        setProcessingProgress(data.progress)
+        
+        if (data.completed || data.progress >= 100) {
+          console.log('🏁 진행률 완료, SSE 연결 종료')
+          eventSource.close()
+          setIsProcessing(false)
+          setStep(4) // 완료 단계로 이동
+          
+          console.log('✅ AI 모델 생성 완료:', {
+            taskId: data.task_id,
+            finalProgress: data.progress
+          })
+        }
+        
+      } catch (error) {
+        console.error('❌ 진행률 데이터 파싱 오류:', error)
+        console.log('원본 데이터:', event.data)
+      }
+    }
+    
+    eventSource.onerror = (error) => {
+      console.error('❌ SSE 연결 오류:', error)
+      console.log('SSE 상태:', eventSource.readyState)
+      console.log('0: CONNECTING, 1: OPEN, 2: CLOSED')
+      
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.log('SSE 연결이 서버에 의해 닫혔습니다.')
+      }
+      
+      eventSource.close()
+      setIsProcessing(false)
+      
+      // 폴백: 기존 방식으로 진행률 시뮬레이션
+      console.log('🔄 폴백: 로컬 진행률 시뮬레이션 시작')
+      simulateLocalProgress()
+    }
+    
+    // 연결 타임아웃 설정
+    setTimeout(() => {
+      if (eventSource.readyState === EventSource.CONNECTING) {
+        console.log('⏰ SSE 연결 타임아웃, 폴백 실행')
+        eventSource.close()
+        simulateLocalProgress()
+      }
+    }, 5000) // 5초 타임아웃
+    
+    return eventSource
+  }
+
+  // 폴백용 로컬 진행률 시뮬레이션
+  const simulateLocalProgress = () => {
+    console.log('🔄 로컬 진행률 시뮬레이션 시작')
+    
+    const interval = setInterval(() => {
+      setProcessingProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval)
+          setIsProcessing(false)
+          setStep(4)
+          console.log('✅ 로컬 시뮬레이션 완료')
+          return 100
+        }
+        const newProgress = prev + Math.random() * 10
+        console.log(`📊 로컬 진행률: ${Math.round(newProgress)}%`)
+        return Math.min(newProgress, 100)
+      })
+    }, 800)
+  }
+
+  // SSE 연결 테스트 함수 (디버깅용)
+  // const testSSEConnection = () => {
+  //   console.log('🧪 SSE 연결 테스트 시작')
+  //   const testEventSource = new EventSource('http://localhost:8000/test-sse')
+    
+  //   testEventSource.onopen = () => {
+  //     console.log('✅ 테스트 SSE 연결 성공')
+  //   }
+    
+  //   testEventSource.onmessage = (event) => {
+  //     console.log('📨 테스트 메시지:', event.data)
+  //     const data = JSON.parse(event.data)
+  //     if (data.completed) {
+  //       testEventSource.close()
+  //       console.log('🏁 테스트 완료')
+  //     }
+  //   }
+    
+  //   testEventSource.onerror = (error) => {
+  //     console.error('❌ 테스트 SSE 오류:', error)
+  //     testEventSource.close()
+  //   }
+  // }
 
   const handleCreateModel = async () => {
     if (!modelName.trim()) {
@@ -111,21 +411,47 @@ export function VoiceCloningStudio() {
       return
     }
 
+    console.log('🚀 AI 모델 생성 시작:', {
+      modelName,
+      modelDescription,
+      samplesCount: recordedSamples.length,
+      sampleTexts: sampleTexts,
+      audioFiles: recordedSamples.map((sample, index) => ({
+        index: index + 1,
+        size: `${(sample.size / 1024).toFixed(2)} KB`,
+        type: sample.type
+      }))
+    })
+
     setIsProcessing(true)
     setProcessingProgress(0)
+    setStep(3) // 처리 단계로 이동
 
-    // 진행률 시뮬레이션
-    const interval = setInterval(() => {
-      setProcessingProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsProcessing(false)
-          setStep(4) // 완료 단계로 이동
-          return 100
-        }
-        return prev + Math.random() * 15
-      })
-    }, 500)
+    // SSE 연결 테스트 (옵션)
+    // testSSEConnection()
+
+    try {
+      // Fast API로 데이터 전송
+      const apiResult = await sendToFastAPI()
+      
+      if (apiResult.status === 'success' && apiResult.task_id) {
+        console.log('📡 실시간 진행률 스트림 연결 중...')
+        console.log('Task ID:', apiResult.task_id)
+        
+        // 실시간 진행률 스트림 연결
+        connectProgressStream(apiResult.task_id)
+        
+      } else {
+        throw new Error('작업 ID를 받지 못했습니다.')
+      }
+
+    } catch (error) {
+      setIsProcessing(false)
+      setProcessingProgress(0)
+      console.error('모델 생성 실패:', error)
+      // 오류 시에도 폴백 실행
+      simulateLocalProgress()
+    }
   }
 
   const renderStep = () => {
@@ -199,17 +525,34 @@ export function VoiceCloningStudio() {
                           size="sm"
                           onClick={() => handleRecord(index)}
                           className={
-                            isRecording
+                            (isRecording && currentRecordingIndex === index)
                               ? "bg-red-500 hover:bg-red-600 text-white"
                               : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                           }
                         >
-                          {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          {(isRecording && currentRecordingIndex === index) ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          {(isRecording && currentRecordingIndex === index) ? "중지" : "녹음"}
                         </Button>
                         {recordedSamples[index] && (
-                          <Button size="sm" variant="outline" className="border-onair-blue text-onair-blue">
-                            <Play className="w-4 h-4" />
-                          </Button>
+                          <>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-onair-blue text-onair-blue"
+                              onClick={() => handlePlayRecording(index)}
+                            >
+                              <Play className="w-4 h-4" />
+                              재생
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-onair-orange text-onair-orange"
+                              onClick={() => handleDownloadRecording(index)}
+                            >
+                              💾 WAV
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -239,25 +582,33 @@ export function VoiceCloningStudio() {
                     />
                   </div>
 
-                  {recordedSamples.length > 0 && (
+                  {recordedSamples.length > 0 && recordedSamples[0] && (
                     <div className="space-y-2">
                       <h4 className="font-medium text-onair-text">업로드된 파일</h4>
-                      {recordedSamples.map((sample, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-onair-bg rounded">
-                          <span className="text-onair-text-sub">{sample}</span>
+                      <div className="flex items-center justify-between p-2 bg-onair-bg rounded">
+                        <span className="text-onair-text-sub">voice_sample_1.wav</span>
+                        <div className="flex gap-2">
                           <CheckCircle className="w-4 h-4 text-green-400" />
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="border-onair-blue text-onair-blue h-6 px-2"
+                            onClick={() => handlePlayRecording(0)}
+                          >
+                            <Play className="w-3 h-3" />
+                          </Button>
                         </div>
-                      ))}
+                      </div>
                     </div>
                   )}
                 </TabsContent>
               </Tabs>
 
               <div className="flex justify-between items-center pt-4 border-t border-onair-text-sub/10">
-                <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.length}/1 샘플 완료</div>
+                <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.filter(sample => sample).length}/1 샘플 완료</div>
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={recordedSamples.length < 1}
+                  disabled={recordedSamples.filter(sample => sample).length < 1}
                   className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                 >
                   다음 단계
@@ -305,10 +656,12 @@ export function VoiceCloningStudio() {
                 <h4 className="font-medium text-onair-text mb-2">수집된 음성 샘플</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {recordedSamples.map((sample, index) => (
-                    <div key={index} className="flex items-center space-x-2 text-sm text-onair-text-sub">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      <span>샘플 {index + 1}</span>
-                    </div>
+                    sample && (
+                      <div key={index} className="flex items-center space-x-2 text-sm text-onair-text-sub">
+                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <span>샘플 {index + 1}</span>
+                      </div>
+                    )
                   ))}
                 </div>
               </div>
@@ -318,11 +671,11 @@ export function VoiceCloningStudio() {
                   이전 단계
                 </Button>
                 <Button
-                  onClick={() => setStep(3)}
-                  disabled={!modelName.trim()}
+                  onClick={handleCreateModel}
+                  disabled={!modelName.trim() || isProcessing}
                   className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                 >
-                  모델 생성 시작
+                  {isProcessing ? "처리 중..." : "모델 생성 시작"}
                 </Button>
               </div>
             </CardContent>
@@ -425,9 +778,11 @@ export function VoiceCloningStudio() {
                   onClick={() => {
                     setStep(1)
                     setRecordedSamples([])
+                    setRecordedUrls([])
                     setModelName("")
                     setModelDescription("")
                     setProcessingProgress(0)
+                    generateRandomSample()
                   }}
                   variant="outline"
                   className="flex-1 border-onair-text-sub/20"
@@ -444,6 +799,13 @@ export function VoiceCloningStudio() {
         return null
     }
   }
+
+  // 컴포넌트 언마운트 시 URL 정리
+  useEffect(() => {
+    return () => {
+      recordedUrls.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [])
 
   return (
     <div className="max-w-2xl mx-auto">

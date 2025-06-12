@@ -13,7 +13,7 @@ export default function AIModelsPage() {
   const { isLoggedIn } = useAuth()
 
   const handleLoginRedirect = () => {
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   if (!isLoggedIn) {

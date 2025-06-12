@@ -3,6 +3,7 @@ import { signIn } from "next-auth/react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import Link from 'next/link'
 
 interface SocialLoginButtonsProps {
   isSignup?: boolean
@@ -11,83 +12,110 @@ interface SocialLoginButtonsProps {
 export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const router = useRouter()
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
   const handleSocialLogin = async (provider: string) => {
     setLoadingProvider(provider)
 
     try {
+      let authUrl = ''
+      let popupName = ''
+
       switch (provider) {
         case 'kakao':
-          const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?` +
-            `client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&` +
-            `redirect_uri=${encodeURIComponent('http://localhost:3000/api/auth/kakao/login')}&` +
+          authUrl = 
+            `https://kauth.kakao.com/oauth/authorize?` +
+            `client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&` +
+            `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/kakao/login`)}&` +
             `response_type=code&` +
             `scope=profile_nickname`
-          
-          console.log('[KAKAO LOGIN] 카카오 로그인 URL:', kakaoUrl)
-          window.location.href = kakaoUrl
+          popupName = 'kakao_login'
           break
           
         case 'naver':
           const state = Math.random().toString(36).substring(2, 15)
-          const naverUrl = `https://nid.naver.com/oauth2.0/authorize?` +
+          authUrl = 
+            `https://nid.naver.com/oauth2.0/authorize?` +
             `client_id=${process.env.NEXT_PUBLIC_NAVER_CLIENT_ID}&` +
-            `redirect_uri=${encodeURIComponent('http://localhost:3000/api/auth/naver/login')}&` +
+            `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/naver/login`)}&` +
             `response_type=code&` +
             `state=${state}&` +
             `scope=profile`
-          
-          console.log('[NAVER LOGIN] 네이버 로그인 URL:', naverUrl)
-
-          const popup = window.open(
-            naverUrl,
-            'naver_login',
-            'width=500,height=700,scrollbars=yes'
-          )
-
-          if (!popup) {
-            alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.')
-            return
-          }
-
-          // 감시: 팝업 닫히면 로딩 해제
-          const timer = setInterval(() => {
-            if (popup.closed) {
-              clearInterval(timer)
-              setLoadingProvider(null)
-              // 메인 페이지 새로고침으로 로그인 상태 반영
-              window.location.reload()
-            }
-          }, 800)
+          popupName = 'naver_login'
           break
           
         case 'google':
-          // const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
-          // console.log('[GOOGLE LOGIN] 클라이언트 ID:', googleClientId)
-          
-          // if (!googleClientId) {
-          //   alert('구글 클라이언트 ID가 설정되지 않았습니다.')
-          //   return
-          // }
-          
-          const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+          authUrl = 
+            `https://accounts.google.com/o/oauth2/v2/auth?` +
             `client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&` +
-            `redirect_uri=${encodeURIComponent('http://localhost:3000/api/auth/google/login')}&` +
+            `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/google/login`)}&` +
             `response_type=code&` +
-            `scope=email profile`
-          
-          console.log('[GOOGLE LOGIN] 구글 로그인 URL:', googleUrl)
-          
-          window.location.href = googleUrl
+            `scope=profile email&` +
+            `access_type=offline&` +
+            `prompt=consent`
+          popupName = 'google_login'
           break
           
         default:
           throw new Error('지원하지 않는 소셜 로그인 제공자입니다.')
       }
+
+      console.log(`[${provider.toUpperCase()} LOGIN] 로그인 URL:`, authUrl)
+
+      // 팝업으로 소셜 로그인 페이지 열기
+      const popup = window.open(
+        authUrl,
+        popupName,
+        'width=500,height=700,scrollbars=yes,resizable=yes'
+      )
+
+      if (!popup) {
+        alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.')
+        setLoadingProvider(null)
+        return
+      }
+
+      // 팝업 상태 감시
+      const timer = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(timer)
+          setLoadingProvider(null)
+          console.log(`[${provider.toUpperCase()} LOGIN] 팝업이 닫혔습니다.`)
+          // 페이지 새로고침으로 로그인 상태 반영
+          window.location.reload()
+        }
+      }, 800)
+
+            // 팝업에서 메시지 받기 (선택사항)
+            const messageHandler = (event: MessageEvent) => {
+              if (event.origin !== window.location.origin) return
+              
+              if (event.data.type === 'SOCIAL_LOGIN_SUCCESS') {
+                console.log(`[${provider.toUpperCase()} LOGIN] 로그인 성공 메시지 받음:`, event.data)
+                clearInterval(timer)
+                setLoadingProvider(null)
+                window.removeEventListener('message', messageHandler)
+                popup.close()
+                
+                // 로그인 성공 시 메인페이지로 이동
+                alert(`${event.data.user?.name || provider} 로그인이 완료되었습니다!`)
+                window.location.href = '/'
+                
+              } else if (event.data.type === 'SOCIAL_LOGIN_ERROR') {
+                console.error(`[${provider.toUpperCase()} LOGIN] 로그인 에러:`, event.data.error)
+                clearInterval(timer)
+                setLoadingProvider(null)
+                window.removeEventListener('message', messageHandler)
+                popup.close()
+                alert(`${provider} 로그인 중 오류가 발생했습니다: ${event.data.error}`)
+              }
+            }
+      
+            window.addEventListener('message', messageHandler)
+  
     } catch (error) {
       console.error(`${provider} 로그인 실패:`, error)
       alert(`${provider} 로그인 중 오류가 발생했습니다.`)
-    } finally {
       setLoadingProvider(null)
     }
   }

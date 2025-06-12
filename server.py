@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import requests as req
 from bs4 import BeautifulSoup as bs
@@ -11,13 +10,18 @@ import fitz
 from pykospacing import Spacing
 import tempfile
 import os
+from datetime import datetime
+import json
+import asyncio
+from fastapi.responses import StreamingResponse
+import uuid
 
 app = FastAPI()
 
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Next.js 개발 서버
+    allow_origins=["http://localhost:3000"],  # Next.js 개발 서버 주소
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -112,6 +116,7 @@ async def extract_pdf(file: UploadFile = File(...)):
         return {"text": spaced_text}
     except Exception as e:
         return {"error": str(e)}
+    
 
 if __name__ == "__main__":
     import uvicorn
