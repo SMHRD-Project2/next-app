@@ -36,13 +36,19 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
     },
   }
 
+  // 성별에 따른 오디오 파일 경로를 반환하는 헬퍼 함수
+  const getAudioSource = (currentGender: "male" | "female") => {
+    return currentGender === "female" ? "/audio/female.wav" : "/audio/male.wav";
+  };
+
   // 클라이언트 마운트 시 isClient 설정 및 파형 높이 초기화
   useEffect(() => {
     setIsClient(true)
     // 초기 파형 높이 설정 (Math.random()이 클라이언트에서만 실행되도록)
     setWaveHeights(Array.from({ length: 50 }, () => 10 + Math.random() * 10))
 
-    audioRef.current = new Audio("/placeholder-audio.mp3")
+    // AIVoiceShowcase 컴포넌트가 마운트될 때 성별에 맞는 오디오 소스 초기화
+    audioRef.current = new Audio(getAudioSource(gender));
 
     audioRef.current.addEventListener("ended", () => {
       setIsPlaying(false)
@@ -60,7 +66,7 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
         audioRef.current.removeEventListener("ended", () => {})
       }
     }
-  }, []) // 빈 배열로 한 번만 실행되도록 설정
+  }, [gender]) // gender prop이 변경될 때마다 useEffect를 다시 실행합니다.
 
   // 재생 상태에 따라 파형 높이 업데이트 (클라이언트에서만 실행)
   useEffect(() => {
@@ -101,8 +107,17 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
   }, [isPlaying, isClient]) // isPlaying 또는 isClient가 변경될 때마다 실행
 
   const handlePlayPause = () => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio("/placeholder-audio.mp3")
+    // Audio 객체가 없거나, 현재 소스가 gender에 맞지 않으면 새로 생성합니다.
+    const currentAudioSource = getAudioSource(gender);
+    if (!audioRef.current || audioRef.current.src !== window.location.origin + currentAudioSource) {
+      audioRef.current = new Audio(currentAudioSource);
+      // 새로운 Audio 객체에 ended 이벤트 리스너 다시 연결
+      audioRef.current.addEventListener("ended", () => {
+        setIsPlaying(false);
+        setProgress(0);
+        cancelAnimationFrame(animationRef.current!);
+        setWaveHeights(Array.from({ length: 50 }, () => 10 + Math.random() * 10));
+      });
     }
 
     if (isPlaying) {

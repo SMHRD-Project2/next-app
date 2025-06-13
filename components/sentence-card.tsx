@@ -97,12 +97,7 @@ export function SentenceCard({
   const [isPlayingAIExample, setIsPlayingAIExample] = useState(false);
 
   const handlePlaySelectedModelSentence = async () => {
-    if (!selectedModel) {
-      console.warn("선택된 모델이 없어 AI 예시 듣기를 재생할 수 없습니다.");
-      return;
-    }
-
-    // Stop AI Example playback if it's playing
+    // 현재 재생 중인 AI 예시 음성 중지 (만약 있다면)
     if (aiExampleAudioRef.current) {
       aiExampleAudioRef.current.pause();
       URL.revokeObjectURL(aiExampleAudioRef.current.src);
@@ -110,53 +105,49 @@ export function SentenceCard({
       setIsPlayingAIExample(false);
     }
 
-    // If already playing, stop and reset
-    if (selectedModelAudioRef.current) {
-      selectedModelAudioRef.current.pause();
-      URL.revokeObjectURL(selectedModelAudioRef.current.src);
-      selectedModelAudioRef.current = null;
+    // 이미 선택된 모델의 음성이 재생 중이면 중지하고 초기화
+    if (isPlayingSelectedModel) {
+      if (selectedModelAudioRef.current) {
+        selectedModelAudioRef.current.pause();
+        URL.revokeObjectURL(selectedModelAudioRef.current.src);
+        selectedModelAudioRef.current = null;
+      }
       setIsPlayingSelectedModel(false);
-      return; // Stop if already playing and toggle off
+      return;
+    }
+
+    // 선택된 모델이 없으면 경고 후 종료 (실제 모델 선택이 필요한 경우)
+    if (!selectedModel) {
+      console.warn("선택된 모델이 없어 음성을 재생할 수 없습니다.");
+      return;
     }
 
     try {
-      setIsPlayingSelectedModel(true)
-      const model = aiModels.find(m => m.id === selectedModel)
-      if (!model) return
+      setIsPlayingSelectedModel(true);
 
-      const response = await fetch('/api/tts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: localSentence,
-          modelId: model.id,
-        }),
-      })
-
-      if (!response.ok) throw new Error('TTS 요청 실패')
-
-      const blob = await response.blob()
-      const audioUrl = URL.createObjectURL(blob)
-      const audio = new Audio(audioUrl)
-      selectedModelAudioRef.current = audio; // Store the audio object
+      // --- 여기에 수정된 부분 시작 ---
+      // 사용자 요청에 따라 audio/female.wav 파일을 직접 재생
+      const audioUrl = "/audio/female.wav"; // 재생할 오디오 파일 경로 고정
+      const audio = new Audio(audioUrl);
+      selectedModelAudioRef.current = audio; // 오디오 객체 저장
       
       audio.onended = () => {
-        setIsPlayingSelectedModel(false)
-        URL.revokeObjectURL(audioUrl)
+        setIsPlayingSelectedModel(false);
+        // 로컬 파일이므로 URL.revokeObjectURL 필요 없음
         if (selectedModelAudioRef.current === audio) {
           selectedModelAudioRef.current = null;
         }
-      }
+      };
       
-      audio.play()
+      audio.play();
+      // --- 수정된 부분 끝 ---
+
     } catch (error) {
-      console.error('TTS 처리 중 오류:', error)
-      setIsPlayingSelectedModel(false)
+      console.error('음성 재생 중 오류:', error);
+      setIsPlayingSelectedModel(false);
       selectedModelAudioRef.current = null;
     }
-  }
+  };
 
   const handlePlayAIExample = async () => {
     // Stop Selected Model Sentence playback if it's playing
@@ -168,52 +159,40 @@ export function SentenceCard({
     }
 
     // If already playing, stop and reset
-    if (aiExampleAudioRef.current) {
-      aiExampleAudioRef.current.pause();
-      URL.revokeObjectURL(aiExampleAudioRef.current.src);
-      aiExampleAudioRef.current = null;
+    if (isPlayingAIExample) {
+      if (aiExampleAudioRef.current) {
+        aiExampleAudioRef.current.pause();
+        URL.revokeObjectURL(aiExampleAudioRef.current.src);
+        aiExampleAudioRef.current = null;
+      }
       setIsPlayingAIExample(false);
       return; // Stop if already playing and toggle off
     }
 
     try {
-      setIsPlayingAIExample(true)
-      const defaultAIModel = aiModels[0]; // Use the first model as a fixed example model
-      const exampleSentence = "안녕하세요. AI 예시 음성입니다."; // Fixed AI example sentence
-
-      const response = await fetch('/api/tts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: exampleSentence,
-          modelId: defaultAIModel.id,
-        }),
-      })
-
-      if (!response.ok) throw new Error('TTS 요청 실패')
-
-      const blob = await response.blob()
-      const audioUrl = URL.createObjectURL(blob)
-      const audio = new Audio(audioUrl)
-      aiExampleAudioRef.current = audio; // Store the audio object
+      setIsPlayingAIExample(true);
       
+      // AI 예시 음성도 /audio/female.wav로 통일 (현재 요청에 따라)
+      const audioUrl = "/audio/female.wav"; // 재생할 오디오 파일 경로 고정
+      const audio = new Audio(audioUrl);
+      aiExampleAudioRef.current = audio; // 오디오 객체 저장
+
       audio.onended = () => {
-        setIsPlayingAIExample(false)
-        URL.revokeObjectURL(audioUrl)
+        setIsPlayingAIExample(false);
+        // 로컬 파일이므로 URL.revokeObjectURL 필요 없음
         if (aiExampleAudioRef.current === audio) {
           aiExampleAudioRef.current = null;
         }
-      }
+      };
       
-      audio.play()
+      audio.play();
+
     } catch (error) {
-      console.error('TTS 처리 중 오류:', error)
-      setIsPlayingAIExample(false)
+      console.error('AI 예시 음성 재생 중 오류:', error);
+      setIsPlayingAIExample(false);
       aiExampleAudioRef.current = null;
     }
-  }
+  };
 
   // 녹음 관련 상태들 추가
   const [audioURL, setAudioURL] = useState<string | null>(null)
@@ -435,9 +414,6 @@ export function SentenceCard({
             readOnly={currentTab !== 'custom' || isPlayingAIExample}
             maxLength={MAX_LENGTH}
           />
-          <p className="text-sm text-onair-text-sub text-right">
-            {localSentence.length}/500
-          </p>
           <p className="text-sm text-onair-text-sub text-right">
             {localSentence.length}/500
           </p>
