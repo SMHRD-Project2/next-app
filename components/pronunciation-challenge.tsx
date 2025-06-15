@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { aiModels } from "@/components/ai-model-manager"
+import { LoadingMessage } from "@/components/loading-message"
 
 interface PronunciationChallengeProps {
   isRecording: boolean
@@ -78,6 +79,9 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const currentChallengeRef = useRef<HTMLDivElement>(null)
   const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id || null)
   const [playingModel, setPlayingModel] = useState<number | null>(null)
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleChallengeSelect = (challenge: (typeof challenges)[0]) => {
     setSelectedChallenge(challenge)
@@ -101,13 +105,53 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
 
   const handlePlayExample = () => {
     if (selectedModel) {
-      setPlayingModel(playingModel === selectedModel ? null : selectedModel)
-      // 실제 AI 예시 듣기 로직 (예: API 호출 또는 오디오 재생)
-      console.log(`AI 예시 듣기: 모델 ID ${selectedModel} (재생/일시정지 토글)`)
-    } else {
-      console.log("재생할 AI 모델이 선택되지 않았습니다.")
+      if (playingModel === selectedModel) {
+        // 일시정지
+        audio?.pause();
+        setPlayingModel(null);
+      } else {
+        // 재생
+        if (audio) {
+          // 이전에 재생하던 오디오가 있다면 그 지점부터 재생
+          audio.play();
+          setPlayingModel(selectedModel);
+        } else {
+          // 국태은 추가 아나운서 녹음 파일 재생
+          const newAudio = new Audio(`/audio/female.wav`);
+          newAudio.play();
+          setAudio(newAudio);
+          setPlayingModel(selectedModel);
+          
+          // 재생이 끝나면 상태 초기화
+          newAudio.onended = () => {
+            setPlayingModel(null);
+            setAudio(null);
+          };
+        }
+      }
     }
   }
+
+  useEffect(() => {
+    if (isRecording) {
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [isRecording]);
 
   return (
     <div className="space-y-6">
@@ -179,9 +223,8 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         </CardContent>
       </Card>
 
-
       {/* 선택된 챌린지 */}
-      <Card ref={currentChallengeRef} className="bg-onair-bg-sub border-onair-text-sub/20">
+      <Card ref={currentChallengeRef} className="bg-onair-bg-sub border-onair-text-sub/220">
         <CardHeader>
           <CardTitle className="text-onair-text flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -196,7 +239,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                 onClick={handlePlayExample}
               >
                 {playingModel === selectedModel ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
-                AI 예시 듣기
+                {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -261,19 +304,24 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
             </h3>
 
             {isRecording && (
-              <div className="flex items-center justify-center space-x-1 h-16">
-                {Array.from({ length: 20 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-onair-orange rounded-full animate-wave"
-                    style={{
-                      width: "4px",
-                      height: `${Math.random() * 40 + 20}px`,
-                      animationDelay: `${i * 0.1}s`,
-                    }}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="flex items-center justify-center space-x-1 h-16">
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-onair-orange rounded-full animate-wave"
+                      style={{
+                        width: "4px",
+                        height: `${Math.random() * 40 + 20}px`,
+                        animationDelay: `${i * 0.1}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <p className="text-onair-text-sub text-sm mt-2">
+                  {` ${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')}`}
+                </p>
+              </>
             )}
 
             <div className="flex justify-center gap-4">
@@ -312,7 +360,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
               )}
             </div>
 
-            {hasRecorded && <p className="text-onair-text-sub text-sm">AI가 발음을 분석하고 있습니다...</p>}
+            {hasRecorded && !isRecording && <LoadingMessage />}
           </div>
         </CardContent>
       </Card>

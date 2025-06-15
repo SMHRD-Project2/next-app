@@ -11,7 +11,7 @@ export function TrainingHistoryList() {
       category: "뉴스 읽기",
       sentence: "오늘 서울 지역에 첫눈이 내렸습니다.",
       scores: { pronunciation: 91, intonation: 88, tone: 92 },
-      status: "완료",
+      // status: "완료",
     },
     {
       id: 2,
@@ -19,7 +19,7 @@ export function TrainingHistoryList() {
       category: "긴 문장",
       sentence: "정부는 새로운 경제 정책을 발표하며...",
       scores: { pronunciation: 85, intonation: 82, tone: 89 },
-      status: "완료",
+      // status: "완료",
     },
     {
       id: 3,
@@ -27,7 +27,7 @@ export function TrainingHistoryList() {
       category: "짧은 문장",
       sentence: "안녕하세요, 시청자 여러분.",
       scores: { pronunciation: 88, intonation: 85, tone: 86 },
-      status: "완료",
+      // status: "완료",
     },
   ]
 
@@ -67,9 +67,9 @@ export function TrainingHistoryList() {
                 <Badge className={getCategoryColor(item.category)}>{item.category}</Badge>
                 <span className="text-onair-text-sub text-sm">{item.date}</span>
               </div>
-              <Badge variant="outline" className="border-onair-mint text-onair-mint">
+              {/* <Badge variant="outline" className="border-onair-mint text-onair-mint">
                 {item.status}
-              </Badge>
+              </Badge> */}
             </div>
 
             {/* 문장 */}

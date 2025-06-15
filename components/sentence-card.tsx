@@ -3,26 +3,44 @@
 import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Pencil, Volume2, ChevronDown, Play, Pause, Star } from "lucide-react";
+import { RefreshCw, Pencil, Volume2, ChevronDown, Play, Pause, Star, MessageSquare, Speech, Mic, Square, ArrowRight, Download } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { aiModels } from "@/components/ai-model-manager"
+import { aiModels } from "./ai-model-manager"
+import { LoadingMessage } from "@/components/loading-message"
 
 interface SentenceCardProps {
   sentence: string
   onSentenceChange?: (newSentence: string) => void  // 문장 수정 콜백
   onRefresh?: () => void
   currentTab: string             // 현재 탭 정보를 props로 받기
+  isRecording: boolean
+  onRecord: () => void
+  hasRecorded: boolean
+  onNext: () => void
+  canNext: boolean
 }
 
-export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab }: SentenceCardProps) {
+export function SentenceCard({ 
+  sentence, 
+  onSentenceChange, 
+  onRefresh, 
+  currentTab,
+  isRecording,
+  onRecord,
+  hasRecorded,
+  onNext,
+  canNext 
+}: SentenceCardProps) {
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
+
 
   const MAX_LENGTH = 500;
 
@@ -61,14 +79,48 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
     if (onSentenceChange) onSentenceChange(truncatedText);
   }
 
-  const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id || null) // 기본 모델 설정 또는 첫 번째 모델 선택
-  const [playingModel, setPlayingModel] = useState<number | null>(null)
+  // selectedModel 상태 초기화 로직 개선 및 aiModels 변경 시 업데이트
+  const [selectedModel, setSelectedModel] = useState<number | null>(null) // 초기값은 null로 설정
 
-  const handlePlayExample = async () => {
-    if (!selectedModel) return
+  useEffect(() => {
+    // aiModels가 로드되었고, 아직 모델이 선택되지 않았다면 첫 번째 모델을 선택
+    if (aiModels.length > 0 && selectedModel === null) {
+      setSelectedModel(aiModels[0].id);
+    }
+  }, [aiModels, selectedModel]); // aiModels 또는 selectedModel이 변경될 때마다 실행
+
+  const [playingModel, setPlayingModel] = useState<number | null>(null)
+  const selectedModelAudioRef = useRef<HTMLAudioElement | null>(null);
+  const aiExampleAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const [isPlayingSelectedModel, setIsPlayingSelectedModel] = useState(false);
+  const [isPlayingAIExample, setIsPlayingAIExample] = useState(false);
+
+  const handlePlaySelectedModelSentence = async () => {
+    if (!selectedModel) {
+      console.warn("선택된 모델이 없어 AI 예시 듣기를 재생할 수 없습니다.");
+      return;
+    }
+
+    // Stop AI Example playback if it's playing
+    if (aiExampleAudioRef.current) {
+      aiExampleAudioRef.current.pause();
+      URL.revokeObjectURL(aiExampleAudioRef.current.src);
+      aiExampleAudioRef.current = null;
+      setIsPlayingAIExample(false);
+    }
+
+    // If already playing, stop and reset
+    if (selectedModelAudioRef.current) {
+      selectedModelAudioRef.current.pause();
+      URL.revokeObjectURL(selectedModelAudioRef.current.src);
+      selectedModelAudioRef.current = null;
+      setIsPlayingSelectedModel(false);
+      return; // Stop if already playing and toggle off
+    }
 
     try {
-      setIsPlaying(true)
+      setIsPlayingSelectedModel(true)
       const model = aiModels.find(m => m.id === selectedModel)
       if (!model) return
 
@@ -88,20 +140,200 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
       const blob = await response.blob()
       const audioUrl = URL.createObjectURL(blob)
       const audio = new Audio(audioUrl)
+      selectedModelAudioRef.current = audio; // Store the audio object
       
       audio.onended = () => {
-        setIsPlaying(false)
+        setIsPlayingSelectedModel(false)
         URL.revokeObjectURL(audioUrl)
+        if (selectedModelAudioRef.current === audio) {
+          selectedModelAudioRef.current = null;
+        }
       }
       
       audio.play()
     } catch (error) {
       console.error('TTS 처리 중 오류:', error)
-      setIsPlaying(false)
+      setIsPlayingSelectedModel(false)
+      selectedModelAudioRef.current = null;
     }
   }
 
-  const [isPlaying, setIsPlaying] = useState(false);
+  const handlePlayAIExample = async () => {
+    // Stop Selected Model Sentence playback if it's playing
+    if (selectedModelAudioRef.current) {
+      selectedModelAudioRef.current.pause();
+      URL.revokeObjectURL(selectedModelAudioRef.current.src);
+      selectedModelAudioRef.current = null;
+      setIsPlayingSelectedModel(false);
+    }
+
+    // If already playing, stop and reset
+    if (aiExampleAudioRef.current) {
+      aiExampleAudioRef.current.pause();
+      URL.revokeObjectURL(aiExampleAudioRef.current.src);
+      aiExampleAudioRef.current = null;
+      setIsPlayingAIExample(false);
+      return; // Stop if already playing and toggle off
+    }
+
+    try {
+      setIsPlayingAIExample(true)
+      const defaultAIModel = aiModels[0]; // Use the first model as a fixed example model
+      const exampleSentence = "안녕하세요. AI 예시 음성입니다."; // Fixed AI example sentence
+
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: exampleSentence,
+          modelId: defaultAIModel.id,
+        }),
+      })
+
+      if (!response.ok) throw new Error('TTS 요청 실패')
+
+      const blob = await response.blob()
+      const audioUrl = URL.createObjectURL(blob)
+      const audio = new Audio(audioUrl)
+      aiExampleAudioRef.current = audio; // Store the audio object
+      
+      audio.onended = () => {
+        setIsPlayingAIExample(false)
+        URL.revokeObjectURL(audioUrl)
+        if (aiExampleAudioRef.current === audio) {
+          aiExampleAudioRef.current = null;
+        }
+      }
+      
+      audio.play()
+    } catch (error) {
+      console.error('TTS 처리 중 오류:', error)
+      setIsPlayingAIExample(false)
+      aiExampleAudioRef.current = null;
+    }
+  }
+
+  // 녹음 관련 상태들 추가
+  const [audioURL, setAudioURL] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [waveHeights, setWaveHeights] = useState<number[]>([])
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 녹음 관련 함수들 추가
+  const handleRecord = async () => {
+    console.log("handleRecord called. isRecording:", isRecording);
+    if (!isRecording) {
+      try {
+        console.log("Attempting to get media stream...");
+        const constraints = {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        console.log("Media stream obtained successfully.");
+        
+        let mimeType = 'audio/webm;codecs=opus'
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/webm'
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'audio/mp4'
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+              mimeType = ''
+            }
+          }
+        }
+
+        const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+        
+        mediaRecorderRef.current = mediaRecorder
+        audioChunksRef.current = []
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data)
+          }
+        }
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { 
+            type: mimeType || 'audio/webm' 
+          })
+          
+          if (audioURL) {
+            URL.revokeObjectURL(audioURL)
+          }
+          
+          const url = URL.createObjectURL(audioBlob)
+          setAudioURL(url)
+          audioChunksRef.current = []
+
+          if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+          }
+          setRecordingTime(0)
+        }
+
+        mediaRecorder.start()
+        onRecord()
+        
+        setRecordingTime(0)
+        timerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1)
+        }, 1000)
+      } catch (err) {
+        console.error('녹음 권한을 얻을 수 없습니다:', err)
+        alert('마이크 접근 권한이 필요합니다. 브라우저 설정에서 마이크 권한을 확인해주세요.')
+        // 여기에서 err 객체를 자세히 로깅하여 어떤 종류의 오류인지 확인
+        console.error("Error details:", err)
+      }
+    } else {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      }
+      onRecord()
+    }
+  }
+
+  const handlePlay = async () => {
+    if (audioRef.current && audioURL) {
+      try {
+        if (isPlaying) {
+          audioRef.current.pause()
+          setIsPlaying(false)
+        } else {
+          audioRef.current.src = audioURL
+          await audioRef.current.play()
+          setIsPlaying(true)
+        }
+      } catch (err) {
+        console.error('재생 오류:', err)
+        setIsPlaying(false)
+      }
+    }
+  }
+
+  const handleDownload = () => {
+    if (audioURL) {
+      const a = document.createElement('a')
+      a.href = audioURL
+      a.download = `recording-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
+  }
 
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20">
@@ -122,21 +354,20 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
               </Button>
             )}
 
-            {/* 통합된 AI 예시 듣기 Split Button Dropdown */}
-            <div className="inline-flex rounded-md shadow-sm border border-onair-mint"> {/* 전체 박스의 테두리 */}
+            <div className="inline-flex rounded-md shadow-sm border border-onair-mint">
               <Button
-                variant="ghost" // 버튼의 기본 배경과 테두리를 제거
+                variant="ghost"
                 size="sm"
                 className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
-                onClick={handlePlayExample}
+                onClick={handlePlayAIExample}
               >
-                {playingModel === selectedModel ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
-                AI 예시 듣기
+                {isPlayingAIExample ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
+                {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost" // 버튼의 기본 배경과 테두리를 제거
+                    variant="ghost"
                     size="sm"
                     className="relative inline-flex items-center rounded-r-md rounded-l-none text-onair-mint hover:bg-onair-mint hover:text-onair-bg px-2 focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
                     aria-label="AI 모델 선택"
@@ -150,8 +381,19 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
                       key={model.id}
                       onClick={() => {
                         setSelectedModel(model.id);
-                        if (playingModel !== null) {
-                          setPlayingModel(null);
+                        // Stop AI Example playback if it's playing when a new model is selected
+                        if (aiExampleAudioRef.current) {
+                          aiExampleAudioRef.current.pause();
+                          URL.revokeObjectURL(aiExampleAudioRef.current.src);
+                          aiExampleAudioRef.current = null;
+                          setIsPlayingAIExample(false);
+                        }
+                        // Stop Selected Model Sentence playback if it's playing when a new model is selected
+                        if (selectedModelAudioRef.current) {
+                          selectedModelAudioRef.current.pause();
+                          URL.revokeObjectURL(selectedModelAudioRef.current.src);
+                          selectedModelAudioRef.current = null;
+                          setIsPlayingSelectedModel(false);
                         }
                       }}
                       className="flex items-center space-x-2 cursor-pointer"
@@ -190,42 +432,108 @@ export function SentenceCard({ sentence, onSentenceChange, onRefresh, currentTab
             value={localSentence}
             onChange={handleSentenceChange}
             spellCheck={false}
-            readOnly={currentTab !== 'custom' || isPlaying}
+            readOnly={currentTab !== 'custom' || isPlayingAIExample}
             maxLength={MAX_LENGTH}
           />
           <p className="text-sm text-onair-text-sub text-right">
             {localSentence.length}/500
           </p>
+          <p className="text-sm text-onair-text-sub text-right">
+            {localSentence.length}/500
+          </p>
         </div>
 
-        {/* 250609 박남규 - 예시 음성 시각화 */}
-        <div className="flex items-center justify-center space-x-1 h-12 bg-onair-bg rounded-lg p-2">
-          {isClient && waveformHeights.length > 0 ? (
-            waveformHeights.map((height, i) => (
-              <div
-                key={i}
-                className="bg-onair-mint/60 rounded-full animate-wave"
-                style={{
-                  width: "3px",
-                  height: `${height}px`,
-                  animationDelay: `${i * 0.1}s`,
-                }}
-              />
-            ))
-          ) : (
-            // SSR 및 초기 로딩 시 정적 높이 사용
-            Array.from({ length: 40 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-onair-mint/60 rounded-full animate-wave"
-                style={{
-                  width: "3px",
-                  height: "20px", // 고정 높이
-                  animationDelay: `${i * 0.1}s`,
-                }}
-              />
-            ))
-          )}
+        {/* 녹음 컨트롤러 추가 */}
+        <div className="mt-4">
+          <div className="text-center space-y-4">
+            <h3 className="text-lg font-semibold text-onair-text">
+              {isRecording ? "녹음 중..." : hasRecorded ? "녹음 완료!" : " "}
+            </h3>
+
+            {isRecording && (
+              <>
+                <div className="flex items-center justify-center space-x-1 h-16">
+                  {isClient && waveformHeights.length > 0 ? (
+                    waveformHeights.map((height, i) => (
+                      <div
+                        key={i}
+                        className="bg-onair-orange rounded-full animate-wave"
+                        style={{
+                          width: "4px",
+                          height: `${height}px`,
+                          animationDelay: `${i * 0.1}s`,
+                        }}
+                      />
+                    ))
+                  ) : (
+                    Array.from({ length: 20 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="bg-onair-orange rounded-full animate-wave"
+                        style={{
+                          width: "4px",
+                          height: "30px",
+                          animationDelay: `${i * 0.1}s`,
+                        }}
+                      />
+                    ))
+                  )}
+                </div>
+                <p className="text-onair-text-sub text-sm mt-2">
+                  {` ${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')}`}
+                </p>
+              </>
+            )}
+
+            <div className="flex flex-col items-center gap-2">
+              <Button
+                onClick={handleRecord}
+                size="lg"
+                className={`${
+                  isRecording
+                    ? "bg-red-500 hover:bg-red-600 text-white"
+                    : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                } font-semibold`}
+              >
+                {isRecording ? (
+                  <>
+                    <Square className="w-5 h-5 mr-2" />
+                    녹음 중지
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-5 h-5 mr-2" />
+                    {hasRecorded ? "다시 녹음" : "녹음 시작"}
+                  </>
+                )}
+              </Button>
+
+              {hasRecorded && !isRecording && audioURL && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handlePlay}
+                    size="lg"
+                    variant="outline"
+                    className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    {isPlaying ? "일시정지" : "재생"}
+                  </Button>
+                  <Button
+                    onClick={handleDownload}
+                    size="lg"
+                    variant="outline"
+                    className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    다운로드
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {hasRecorded && !isRecording && <LoadingMessage />}
+          </div>
         </div>
       </CardContent>
     </Card>

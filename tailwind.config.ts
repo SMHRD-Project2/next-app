@@ -60,7 +60,9 @@ const config: Config = {
           mint: "#3EE6C1",
           female: "#FAD1E8",
           orange: "#FFB74D",
-          red : "#E02424",
+          red: "#BA3C3C",
+          // 풀 2개
+          // red : "#E02424", 
           blue: "#5AC8FA",
           text: "#E2E8F0",
           "text-sub": "#A0AEC0",

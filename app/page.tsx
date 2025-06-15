@@ -24,14 +24,15 @@ function getCurrentKoreanDate() {
 
 
 export default function HomePage() {
-  const router = useRouter()
   return (
     <div className="flex flex-col min-h-screen">
       {/* 히어로 섹션 */}
       <section className="relative w-full h-[400px] md:h-[500px] overflow-hidden">
         {/* 배경 이미지 */}
         <div className="absolute inset-0 bg-[url('/images/new-bg.jpg')] bg-cover bg-center">
-          <div className="absolute inset-0 bg-gradient-to-r from-onair-bg/90 to-onair-bg/70"></div>
+        {/* 배경 그라데이션 슬래쉬 수정 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-onair-bg/80 to-onair-bg/70"></div>
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-onair-bg to-transparent"></div>
         </div>
 
         {/* 히어로 콘텐츠 */}
