@@ -3,6 +3,8 @@
 import type React from "react"
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { useState, useEffect, useRef } from "react"
+import { useSession } from "next-auth/react"
+import { getAuthStatus } from "@/lib/auth-utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +22,7 @@ interface VoiceCloningStudioProps {
 }
 
 export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
+  const { data: session } = useSession()
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
   const [recordedSamples, setRecordedSamples] = useState<Blob[]>([])
@@ -453,23 +456,23 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
         throw new Error(result.error || "파일 업로드 실패");
       }
 
-      // Get current user's email from localStorage
-      const userProfileStr = localStorage.getItem("userProfile");
-      const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+      // Get current user's email using getAuthStatus
+      const { isLoggedIn, userProfile } = getAuthStatus();
       
-      if (!userProfile?.email) {
+      if (!isLoggedIn || !userProfile?.email) {
         throw new Error("로그인이 필요합니다.");
       }
 
+      console.log("[DEBUG] 현재 로그인된 사용자:", userProfile.email);
+
       // Create a new model object
       const newModel = {
+        userEmail: userProfile.email,
         name: modelName,
         type: "개인 맞춤",
         quality: "사용자 생성",
         description: modelDescription || "내 목소리를 기반으로 생성된 AI 모델",
-        avatar: "/placeholder.svg?height=40&width=40",
         modelUrl: result.url,
-        userEmail: userProfile.email, // Add user's email
         createdAt: new Date().toISOString()
       };
 
