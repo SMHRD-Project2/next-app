@@ -7,6 +7,13 @@ import { Lock, LogIn } from "lucide-react"
 import { useEffect, useState } from "react"
 import { getAuthStatus } from "@/lib/auth-utils"
 
+export const defaultAIResults = {
+  pronunciation: 85,
+  intonation: 78,
+  tone: 92,
+  stability: 88,
+}
+
 export function AIResultPanel() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
@@ -29,12 +36,7 @@ export function AIResultPanel() {
     return () => window.removeEventListener('localStorageChange', handleAuthChange)
   }, [])
 
-  const results = {
-    pronunciation: 85,
-    intonation: 78,
-    tone: 92,
-    stability: 88,
-  }
+  const results = defaultAIResults
 
   const feedback = [
     { type: "good", text: "전체적인 발음이 명확합니다" },

@@ -5,39 +5,27 @@ import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
-import { useState } from "react"
-
-const initialTrainingRecords = [
-  {
-    id: 1,
-    date: "2024-01-07",
-    category: "뉴스 읽기",
-    sentence: "오늘 서울 지역에 첫눈이 내렸습니다.",
-    scores: { pronunciation: 91, intonation: 88, tone: 92 },
-    // status: "완료",
-  },
-  {
-    id: 2,
-    date: "2024-01-07",
-    category: "긴 문장",
-    sentence: "정부는 새로운 경제 정책을 발표하며...",
-    scores: { pronunciation: 85, intonation: 82, tone: 89 },
-    // status: "완료",
-  },
-  {
-    id: 3,
-    date: "2024-01-06",
-    category: "짧은 문장",
-    sentence: "안녕하세요, 시청자 여러분.",
-    scores: { pronunciation: 88, intonation: 85, tone: 86 },
-    // status: "완료",
-  },
-];
+import { useState, useEffect } from "react"
 
 export default function HistoryPage() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
-  const [trainingRecords, setTrainingRecords] = useState(initialTrainingRecords);
+  const [trainingRecords, setTrainingRecords] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        const res = await fetch('/api/training-records')
+        if (res.ok) {
+          const data = await res.json()
+          setTrainingRecords(data)
+        }
+      } catch (err) {
+        console.error('Failed to load records', err)
+      }
+    }
+    fetchRecords()
+  }, [])
 
   // 평균 정확도 계산
   const calculateAverageAccuracy = () => {
@@ -90,13 +78,17 @@ export default function HistoryPage() {
   }
 
   // 삭제 핸들러 추가
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     if (confirm("정말로 이 기록을 삭제하시겠습니까?")) {
-      setTrainingRecords(prevRecords => prevRecords.filter(record => record.id !== id));
-      /* 기록 삭제 완료 알림 */
-      alert("기록이 삭제되었습니다.");
+      try {
+        await fetch(`/api/training-records?id=${id}`, { method: 'DELETE' })
+        setTrainingRecords(prev => prev.filter(record => record._id !== id))
+        alert("기록이 삭제되었습니다.")
+      } catch (err) {
+        console.error('Failed to delete record', err)
+      }
     }
-  };
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -163,7 +155,7 @@ export default function HistoryPage() {
               }
 
               return (
-                <div key={item.id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
+                <div key={item._id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
                   {/* 헤더 */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -228,7 +220,7 @@ export default function HistoryPage() {
                     </div>
                     {/* 삭제 버튼 */}
                     <button
-                      onClick={() => handleDelete(item.id)}
+                      onClick={() => handleDelete(item._id)}
                       className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-red-400 hover:bg-onair-bg-sub rounded flex items-center gap-1"
                     >
                       <Trash2 className="w-4 h-4" />
