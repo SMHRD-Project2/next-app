@@ -24,9 +24,9 @@ export default function SnsLinkage({ userId }: SnsLinkageProps) {
     const clientId = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY
     const redirectUri = `${currentOrigin}/api/auth/kakao/callback`
     
-    console.log('카카오 클라이언트 ID:', clientId)
-    console.log('현재 Origin:', currentOrigin)
-    console.log('Redirect URI:', redirectUri)
+    // console.log('카카오 클라이언트 ID:', clientId)
+    // console.log('현재 Origin:', currentOrigin)
+    // console.log('Redirect URI:', redirectUri)
     
     if (!clientId) {
       setMessage('카카오 클라이언트 ID가 설정되지 않았습니다.')
@@ -42,7 +42,7 @@ export default function SnsLinkage({ userId }: SnsLinkageProps) {
 
     const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=profile_nickname,profile_image,account_email`
     
-    console.log('최종 카카오 URL:', kakaoUrl)
+    // console.log('최종 카카오 URL:', kakaoUrl)
     
     // 새 창으로 열기 (디버깅용)
     // window.open(kakaoUrl, '_blank')

@@ -60,7 +60,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
           throw new Error('지원하지 않는 소셜 로그인 제공자입니다.')
       }
 
-      console.log(`[${provider.toUpperCase()} LOGIN] 로그인 URL:`, authUrl)
+      // console.log(`[${provider.toUpperCase()} LOGIN] 로그인 URL:`, authUrl)
 
       // 팝업으로 소셜 로그인 페이지 열기
       const popup = window.open(
@@ -80,9 +80,35 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
         if (popup.closed) {
           clearInterval(timer)
           setLoadingProvider(null)
-          console.log(`[${provider.toUpperCase()} LOGIN] 팝업이 닫혔습니다.`)
-          // 페이지 새로고침으로 로그인 상태 반영
-          window.location.reload()
+          // console.log(`[${provider.toUpperCase()} LOGIN] 팝업이 닫혔습니다.`)
+          
+          // 로그인 상태 확인
+          const checkLoginStatus = async () => {
+            try {
+              const response = await fetch('/api/auth/check', {
+                method: 'GET',
+                credentials: 'include'
+              });
+              
+              if (!response.ok) {
+                // 로그인 실패 시 회원가입 페이지로 이동
+                alert(`${provider} 로그인에 실패했습니다. 회원가입 페이지로 이동합니다.`);
+                popup.close()
+                window.location.href = '/auth/signup';
+                return;
+              }
+              
+              // 로그인 성공 시 메인 페이지로 이동
+              window.location.reload();
+            } catch (error) {
+              console.error('로그인 상태 확인 실패:', error);
+              alert(`${provider} 로그인에 실패했습니다. 회원가입 페이지로 이동합니다.`);
+              popup.close()
+              window.location.href = '/auth/signup';
+            }
+          };
+          
+          checkLoginStatus();
         }
       }, 800)
 
@@ -91,7 +117,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
               if (event.origin !== window.location.origin) return
               
               if (event.data.type === 'SOCIAL_LOGIN_SUCCESS') {
-                console.log(`[${provider.toUpperCase()} LOGIN] 로그인 성공 메시지 받음:`, event.data)
+                // console.log(`[${provider.toUpperCase()} LOGIN] 로그인 성공 메시지 받음:`, event.data)
                 clearInterval(timer)
                 setLoadingProvider(null)
                 window.removeEventListener('message', messageHandler)
@@ -108,15 +134,17 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
                 window.removeEventListener('message', messageHandler)
                 popup.close()
                 alert(`${provider} 로그인 중 오류가 발생했습니다: ${event.data.error}`)
+                // 로그인 실패 시 회원가입 페이지로 이동
+                window.location.href = '/auth/signup'
               }
             }
-      
             window.addEventListener('message', messageHandler)
   
     } catch (error) {
       console.error(`${provider} 로그인 실패:`, error)
       alert(`${provider} 로그인 중 오류가 발생했습니다.`)
       setLoadingProvider(null)
+      
     }
   }
 

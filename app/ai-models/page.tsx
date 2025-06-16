@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Lock, LogIn } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 
-export default function AIModelsPage() {
+function AIModelsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isLoggedIn } = useAuth()
@@ -24,7 +24,7 @@ export default function AIModelsPage() {
   }, [searchParams])
 
   const handleLoginRedirect = () => {
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   if (!isLoggedIn) {
@@ -117,5 +117,13 @@ export default function AIModelsPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function AIModelsPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <AIModelsContent />
+    </Suspense>
   )
 }

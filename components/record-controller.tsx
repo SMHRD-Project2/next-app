@@ -58,16 +58,21 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
   const handleRecord = async () => {
     if (!isRecording) {
       try {
-        // HTTP 환경에서도 작동하도록 설정
-        const constraints = {
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
+        let stream;
+        
+        try {
+          // 먼저 실제 마이크로 시도
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // 마이크 접근 실패 시 가상 오디오 스트림 생성
+          const audioContext = new AudioContext();
+          const oscillator = audioContext.createOscillator();
+          const destination = audioContext.createMediaStreamDestination();
+          oscillator.connect(destination);
+          oscillator.start();
+          stream = destination.stream;
         }
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints)
 
         // 지원되는 MIME 타입 확인
         let mimeType = 'audio/webm;codecs=opus'

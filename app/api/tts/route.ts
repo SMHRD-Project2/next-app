@@ -66,11 +66,11 @@ export async function GET(request: Request) {
     // FastAPI 서버 URL
     const fastApiUrl = process.env.FASTAPI_URL || 'http://localhost:8000';
     
-    console.log('FastAPI 요청:', {
-      url: `${fastApiUrl}/tts`,
-      text,
-      voice
-    });
+    //console.log('FastAPI 요청:', {
+    //   url: `${fastApiUrl}/tts`,
+    //   text,
+    //   voice
+    // });
 
     // FastAPI로 요청 보내기
     const response = await fetch(`${fastApiUrl}/tts`, {
