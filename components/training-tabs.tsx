@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SentenceCard } from "@/components/sentence-card";
-import { AIResultPanel } from "@/components/ai-result-panel";
+import { AIResultPanel, defaultAIResults } from "@/components/ai-result-panel";
 import { VoiceComparisonPanel } from "@/components/voice-comparison-panel";
 import { CustomSentenceUpload } from "@/components/custom-sentence-upload";
 import { PronunciationChallenge } from "@/components/pronunciation-challenge";
@@ -85,6 +85,32 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
     setHasRecorded(false);
     setMyVoiceUrl(null);
   };
+  const handleSaveRecord = async () => {
+    const categories: { [key: string]: string } = {
+      short: '짧은 문장',
+      long: '긴 문장',
+      news: '뉴스 읽기',
+      custom: '내문장 업로드',
+      challenge: '발음 챌린지',
+    }
+    const record = {
+      date: new Date().toISOString().slice(0, 10),
+      category: categories[activeTab],
+      sentence,
+      scores: defaultAIResults,
+      voiceUrl: myVoiceUrl,
+    }
+    try {
+      await fetch('/api/training-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record),
+      })
+      alert('기록이 저장되었습니다.')
+    } catch (err) {
+      console.error('Failed to save record', err)
+    }
+  }
 
   if (loading) return <div className="text-center py-10">문장을 불러오는 중...</div>;
 
@@ -179,6 +205,16 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
           )}
         </TabsContent>
       </Tabs>
+      {hasRecorded && (
+        <div className="text-center mt-6">
+          <button
+            onClick={handleSaveRecord}
+            className="px-4 py-2 bg-onair-mint text-onair-bg rounded hover:bg-onair-mint/90"
+          >
+            기록 저장
+          </button>
+        </div>
+      )}
     </div>
   );
 }
