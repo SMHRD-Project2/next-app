@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause, Download } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { aiModels, addNewModel } from "@/components/ai-model-manager"
+import { useAIModels } from "@/lib/ai-model-context"
 
 interface VoiceCloningStudioProps {
   onSaveSuccess: () => void
@@ -23,6 +23,7 @@ interface VoiceCloningStudioProps {
 
 export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   const { data: session } = useSession()
+  const { models: aiModels, isLoading, refreshModels } = useAIModels()
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
   const [recordedSamples, setRecordedSamples] = useState<Blob[]>([])
@@ -70,7 +71,13 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id ?? null)
+  const [selectedModel, setSelectedModel] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!isLoading && aiModels.length > 0) {
+      setSelectedModel(aiModels[0].id)
+    }
+  }, [aiModels, isLoading])
 
   // 랜덤 샘플 텍스트 생성 함수
   const generateRandomSample = () => {
@@ -118,18 +125,6 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   useEffect(() => {
     generateRandomSample()
   }, [])
-
-  // WAV 파일로 변환하는 함수
-  // const convertToWav = (audioBlob: Blob): Promise<Blob> => {
-  //   return new Promise((resolve) => {
-  //     const reader = new FileReader()
-  //     reader.onload = () => {
-  //       // 간단한 WAV 헤더 생성 (실제로는 WebCodecs API나 외부 라이브러리 사용 권장)
-  //       resolve(new Blob([audioBlob], { type: 'audio/wav' }))
-  //     }
-  //     reader.readAsArrayBuffer(audioBlob)
-  //   })
-  // }
 
   // 녹음 시작/중지 처리
   const handleRecord = async (index: number) => {
@@ -537,6 +532,9 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
         setModelName("");
         setModelDescription("");
         setProcessingProgress(0);
+
+        // 모델 목록 새로고침
+        await refreshModels();
 
         // Call the onSaveSuccess callback to switch tabs
         onSaveSuccess();

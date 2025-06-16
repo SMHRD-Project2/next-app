@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { aiModels } from "./ai-model-manager"
+import { useAIModels } from "@/lib/ai-model-context"
 import { LoadingMessage } from "@/components/loading-message"
 import { Progress } from "@/components/ui/progress"
 import {
@@ -47,6 +47,7 @@ export function SentenceCard({
   waveformRef,
   onRecordingComplete
 }: SentenceCardProps) {
+  const { models: aiModels, isLoading } = useAIModels()
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
 
@@ -63,8 +64,6 @@ export function SentenceCard({
       pendingAudioRef.current = null
     }
   }
-  
-
 
   const MAX_LENGTH = 500;
 
@@ -125,6 +124,8 @@ export function SentenceCard({
   });
   
   useEffect(() => {
+    if (isLoading) return;
+    
     // Find the default model and set it as selected
     const defaultModel = aiModels.find(model => model.isDefault);
     if (defaultModel) {
@@ -141,7 +142,7 @@ export function SentenceCard({
     
     window.addEventListener('aiModelChange', handleModelChange);
     return () => window.removeEventListener('aiModelChange', handleModelChange);
-  }, []);
+  }, [aiModels, isLoading]);
 
   const [playingModel, setPlayingModel] = useState<number | null>(null)
   const selectedModelAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -179,22 +180,29 @@ export function SentenceCard({
     try {
       setIsPlayingSelectedModel(true);
 
-      // --- 여기에 수정된 부분 시작 ---
-      // 사용자 요청에 따라 audio/female.wav 파일을 직접 재생
-      const audioUrl = "/audio/female.wav"; // 재생할 오디오 파일 경로 고정
+      // AI 모델 DB에서 URL 가져오기
+      const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
+      if (!modelUrl) {
+        throw new Error("모델 URL을 찾을 수 없습니다.");
+      }
+
+      // 음성 파일 가져오기
+      const voiceResponse = await fetch(modelUrl);
+      const voiceBlob = await voiceResponse.blob();
+      const audioUrl = URL.createObjectURL(voiceBlob);
+      
       const audio = new Audio(audioUrl);
-      selectedModelAudioRef.current = audio; // 오디오 객체 저장
+      selectedModelAudioRef.current = audio;
 
       audio.onended = () => {
         setIsPlayingSelectedModel(false);
-        // 로컬 파일이므로 URL.revokeObjectURL 필요 없음
+        URL.revokeObjectURL(audioUrl);
         if (selectedModelAudioRef.current === audio) {
           selectedModelAudioRef.current = null;
         }
       };
 
       audio.play();
-
 
     } catch (error) {
       console.error('음성 재생 중 오류:', error);
@@ -228,11 +236,19 @@ export function SentenceCard({
       // ##########################################################################
       // if(custom){
       const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
-      // console.log("Selected Model URL:", modelUrl)
-      // console.log("Selected localSentence:", localSentence)
+      console.log("Selected Model URL:", modelUrl)
+      console.log("Selected localSentence:", localSentence)
+
+      console.log("Selected localSentenceSelected localSentenceSelected localSentenceSelected localSentenceSelected localSentence:")
+
+      console.log("Selected Model ID:", selectedModel)
+      console.log("Selected Model Details:", aiModels.find(model => model.id === selectedModel))
+      const selectedModelDetails = aiModels.find(model => model.id === selectedModel)
+      const voice_url = selectedModelDetails?.url
+      console.log("Selected Model URL:", voice_url)
       
       // 음성 파일 가져오기
-      const voiceResponse = await fetch(modelUrl || '');
+      const voiceResponse = await fetch(voice_url || '');
       const voiceBlob = await voiceResponse.blob();
 
       // 무음 파일 가져오기
@@ -241,7 +257,7 @@ export function SentenceCard({
 
       // FormData 생성
       const formData = new FormData();
-      formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
+      formData.append('voice_file', voiceBlob, voice_url?.split('/').pop() || '');
       formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
 
       if (currentTab === 'custom') {
@@ -298,7 +314,7 @@ export function SentenceCard({
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('서버 응답:', errorText);
+        // console.error('서버 응답:', errorText);
         throw new Error(`TTS 변환 실패: ${errorText}`);
       }
 
@@ -308,9 +324,6 @@ export function SentenceCard({
     // }
 
       // else
-
-
-
 
 // ###############################################################
       const audio = new Audio(audioUrl);
@@ -325,14 +338,14 @@ export function SentenceCard({
         }
       };
 
-// ############################################################### 둘 중 하나
-      // audio.play();
+// ############################################################### 둘 중 하나 몰라이제
+      audio.play();
       
       maybePlayPendingAudio();
 // ###############################################################
 
     } catch (error) {
-      console.error('AI 예시 음성 재생 중 오류:', error);
+      // console.error('AI 예시 음성 재생 중 오류:', error);
       setIsPlayingAIExample(false);
       aiExampleAudioRef.current = null;
     }

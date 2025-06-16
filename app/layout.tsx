@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Navigation } from "@/components/navigation"
 import NextAuthProvider from "@/components/NextAuthProvider"
+import { AIModelProvider } from "@/lib/ai-model-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -38,8 +39,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Navigation />
-            <main className="pt-16">{children}</main>
+            <AIModelProvider>
+              <Navigation />
+              <main className="pt-16">{children}</main>
+            </AIModelProvider>
           </ThemeProvider>
         </NextAuthProvider>
       </body>

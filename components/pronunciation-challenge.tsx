@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { aiModels } from "@/components/ai-model-manager"
+import { useAIModels } from "@/lib/ai-model-context"
 import { LoadingMessage } from "@/components/loading-message"
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/waveform-player"
 import { VoiceComparisonPanel } from "@/components/voice-comparison-panel"
@@ -76,10 +76,11 @@ const challenges = [
 ]
 
 export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onReset }: PronunciationChallengeProps) {
+  const { models: aiModels, isLoading } = useAIModels()
   const [selectedChallenge, setSelectedChallenge] = useState(challenges[0])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const currentChallengeRef = useRef<HTMLDivElement>(null)
-  const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id || null)
+  const [selectedModel, setSelectedModel] = useState<number | null>(null)
   const [playingModel, setPlayingModel] = useState<number | null>(null)
   const [audioURL, setAudioURL] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -89,6 +90,13 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const waveformRef = useRef<WaveformPlayerHandle>(null)
+
+  useEffect(() => {
+    if (!isLoading && aiModels.length > 0) {
+      const defaultModel = aiModels.find(model => model.isDefault) || aiModels[0]
+      setSelectedModel(defaultModel.id)
+    }
+  }, [aiModels, isLoading])
 
   const handleChallengeSelect = (challenge: (typeof challenges)[0]) => {
     setSelectedChallenge(challenge)

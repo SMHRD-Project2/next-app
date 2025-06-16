@@ -102,8 +102,9 @@ async def upload_recording(file: UploadFile = File(...)):
         print(f"[DEBUG] 변환될 WAV 파일 경로: {tmp_out_path}")
 
         # 250612 박남규 s3 수정: ffmpeg를 이용한 변환 수행
+        ffmpeg_path = "C:\\ffmpeg\\bin\\ffmpeg.exe"  # ffmpeg 전체 경로
         cmd = [
-            "ffmpeg",
+            ffmpeg_path,
             "-i", tmp_in_path,
             "-ar", "16000",  # 16kHz 샘플레이트
             "-ac", "1",      # 모노
@@ -111,11 +112,20 @@ async def upload_recording(file: UploadFile = File(...)):
             tmp_out_path
         ]
         print(f"[DEBUG] ffmpeg 명령어: {' '.join(cmd)}")
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode != 0:
-            error_msg = result.stderr.decode()
-            print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
-            raise RuntimeError(f"ffmpeg 변환 실패: {error_msg}")
+        try:
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print(f"[DEBUG] ffmpeg 실행 결과 - 반환 코드: {result.returncode}")
+            print(f"[DEBUG] ffmpeg stdout: {result.stdout}")
+            print(f"[DEBUG] ffmpeg stderr: {result.stderr}")
+            if result.returncode != 0:
+                error_msg = result.stderr
+                print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
+                raise RuntimeError(f"ffmpeg 변환 실패: {error_msg}")
+        except FileNotFoundError as e:
+            print(f"[ERROR] ffmpeg 실행 파일을 찾을 수 없습니다: {e}")
+            print(f"[DEBUG] 현재 작업 디렉토리: {os.getcwd()}")
+            print(f"[DEBUG] ffmpeg 경로 존재 여부: {os.path.exists(ffmpeg_path)}")
+            raise
         print("[DEBUG] ffmpeg 변환 성공")
 
         # 변환된 파일이 존재하는지 확인
@@ -205,8 +215,9 @@ async def upload_recording(file: UploadFile = File(...)):
         print(f"[DEBUG] 변환될 WAV 파일 경로: {tmp_out_path}")
 
         # 250612 박남규 s3 수정: ffmpeg를 이용한 변환 수행
+        ffmpeg_path = "C:\\ffmpeg\\bin\\ffmpeg.exe"  # ffmpeg 전체 경로
         cmd = [
-            "ffmpeg",
+            ffmpeg_path,
             "-i", tmp_in_path,
             "-ar", "16000",  # 16kHz 샘플레이트
             "-ac", "1",      # 모노
@@ -214,11 +225,20 @@ async def upload_recording(file: UploadFile = File(...)):
             tmp_out_path
         ]
         print(f"[DEBUG] ffmpeg 명령어: {' '.join(cmd)}")
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode != 0:
-            error_msg = result.stderr.decode()
-            print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
-            raise RuntimeError(f"ffmpeg 변환 실패: {error_msg}")
+        try:
+            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print(f"[DEBUG] ffmpeg 실행 결과 - 반환 코드: {result.returncode}")
+            print(f"[DEBUG] ffmpeg stdout: {result.stdout}")
+            print(f"[DEBUG] ffmpeg stderr: {result.stderr}")
+            if result.returncode != 0:
+                error_msg = result.stderr
+                print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
+                raise RuntimeError(f"ffmpeg 변환 실패: {error_msg}")
+        except FileNotFoundError as e:
+            print(f"[ERROR] ffmpeg 실행 파일을 찾을 수 없습니다: {e}")
+            print(f"[DEBUG] 현재 작업 디렉토리: {os.getcwd()}")
+            print(f"[DEBUG] ffmpeg 경로 존재 여부: {os.path.exists(ffmpeg_path)}")
+            raise
         print("[DEBUG] ffmpeg 변환 성공")
 
         # 변환된 파일이 존재하는지 확인
@@ -260,10 +280,26 @@ async def upload_recording(file: UploadFile = File(...)):
         s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{unique_filename}"
         print(f"[DEBUG] S3 URL 생성됨: {s3_url}")
 
+        # 작업 ID 생성
+        task_id = str(uuid.uuid4())
+        
+        # 작업 정보 저장
+        processing_tasks[task_id] = {
+            "status": "processing",
+            "start_time": datetime.now(),
+            "file_info": {
+                "filename": file.filename,
+                "content_type": file.content_type,
+                "size_bytes": len(content)
+            }
+        }
+
         return {
             "success": True,
             "filename": unique_filename,
-            "url": s3_url
+            "url": s3_url,
+            "status": "success",
+            "task_id": task_id
         }
 
     except ClientError as e:
@@ -407,6 +443,8 @@ async def create_tts(
         logger.info("try")
         # 파일 업로드
         logger.info("음성 파일 업로드 시작")
+        
+        # 파일 업로드
         uploaded_voice_path = upload_file(voice_path, session_hash)
         logger.info("무음 파일 업로드 시작")
         uploaded_silence_path = upload_file(silence_path, session_hash)
@@ -428,8 +466,14 @@ async def create_tts(
             output_path = os.path.join("temp", "output.wav")
             download_audio(result, output_path)
             logger.info("TTS 변환 완료")
-            return FileResponse(output_path, media_type="audio/wav")
             
+            # output_url 생성
+            output_url = f"/api/audio/{session_hash}"
+            
+            return {"success": True, "url": output_url}
+        else:
+            logger.error("TTS 변환 실패")
+            return {"success": False, "error": "TTS 변환 실패"}
     except Exception as e:
         logger.error(f"에러 발생: {str(e)}")
         return {"error": str(e)}
