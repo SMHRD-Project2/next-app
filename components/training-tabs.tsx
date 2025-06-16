@@ -125,7 +125,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
               onRecordingComplete={setMyVoiceUrl}
             />
           
-            {hasRecorded && (
+             {hasRecorded && (
               <div className="space-y-6">
                 <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
                 <AIResultPanel />

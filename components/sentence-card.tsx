@@ -33,10 +33,10 @@ interface SentenceCardProps {
   onRecordingComplete?: (url: string | null) => void
 }
 
-export function SentenceCard({ 
-  sentence, 
-  onSentenceChange, 
-  onRefresh, 
+export function SentenceCard({
+  sentence,
+  onSentenceChange,
+  onRefresh,
   currentTab,
   isRecording,
   onRecord,
@@ -80,6 +80,7 @@ export function SentenceCard({
     const heights = Array.from({ length: 40 }, () => Math.random() * 30 + 10)
     setWaveformHeights(heights)
   }, [])
+
 
   // 250609 박남규 - textarea onChange 핸들러에서 내부 상태 및 부모 콜백 호출
   const handleSentenceChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -160,7 +161,7 @@ export function SentenceCard({
       const audioUrl = "/audio/female.wav"; // 재생할 오디오 파일 경로 고정
       const audio = new Audio(audioUrl);
       selectedModelAudioRef.current = audio; // 오디오 객체 저장
-      
+
       audio.onended = () => {
         setIsPlayingSelectedModel(false);
         // 로컬 파일이므로 URL.revokeObjectURL 필요 없음
@@ -168,7 +169,7 @@ export function SentenceCard({
           selectedModelAudioRef.current = null;
         }
       };
-      
+
       audio.play();
 
 
@@ -202,9 +203,10 @@ export function SentenceCard({
     try {
       setIsPlayingAIExample(true);
       // ##########################################################################
+      // if(custom){
       const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
-      console.log("Selected Model URL:", modelUrl)
-      console.log("Selected localSentence:", localSentence)
+      // console.log("Selected Model URL:", modelUrl)
+      // console.log("Selected localSentence:", localSentence)
       
       // 음성 파일 가져오기
       const voiceResponse = await fetch(modelUrl || '');
@@ -219,11 +221,11 @@ export function SentenceCard({
       formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
       formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
 
-      console.log('전송할 데이터:', {
-        text: localSentence,
-        voiceFileName: modelUrl?.split('/').pop(),
-        formDataKeys: Array.from(formData.keys())
-      });
+      // console.log('전송할 데이터:', {
+        // text: localSentence,
+        // voiceFileName: modelUrl?.split('/').pop(),
+        // formDataKeys: Array.from(formData.keys())
+      // });
 
       // Next.js API를 통해 요청
       const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
@@ -240,6 +242,14 @@ export function SentenceCard({
       // 오디오 데이터를 Blob으로 변환
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
+    // }
+
+      // else
+
+
+
+
+// ###############################################################
       const audio = new Audio(audioUrl);
       aiExampleAudioRef.current = audio; // 오디오 객체 저장
 
@@ -250,7 +260,7 @@ export function SentenceCard({
           aiExampleAudioRef.current = null;
         }
       };
-      
+
       audio.play();
 
     } catch (error) {
@@ -270,19 +280,68 @@ export function SentenceCard({
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
 
+  //  2506011 박남규 aws 업로드하기
+  const uploadToS3 = async (blob: Blob) => {
+    console.log("전달된 blob:", blob)
+    console.log("Blob 타입:", blob.type)
+    console.log("Blob 크기:", blob.size)
+
+    const formData = new FormData()
+    const file = new File([blob], "recording.webm", { type: "audio/webm" })
+
+    console.log("생성된 File 객체:", file)
+    console.log("File 타입:", file.type)
+    console.log("File 크기:", file.size)
+
+    formData.append("file", file)
+
+    for (let [key, value] of formData.entries()) {
+      console.log("FormData 항목:", key, value)
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/upload_record", {
+        method: "POST",
+        body: formData,
+      })
+      console.log("응답 상태:", res.status)
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error("[ERROR] 서버 응답 오류:", errorText)
+        throw new Error(`서버 응답 오류: ${res.status} ${errorText}`)
+      }
+
+      const data = await res.json()
+
+      if (data.success) {
+        console.log("업로드 성공:", data.url)
+        return data.url
+      } else {
+        const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."
+        console.error("업로드 실패:", data.error)
+        throw new Error(errMsg)
+      }
+    } catch (error) {
+      console.error("[ERROR] 업로드 중 예외 발생:", error)
+      throw error
+    }
+  }
+
+
   // 녹음 관련 함수들 추가
   const handleRecord = async () => {
-    console.log("handleRecord called. isRecording:", isRecording);
+    // console.log("handleRecord called. isRecording:", isRecording);
     if (!isRecording) {
       try {
-        console.log("Attempting to get media stream...");
+        // console.log("Attempting to get media stream...");
         let stream;
-        
+
         try {
           // 먼저 실제 마이크로 시도
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
-          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
           // 마이크 접근 실패 시 가상 오디오 스트림 생성
           const audioContext = new AudioContext();
           const oscillator = audioContext.createOscillator();
@@ -291,6 +350,7 @@ export function SentenceCard({
           oscillator.start();
           stream = destination.stream;
         }
+
 
         let mimeType = 'audio/webm;codecs=opus'
         if (!MediaRecorder.isTypeSupported(mimeType)) {
@@ -304,7 +364,7 @@ export function SentenceCard({
         }
 
         const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
-        
+
         mediaRecorderRef.current = mediaRecorder
         audioChunksRef.current = []
 
@@ -318,26 +378,32 @@ export function SentenceCard({
           const audioBlob = new Blob(audioChunksRef.current, {
             type: mimeType || 'audio/webm'
           })
-          
+
           if (audioURL) {
             URL.revokeObjectURL(audioURL)
           }
-          
+
           const url = URL.createObjectURL(audioBlob)
           setAudioURL(url)
           if (onRecordingComplete) onRecordingComplete(url)
           audioChunksRef.current = []
+
+          // 250611 박남규 업로드
+          uploadToS3(audioBlob)
+          audioChunksRef.current = []
+
 
           if (timerRef.current) {
             clearInterval(timerRef.current)
             timerRef.current = null
           }
           setRecordingTime(0)
+
         }
         if (onRecordingComplete) onRecordingComplete(null)
         mediaRecorder.start()
         onRecord()
-        
+
         setRecordingTime(0)
         timerRef.current = setInterval(() => {
           setRecordingTime(prev => prev + 1)
@@ -375,7 +441,7 @@ export function SentenceCard({
   //   }
   // }
   const handlePlay = () => {
-//    if (!audioURL) return               // 녹음이 아직 없으면 무시
+    //    if (!audioURL) return               // 녹음이 아직 없으면 무시
     if (isPlaying) {
       waveformRef.current?.pause()
       setIsPlaying(false)
@@ -395,6 +461,18 @@ export function SentenceCard({
       document.body.removeChild(a)
     }
   }
+
+  // const handleWordClick = (index: number) => {
+  //   const totalDuration = waveformRef.current?.getDuration()
+  //   if (!totalDuration || words.length === 0) return
+
+  //   const timePerWord = totalDuration / words.length
+  //   waveformRef.current?.setCurrentTime(timePerWord * index)
+  //   waveformRef.current?.play()
+
+  //   setIsPlaying(true)
+  //   setHighlightIndex(index)
+  // }
 
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20">
@@ -537,14 +615,31 @@ export function SentenceCard({
             )}
 
             <div className="flex flex-col items-center gap-2">
+              {/* {hasRecorded && !isRecording && audioURL && (
+                <div className="w-full mb-4">
+                  <WaveformPlayer ref={waveformRef} url={audioURL} />
+                  {audioDuration && (
+                    <div className="mt-2 flex flex-wrap justify-center gap-1 text-onair-text">
+                      {words.map((w, i) => (
+                        <span
+                          key={i}
+                          onClick={() => handleWordClick(i)}
+                          className={`cursor-pointer px-1 rounded ${highlightIndex === i ? 'bg-onair-mint text-onair-bg' : ''}`}
+                        >
+                          {w}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )} */}
               <Button
                 onClick={handleRecord}
                 size="lg"
-                className={`${
-                  isRecording
-                    ? "bg-red-500 hover:bg-red-600 text-white"
-                    : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
-                } font-semibold`}
+                className={`${isRecording
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                  } font-semibold`}
               >
                 {isRecording ? (
                   <>
@@ -589,7 +684,6 @@ export function SentenceCard({
       </CardContent>
     </Card>
 
-    
+
   )
 }
-

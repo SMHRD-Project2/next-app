@@ -1,4 +1,3 @@
-// app/api/upload/route.ts
 import { S3 } from 'aws-sdk';
 import { NextResponse } from "next/server";
 
@@ -12,25 +11,18 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    
+
     if (!file) {
-      return NextResponse.json(
-        { error: "No file provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // 파일 타입 검증
     if (!file.type.startsWith('audio/')) {
-      return NextResponse.json(
-        { error: "Invalid file type. Only audio files are allowed." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid file type. Only audio files are allowed." }, { status: 400 });
     }
 
     const buffer = await file.arrayBuffer();
     const timestamp = Date.now();
-    const fileName = `model/${timestamp}-${file.name}`;
+    const fileName = `recordings/${timestamp}-${file.name}`;
 
     const uploadParams = {
       Bucket: "tennyvoice",
@@ -38,16 +30,16 @@ export async function POST(request: Request) {
       Body: Buffer.from(buffer),
       ContentType: file.type,
       Metadata: {
-        'originalName': file.name,
-        'uploadTime': timestamp.toString(),
-        'fileType': file.type
+        originalName: file.name,
+        uploadTime: timestamp.toString(),
+        fileType: file.type
       }
     };
 
     const data = await s3.upload(uploadParams).promise();
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       fileUrl: data.Location,
       fileName,
       fileType: file.type,
@@ -55,10 +47,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json(
-      { error: "Failed to upload file" },
-      { status: 500 }
-    );
+    console.error("Upload error (record):", error);
+    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
   }
 }
