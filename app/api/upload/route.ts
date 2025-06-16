@@ -1,59 +1,64 @@
 // app/api/upload/route.ts
 import { S3 } from 'aws-sdk';
-import formidable, { File } from 'formidable';
-import fs from 'fs';
-import { NextRequest } from 'next/server';
-import { IncomingMessage } from 'http';
-
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+import { NextResponse } from "next/server";
 
 const s3 = new S3({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    region: process.env.AWS_REGION!,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: 'ap-northeast-2'
 });
 
-function parseForm(req: IncomingMessage): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
-    const form = formidable({ multiples: false });
-
-    return new Promise((resolve, reject) => {
-        form.parse(req, (err, fields, files) => {
-            if (err) return reject(err);
-            resolve({ fields, files });
-        });
-    });
-}
-
-export async function POST(req: NextRequest): Promise<Response> {
-    try {
-        const { fields, files } = await parseForm(req as unknown as IncomingMessage);
-        const file = Array.isArray(files.file)
-            ? files.file[0]
-            : (files.file as File | undefined);
-
-        if (!file) {
-            return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400 });
-        }
-
-
-        const fileContent = fs.readFileSync(file.filepath);
-
-        const uploadParams = {
-            Bucket: process.env.AWS_S3_BUCKET_NAME!,
-            Key: `uploads/${file.originalFilename}`,
-            Body: fileContent,
-            ContentType: file.mimetype ?? 'application/octet-stream',
-        };
-
-        const data = await s3.upload(uploadParams).promise();
-
-        return new Response(JSON.stringify({ url: data.Location }), { status: 200 });
-    } catch (err: any) {
-        console.error('S3 Upload Error:', err);
-        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    
+    if (!file) {
+      return NextResponse.json(
+        { error: "No file provided" },
+        { status: 400 }
+      );
     }
+
+    // 파일 타입 검증
+    if (!file.type.startsWith('audio/')) {
+      return NextResponse.json(
+        { error: "Invalid file type. Only audio files are allowed." },
+        { status: 400 }
+      );
+    }
+
+    const buffer = await file.arrayBuffer();
+    const timestamp = Date.now();
+    const fileName = `model/${timestamp}-${file.name}`;
+
+    const uploadParams = {
+      Bucket: "tennyvoice",
+      Key: fileName,
+      Body: Buffer.from(buffer),
+      ContentType: file.type,
+      Metadata: {
+        'originalName': file.name,
+        'uploadTime': timestamp.toString(),
+        'fileType': file.type
+      }
+    };
+
+    const data = await s3.upload(uploadParams).promise();
+
+    return NextResponse.json({ 
+      success: true, 
+      fileUrl: data.Location,
+      fileName,
+      fileType: file.type,
+      fileSize: file.size
+    });
+
+  } catch (error) {
+    console.error("Upload error:", error);
+    return NextResponse.json(
+      { error: "Failed to upload file" },
+      { status: 500 }
+    );
+  }
 }

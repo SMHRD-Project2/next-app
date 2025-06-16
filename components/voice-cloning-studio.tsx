@@ -461,39 +461,65 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
     }
   }
 
-  const handleSaveModel = () => {
-    // Create a new model object
-    const newModel = {
-      id: aiModels.length + 1,
-      name: modelName,
-      type: "개인 맞춤",
-      quality: "사용자 생성",
-      description: modelDescription || "내 목소리를 기반으로 생성된 AI 모델",
-      avatar: "/placeholder.svg?height=40&width=40",
-      isDefault: false,
-      createdAt: new Date().toISOString().split('T')[0],
-      usageCount: 0
-    };
+  const handleSaveModel = async () => {
+    try {
+      // First, upload the model file to S3
+      const formData = new FormData();
+      formData.append("file", recordedSamples[0], "voice_model.wav");
 
-    // Add the new model to the list
-    addNewModel(newModel);
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    // Show success message
-    alert("AI 모델이 성공적으로 저장되었습니다!");
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload model file");
+      }
 
-    // Show navigation confirmation
-    if (window.confirm("내 AI 모델로 이동하시겠습니까?")) {
-      // Reset the form
-      setStep(1);
-      setRecordedSamples([]);
-      setModelName("");
-      setModelDescription("");
-      setProcessingProgress(0);
-      
-      // Call the onSaveSuccess callback to switch tabs
-      onSaveSuccess();
+      const { fileUrl } = await uploadResponse.json();
+
+      // Create a new model object
+      const newModel = {
+        name: modelName,
+        type: "개인 맞춤",
+        quality: "사용자 생성",
+        description: modelDescription || "내 목소리를 기반으로 생성된 AI 모델",
+        avatar: "/placeholder.svg?height=40&width=40",
+        modelUrl: fileUrl
+      };
+
+      // Save to MongoDB
+      const saveResponse = await fetch("/api/models", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newModel),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save model to database");
+      }
+
+      // Show success message
+      alert("AI 모델이 성공적으로 저장되었습니다!");
+
+      // Show navigation confirmation
+      if (window.confirm("내 AI 모델로 이동하시겠습니까?")) {
+        // Reset the form
+        setStep(1);
+        setRecordedSamples([]);
+        setModelName("");
+        setModelDescription("");
+        setProcessingProgress(0);
+        
+        // Call the onSaveSuccess callback to switch tabs
+        onSaveSuccess();
+      }
+    } catch (error) {
+      console.error("Error saving model:", error);
+      alert("모델 저장 중 오류가 발생했습니다.");
     }
-    // 취소 버튼을 눌렀을 때는 아무 동작도 하지 않음
   };
 
   const renderStep = () => {
