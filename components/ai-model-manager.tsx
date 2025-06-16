@@ -11,6 +11,7 @@ import { getAuthStatus } from "@/lib/auth-utils"
 
 interface AIModel {
   id: number;
+  _id?: string;
   name: string;
   type: string;
   quality: string;
@@ -19,6 +20,7 @@ interface AIModel {
   isDefault: boolean;
   createdAt: string;
   usageCount: number;
+  url: string;
 }
 
 // Change from const to let to make it mutable
@@ -37,53 +39,58 @@ export function AIModelManager() {
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        // 먼저 admin@tennyvoice.com의 모델을 가져옵니다
+        const { userProfile } = getAuthStatus();
+
+        let userModels: AIModel[] = [];
+        if (userProfile?.email && userProfile.email !== 'admin@tennyvoice.com') {
+          // 1) 사용자 모델 먼저 요청
+          const userResponse = await fetch(`/api/models?email=${userProfile.email}`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            userModels = userData.map((model: any, index: number) => ({
+              id: index + 1,
+              _id: model._id,
+              name: model.name,
+              type: model.type,
+              quality: model.quality,
+              description: model.description,
+              avatar: model.avatar || "/placeholder.svg?height=40&width=40",
+              isDefault: model.isDefault || false,
+              createdAt: new Date(model.createdAt).toLocaleDateString(),
+              usageCount: model.usageCount || 0,
+              url: model.modelUrl,
+            }));
+          }
+        }
+
+        // 2) admin 모델 요청
         const adminResponse = await fetch(`/api/models?email=admin@tennyvoice.com`);
+        let adminModels: AIModel[] = [];
         if (adminResponse.ok) {
           const adminData = await adminResponse.json();
-          const adminModels: AIModel[] = adminData.map((model: any, index: number) => ({
-            id: index + 1,
+          adminModels = adminData.map((model: any, index: number) => ({
+            id: userModels.length + index + 1,
+            _id: model._id,
             name: model.name,
             type: model.type,
             quality: model.quality,
             description: model.description,
             avatar: model.avatar || "/placeholder.svg?height=40&width=40",
             isDefault: model.isDefault || false,
-            createdAt: model.createdAt,
+            createdAt: new Date(model.createdAt).toLocaleDateString(),
             usageCount: model.usageCount || 0,
-            url: model.modelUrl
+            url: model.modelUrl,
           }));
-
-          // 사용자가 로그인되어 있고 admin이 아닌 경우에만 사용자의 모델을 가져옵니다
-          const { userProfile } = getAuthStatus();
-          if (userProfile?.email && userProfile.email !== 'admin@tennyvoice.com') {
-            const userResponse = await fetch(`/api/models?email=${userProfile.email}`);
-            if (userResponse.ok) {
-              const userData = await userResponse.json();
-              const userModels: AIModel[] = userData.map((model: any, index: number) => ({
-                id: adminModels.length + index + 1,
-                name: model.name,
-                type: model.type,
-                quality: model.quality,
-                description: model.description,
-                avatar: model.avatar || "/placeholder.svg?height=40&width=40",
-                isDefault: model.isDefault || false,
-                createdAt: model.createdAt,
-                usageCount: model.usageCount || 0,
-                url: model.modelUrl
-              }));
-              
-              // admin 모델과 사용자 모델을 합칩니다
-              const allModels = [...adminModels, ...userModels];
-              aiModels = allModels;
-              setModels(allModels);
-            }
-          } else {
-            // admin이거나 로그인하지 않은 경우 admin 모델만 표시
-            aiModels = adminModels;
-            setModels(adminModels);
-          }
         }
+
+        // 3) 둘 합치기 (userModels 먼저, adminModels 뒤에)
+        const allModels = [...userModels, ...adminModels];
+
+        setModels(allModels);
+        console.log("사용자 모델:", userModels);
+        console.log("관리자 모델:", adminModels);
+        console.log("합친 모델 목록:", allModels);
+
       } catch (error) {
         console.error("Failed to fetch models:", error);
       }
@@ -92,32 +99,53 @@ export function AIModelManager() {
     fetchModels();
   }, []);
 
+
   const handlePlay = (modelId: number) => {
     setPlayingModel(playingModel === modelId ? null : modelId)
   }
 
-  const handleSetDefault = (modelId: number) => {
-    // Update local state
-    setModels(currentModels =>
-      currentModels.map(model => ({
-        ...model,
-        isDefault: model.id === modelId,
-      }))
-    )
-    
-    // Update global aiModels array
-    aiModels.forEach(model => {
-      model.isDefault = model.id === modelId;
-    });
-    
-    // Save to localStorage
-    localStorage.setItem('defaultModelId', modelId.toString());
-    
-    // Dispatch event to notify other components
-    // window.dispatchEvent(modelChangeEvent);
-    
-    console.log("기본 모델로 설정 (API 호출 필요):", modelId);
-  }
+  const handleSetDefault = async (modelId: number) => {
+    try {
+      const { userProfile } = getAuthStatus();
+      if (!userProfile?.email) {
+        console.error("사용자 이메일을 찾을 수 없습니다.");
+        return;
+      }
+
+      // 선택된 모델 찾기
+      const selectedModel = models.find(model => model.id === modelId);
+      if (!selectedModel) {
+        console.error("선택한 모델을 찾을 수 없습니다.");
+        return;
+      }
+
+      // 서버에 기본 모델 설정 요청
+      const response = await fetch("/api/models", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userEmail: userProfile.email,
+          modelId: selectedModel._id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("기본 모델 설정에 실패했습니다.");
+      }
+
+      // 선택된 모델만 isDefault를 true로, 나머지는 false로 설정
+      setModels(currentModels =>
+        currentModels.map(model => ({
+          ...model,
+          isDefault: model.id === modelId,
+        }))
+      );
+    } catch (error) {
+      console.error("기본 모델 설정 중 오류 발생:", error);
+    }
+  };
 
   const handleDelete = (modelId: number) => {
     if (window.confirm("이 모델을 정말 삭제하시겠습니까?")) {
@@ -252,11 +280,10 @@ export function AIModelManager() {
                   size="sm"
                   onClick={() => handleSetDefault(model.id)}
                   // isDefault 값에 따라 클래스 변경
-                  className={`${
-                    model.isDefault
+                  className={`${model.isDefault
                       ? "bg-onair-orange text-onair-bg hover:bg-onair-orange-dark" // 선택되었을 때 진한 오렌지
                       : "border border-onair-orange text-onair-orange bg-transparent hover:bg-onair-orange/10" // 선택되지 않았을 때 기존 스타일
-                  }`}
+                    }`}
                 >
                   <Star className="w-4 h-4 mr-2" />
                   {model.isDefault ? "현재 선택된 모델" : "기본 모델로 설정"}
