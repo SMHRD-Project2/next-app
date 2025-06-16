@@ -92,10 +92,10 @@ export async function GET(request: NextRequest) {
     // 저장된 데이터 확인
     const savedUser = await collection.findOne({ email: userEmail })
     //console.log('[NAVER] 저장된 사용자 데이터:', {
-      // email: savedUser?.email,
-      // hasNaverToken: !!savedUser?.USER_NAVERTOKEN,
-      // naverUserId: savedUser?.NAVER_USER_ID,
-      // tokenLength: savedUser?.USER_NAVERTOKEN?.length
+    //   email: savedUser?.email,
+    //   hasNaverToken: !!savedUser?.USER_NAVERTOKEN,
+    //   naverUserId: savedUser?.NAVER_USER_ID,
+    //   tokenLength: savedUser?.USER_NAVERTOKEN?.length
     // })
 
     // 성공 응답과 함께 창 닫기

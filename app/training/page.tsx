@@ -6,7 +6,8 @@ import { Suspense } from "react"
 
 function TrainingContent() {
   const searchParams = useSearchParams()
-  const customSentence = searchParams.get("customSentence")
+  const customSentence = searchParams.get("customSentence") ?? undefined
+  const initialTab = searchParams.get("tab") ?? "short"
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -15,7 +16,8 @@ function TrainingContent() {
         <p className="text-onair-text-sub">다양한 유형의 발음 훈련으로 실력을 향상시켜보세요</p>
       </div>
 
-      <TrainingTabs initialCustomSentence={customSentence} />
+      <TrainingTabs initialCustomSentence={customSentence} initialTab={initialTab} />
+
       {/* 스크롤 버튼 */}
       <div className="fixed bottom-8 right-8 flex flex-col gap-4">
         <button
