@@ -68,7 +68,6 @@ export default function HomePage() {
               </span>
             </Button>
           </div>
-          {/* TTS 불러오는 버튼 */}
         </div>
       </section>
 

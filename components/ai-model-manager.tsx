@@ -1,53 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Play, Pause, Star, Volume2 } from "lucide-react"
 import { Trash2 } from "lucide-react"
+import { getAuthStatus } from "@/lib/auth-utils"
 
-// Change from const to let to make it mutable
-export let aiModels = [
-  {
-    id: 1,
-    name: "김주하 아나운서",
-    type: "뉴스 앵커",
-    quality: "프리미엄",
-    description: "정확하고 신뢰감 있는 뉴스 전달 스타일",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
-    createdAt: "2024-01-01",
-    usageCount: 156,
-    url: "/audio/SPK005.wav"
-  },
-  {
-    id: 2,
-    name: "이동욱 아나운서",
-    type: "스포츠 캐스터",
-    quality: "프리미엄",
-    description: "역동적이고 열정적인 스포츠 중계 스타일",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
-    createdAt: "2024-01-01",
-    usageCount: 89,
-  },
-  {
-    id: 3,
-    name: "박소현 아나운서",
-    type: "교양 프로그램",
-    quality: "프리미엄",
-    description: "부드럽고 친근한 교양 프로그램 진행 스타일",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
-    createdAt: "2024-01-01",
-    usageCount: 134,
-  }
-]
-
-// Add a function to add new models
-export const addNewModel = (newModel: {
+interface AIModel {
   id: number;
   name: string;
   type: string;
@@ -57,15 +19,79 @@ export const addNewModel = (newModel: {
   isDefault: boolean;
   createdAt: string;
   usageCount: number;
-}) => {
+  url?: string;
+}
+
+// Change from const to let to make it mutable
+export let aiModels: AIModel[] = []
+
+// Add a function to add new models
+export const addNewModel = (newModel: AIModel) => {
   aiModels = [...aiModels, newModel];
   return newModel;
 }
 
 export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)
-  // export된 aiModels를 사용하여 상태를 초기화합니다.
-  const [models, setModels] = useState(aiModels)
+  const [models, setModels] = useState<AIModel[]>(aiModels)
+
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        // 먼저 admin@tennyvoice.com의 모델을 가져옵니다
+        const adminResponse = await fetch(`/api/models?email=admin@tennyvoice.com`);
+        if (adminResponse.ok) {
+          const adminData = await adminResponse.json();
+          const adminModels: AIModel[] = adminData.map((model: any, index: number) => ({
+            id: index + 1,
+            name: model.name,
+            type: model.type,
+            quality: model.quality,
+            description: model.description,
+            avatar: model.avatar || "/placeholder.svg?height=40&width=40",
+            isDefault: model.isDefault || false,
+            createdAt: model.createdAt,
+            usageCount: model.usageCount || 0,
+            url: model.modelUrl
+          }));
+
+          // 사용자가 로그인되어 있고 admin이 아닌 경우에만 사용자의 모델을 가져옵니다
+          const { userProfile } = getAuthStatus();
+          if (userProfile?.email && userProfile.email !== 'admin@tennyvoice.com') {
+            const userResponse = await fetch(`/api/models?email=${userProfile.email}`);
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              const userModels: AIModel[] = userData.map((model: any, index: number) => ({
+                id: adminModels.length + index + 1,
+                name: model.name,
+                type: model.type,
+                quality: model.quality,
+                description: model.description,
+                avatar: model.avatar || "/placeholder.svg?height=40&width=40",
+                isDefault: model.isDefault || false,
+                createdAt: model.createdAt,
+                usageCount: model.usageCount || 0,
+                url: model.modelUrl
+              }));
+              
+              // admin 모델과 사용자 모델을 합칩니다
+              const allModels = [...adminModels, ...userModels];
+              aiModels = allModels;
+              setModels(allModels);
+            }
+          } else {
+            // admin이거나 로그인하지 않은 경우 admin 모델만 표시
+            aiModels = adminModels;
+            setModels(adminModels);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch models:", error);
+      }
+    };
+
+    fetchModels();
+  }, []);
 
   const handlePlay = (modelId: number) => {
     setPlayingModel(playingModel === modelId ? null : modelId)
