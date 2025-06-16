@@ -696,7 +696,7 @@ export function VoiceCloningStudio() {
                 </div>
                 <h3 className="text-lg font-semibold text-onair-text">"{modelName}" 모델 생성 중...</h3>
               </div>
-
+          
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-onair-text-sub">진행률</span>

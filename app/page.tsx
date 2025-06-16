@@ -196,7 +196,7 @@ export default function HomePage() {
         </Card>
       </section>
       {/* 스크롤 버튼 */}
-      <div className="fixed bottom-8 right-8 flex flex-col gap-4">
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-50">
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"

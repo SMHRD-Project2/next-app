@@ -43,7 +43,7 @@ export default function AIModelsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="text-center space-y-4 mb-8">
         <h1 className="text-3xl font-bold text-onair-mint">AI 모델 관리</h1>
-        <p className="text-onair-text-sub">다양한 AI 음성 모델을 관리하고 새로운 보이스를 생성하세요</p>
+        <p className="text-onair-text-sub">다양한 AI 음성 모델을 관리하고 보이스 클로닝에서 새로운 모델을 생성하세요</p>
       </div>
 
       <Tabs defaultValue="models" className="space-y-6">
