@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import clientPromise from '@/lib/mongodb'
 
 export async function GET(request: NextRequest) {
-  console.log('[KAKAO LOGIN] 카카오 로그인 콜백 시작')
+  //console.log('[KAKAO LOGIN] 카카오 로그인 콜백 시작')
   
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log('[KAKAO LOGIN] 토큰 요청 시작')
+    //console.log('[KAKAO LOGIN] 토큰 요청 시작')
     
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
     
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     })
 
     const tokenData = await tokenResponse.json()
-    console.log('[KAKAO LOGIN] 토큰 응답:', tokenData)
+    //console.log('[KAKAO LOGIN] 토큰 응답:', tokenData)
 
     if (!tokenResponse.ok) {
       throw new Error(tokenData.error_description || 'Failed to get access token')
@@ -49,20 +49,20 @@ export async function GET(request: NextRequest) {
     })
     
     const kakaoUserInfo = await userInfoResponse.json()
-    console.log('[KAKAO LOGIN] 카카오 사용자 정보:', kakaoUserInfo)
+    //console.log('[KAKAO LOGIN] 카카오 사용자 정보:', kakaoUserInfo)
 
     const kakaoId = kakaoUserInfo.id
     const kakaoName = kakaoUserInfo.properties?.nickname || '카카오 사용자'
 
-    console.log('[KAKAO LOGIN] 카카오 ID:', kakaoId)
-    console.log('[KAKAO LOGIN] 카카오 이름:', kakaoName)
+    //console.log('[KAKAO LOGIN] 카카오 ID:', kakaoId)
+    //console.log('[KAKAO LOGIN] 카카오 이름:', kakaoName)
 
     // 3. MongoDB에서 연동된 계정 찾기
     const client = await clientPromise
     const db = client.db('ONAIR')
     const collection = db.collection('USER')
 
-    console.log('[KAKAO LOGIN] 카카오 ID로 계정 검색 시작:', kakaoId)
+    //console.log('[KAKAO LOGIN] 카카오 ID로 계정 검색 시작:', kakaoId)
     
     // 카카오 ID로 연동된 계정 찾기
     let user = await collection.findOne({ 
@@ -72,11 +72,11 @@ export async function GET(request: NextRequest) {
       ]
     })
 
-    console.log('[KAKAO LOGIN] 연동된 계정 검색 결과:', user ? '찾음' : '못찾음')
+    //console.log('[KAKAO LOGIN] 연동된 계정 검색 결과:', user ? '찾음' : '못찾음')
 
     if (!user) {
       // 연동된 계정이 없으면 alert 후 회원가입 페이지로 이동
-      console.log('[KAKAO LOGIN] 연동된 계정이 없습니다. alert 후 회원가입 페이지로 이동')
+      //console.log('[KAKAO LOGIN] 연동된 계정이 없습니다. alert 후 회원가입 페이지로 이동')
       
       return new NextResponse(`
         <!DOCTYPE html>
@@ -101,12 +101,12 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log('[KAKAO LOGIN] 찾은 사용자 정보:', {
-      _id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role
-    })
+    //console.log('[KAKAO LOGIN] 찾은 사용자 정보:', {
+    //   _id: user._id,
+    //   email: user.email,
+    //   name: user.name,
+    //   role: user.role
+    // })
 
     // 4. 기존 연동 계정의 카카오 토큰 업데이트
     await collection.updateOne(
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
         }
       }
     )
-    console.log('[KAKAO LOGIN] 기존 계정 토큰 업데이트 완료')
+    //console.log('[KAKAO LOGIN] 기존 계정 토큰 업데이트 완료')
 
     // 5. 로그인 성공 처리 - 데이터베이스의 실제 사용자 정보 사용
     const userProfile = {
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
       role: user.role || 'user'
     }
 
-    console.log('[KAKAO LOGIN] 로그인 성공, 사용자 프로필:', userProfile)
+    //console.log('[KAKAO LOGIN] 로그인 성공, 사용자 프로필:', userProfile)
 
     // 성공 페이지로 리다이렉트하면서 사용자 정보 전달
     const successUrl = new URL('/api/auth/kakao/success', request.url)

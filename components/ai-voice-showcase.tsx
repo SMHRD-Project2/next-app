@@ -18,7 +18,7 @@ interface AIVoiceShowcaseProps {
 export function AIVoiceShowcase({ gender, name, title, description, sampleText }: AIVoiceShowcaseProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [waveHeights, setWaveHeights] = useState<number[]>(Array.from({ length: 50 }, () => 10))
+  const [waveHeights, setWaveHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -38,14 +38,14 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
 
   // 성별에 따른 오디오 파일 경로를 반환하는 헬퍼 함수
   const getAudioSource = (currentGender: "male" | "female") => {
-    return currentGender === "female" ? "/audio/female.wav" : "/audio/male.wav";
+    return currentGender === "female" ? "/audio/김주하_자기소개.wav" : "/audio/이동욱_자기소개.wav";
   };
 
   // 클라이언트 마운트 시 isClient 설정 및 파형 높이 초기화
   useEffect(() => {
     setIsClient(true)
-    // 초기 파형 높이 설정 (Math.random()이 클라이언트에서만 실행되도록)
-    setWaveHeights(Array.from({ length: 50 }, () => 10 + Math.random() * 10))
+    // 초기 파형 높이 설정 - 클라이언트에서만 실행
+    setWaveHeights(Array.from({ length: 60 }, () => Math.random() * 20 + 5)) // 파형 높이 범위를 이전으로 유지 (5px ~ 25px)
 
     // AIVoiceShowcase 컴포넌트가 마운트될 때 성별에 맞는 오디오 소스 초기화
     audioRef.current = new Audio(getAudioSource(gender));
@@ -55,7 +55,7 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
       setProgress(0)
       cancelAnimationFrame(animationRef.current!)
       // 재생 종료 시 파형 높이를 초기 상태로 되돌림
-      setWaveHeights(Array.from({ length: 50 }, () => 10 + Math.random() * 10))
+      setWaveHeights(Array.from({ length: 60 }, () => Math.random() * 20 + 5)) // 파형 높이 범위를 이전으로 유지 (5px ~ 25px)
     })
 
     return () => {
@@ -68,69 +68,29 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
     }
   }, [gender]) // gender prop이 변경될 때마다 useEffect를 다시 실행합니다.
 
-  // 재생 상태에 따라 파형 높이 업데이트 (클라이언트에서만 실행)
-  useEffect(() => {
-    if (!isClient) return // 클라이언트가 아닌 경우 실행하지 않음
-
-    let frameId: number | undefined
-
-    const animateWaves = () => {
-      setWaveHeights(prevHeights => {
-        return prevHeights.map((_, i) => {
-          if (isPlaying) {
-            // 재생 중일 때 동적인 파형
-            return 30 + Math.sin(Date.now() / 200 + i * 0.2) * 20
-          } else {
-            // 재생 중이 아닐 때 정적인 파형 (새로운 랜덤 값)
-            return 10 + Math.random() * 10
-          }
-        })
-      })
-      frameId = requestAnimationFrame(animateWaves)
-    }
-
-    if (isPlaying) {
-      frameId = requestAnimationFrame(animateWaves)
-    } else {
-      if (frameId !== undefined) {
-        cancelAnimationFrame(frameId)
-      }
-      // 재생이 멈췄을 때 파형을 초기 랜덤 값으로 재설정
-      setWaveHeights(Array.from({ length: 50 }, () => 10 + Math.random() * 10))
-    }
-
-    return () => {
-      if (frameId !== undefined) {
-        cancelAnimationFrame(frameId)
-      }
-    }
-  }, [isPlaying, isClient]) // isPlaying 또는 isClient가 변경될 때마다 실행
-
+  // 재생 상태에 따라 파형 높이 업데이트 (이전 코드를 제거하여 CSS 애니메이션에만 의존)
   const handlePlayPause = () => {
-    // Audio 객체가 없거나, 현재 소스가 gender에 맞지 않으면 새로 생성합니다.
-    const currentAudioSource = getAudioSource(gender);
-    if (!audioRef.current || audioRef.current.src !== window.location.origin + currentAudioSource) {
-      audioRef.current = new Audio(currentAudioSource);
-      // 새로운 Audio 객체에 ended 이벤트 리스너 다시 연결
+    if (!audioRef.current) {
+      audioRef.current = new Audio(getAudioSource(gender));
       audioRef.current.addEventListener("ended", () => {
         setIsPlaying(false);
         setProgress(0);
         cancelAnimationFrame(animationRef.current!);
-        setWaveHeights(Array.from({ length: 50 }, () => 10 + Math.random() * 10));
+        setWaveHeights(Array.from({ length: 60 }, () => Math.random() * 20 + 5));
       });
     }
 
     if (isPlaying) {
-      audioRef.current.pause()
+      audioRef.current.pause();
       if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
+        cancelAnimationFrame(animationRef.current);
       }
     } else {
-      audioRef.current.play()
-      animationRef.current = requestAnimationFrame(updateProgress)
+      audioRef.current.play();
+      animationRef.current = requestAnimationFrame(updateProgress);
     }
 
-    setIsPlaying(!isPlaying)
+    setIsPlaying(!isPlaying);
   }
 
   const updateProgress = () => {
@@ -175,36 +135,34 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
 
           {/* 음성 파형 시각화 */}
           <div className="relative h-12 bg-onair-bg rounded-md overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center space-x-1 px-2">
-              {waveHeights.map((height, i) => (
+            {isClient ? ( // 클라이언트에서만 전체 파형을 렌더링
+              <div className="absolute inset-0 flex items-center justify-center space-x-1 px-2">
+                {waveHeights.map((height, i) => (
+                  <div
+                    key={i}
+                    className={`bg-${colors[gender].primary}/60 rounded-full transition-all duration-150 ${isPlaying ? "animate-wave" : ""}`}
+                    style={{
+                      height: `${height}px`,
+                      width: "2px",
+                      animationDelay: isPlaying ? `${i * 0.05}s` : "0s",
+                    }}
+                  />
+                ))}
+              </div>
+            ) : ( // 서버 렌더링 또는 클라이언트 초기 로드 시 단순 플레이스홀더 렌더링
+              <div className="absolute inset-0 flex items-center justify-center">
                 <div
-                  key={i}
-                  className={`bg-${colors[gender].primary}/60 rounded-full transition-all duration-100`}
-                  style={{
-                    height: `${height}%`,
-                    width: "2px",
-                    animationDelay: `${i * 0.05}s`,
-                  }}
+                  className={`bg-${colors[gender].primary}/60 rounded-full`}
+                  style={{ height: "15px", width: "20px" }} // 간단한 고정 높이/너비의 플레이스홀더
                 />
-              ))}
-            </div>
+              </div>
+            )}
 
             {/* 진행 표시줄 */}
             <div
               className={`absolute bottom-0 left-0 h-1 bg-${colors[gender].primary}`}
               style={{ width: `${progress}%` }}
             />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Volume2 className={`w-4 h-4 text-${colors[gender].primary}`} />
-            <p className="text-xs text-onair-text-sub">
-              {isPlaying ? "재생 중..." : "재생 버튼을 클릭하여 AI 음성을 들어보세요"}
-            </p>
-          </div>
-
-          <div className="pt-3 border-t border-onair-text-sub/10">
-            <p className="text-sm text-onair-text-sub">{description}</p>
           </div>
         </div>
       </CardContent>

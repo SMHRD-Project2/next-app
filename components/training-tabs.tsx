@@ -10,26 +10,30 @@ import { PronunciationChallenge } from "@/components/pronunciation-challenge";
 import { type WaveformPlayerHandle } from "@/components/waveform-player";
 
 interface TrainingTabsProps {
-  initialCustomSentence?: string | null
+  initialCustomSentence?: string;
+  initialTab?: string;
 }
 
-export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
+export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabsProps) {
   const [sentence, setSentence] = useState<string>(""); // 현재 문장 상태 // 250609 박남규
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("custom"); // Default to custom tab
+  const [activeTab, setActiveTab] = useState(initialTab || "short");
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
   const [customSentence, setCustomSentence] = useState(initialCustomSentence || "");
   const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null);
   const waveformRef = useRef<WaveformPlayerHandle>(null!);
 
-  // Set initial custom sentence when component mounts
+  // Set initial custom sentence and tab when component mounts
   useEffect(() => {
     if (initialCustomSentence) {
       setCustomSentence(initialCustomSentence);
       setSentence(initialCustomSentence);
     }
-  }, [initialCustomSentence]);
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialCustomSentence, initialTab]);
 
   // 탭에 따라 API에서 무작위 문장을 가져오는 함수 // 250609 박남규
   async function fetchRandomSentence(tab: string) {
@@ -132,7 +136,7 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
                 {key === "short" ? "짧은 문장" : key === "long" ? "긴 문장" : "뉴스 읽기"}
               </h2>
             </div>
-
+            
             <SentenceCard
               sentence={sentence}
               onRefresh={handleRefreshSentence}
@@ -146,7 +150,7 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
               waveformRef={waveformRef}
               onRecordingComplete={setMyVoiceUrl}
             />
-
+          
             {hasRecorded && (
               <div className="space-y-6">
                 <AIResultPanel />

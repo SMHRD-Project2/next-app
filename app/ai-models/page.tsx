@@ -5,15 +5,26 @@ import { VoiceCloningStudio } from "@/components/voice-cloning-studio"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Lock, LogIn } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import { useState, useEffect, Suspense } from "react"
 
-export default function AIModelsPage() {
+function AIModelsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isLoggedIn } = useAuth()
+  const [activeTab, setActiveTab] = useState("models")
+
+  // URL의 tab 파라미터가 변경될 때 activeTab 상태 업데이트
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   const handleLoginRedirect = () => {
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   if (!isLoggedIn) {
@@ -46,7 +57,7 @@ export default function AIModelsPage() {
         <p className="text-onair-text-sub">다양한 AI 음성 모델을 관리하고 보이스 클로닝에서 새로운 모델을 생성하세요</p>
       </div>
 
-      <Tabs defaultValue="models" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 bg-onair-bg-sub max-w-md mx-auto">
           <TabsTrigger value="models" className="data-[state=active]:bg-onair-mint data-[state=active]:text-onair-bg">
             내 AI 모델
@@ -61,7 +72,7 @@ export default function AIModelsPage() {
         </TabsContent>
 
         <TabsContent value="cloning">
-          <VoiceCloningStudio />
+          <VoiceCloningStudio onSaveSuccess={() => setActiveTab("models")} />
         </TabsContent>
       </Tabs>
       {/* 스크롤 버튼 */}
@@ -106,5 +117,13 @@ export default function AIModelsPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function AIModelsPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <AIModelsContent />
+    </Suspense>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2 } from "lucide-react"
+import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2, Play, Pause } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
@@ -12,21 +12,35 @@ export default function HistoryPage() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
   const [trainingRecords, setTrainingRecords] = useState<any[]>([])
+  const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    const fetchRecords = async () => {
-      try {
-        const res = await fetch('/api/training-records')
-        if (res.ok) {
-          const data = await res.json()
-          setTrainingRecords(data)
+    if (isLoggedIn) {
+      const fetchRecords = async () => {
+        try {
+          const res = await fetch('/api/training-records')
+          if (res.ok) {
+            const data = await res.json()
+            setTrainingRecords(data)
+          }
+        } catch (err) {
+          console.error('Failed to load records', err)
         }
-      } catch (err) {
-        console.error('Failed to load records', err)
+      }
+      fetchRecords()
+    }
+  }, [isLoggedIn])
+
+  // 컴포넌트 언마운트 시 오디오 정리
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause()
+        audioElement.currentTime = 0
       }
     }
-    fetchRecords()
-  }, [])
+  }, [audioElement])
 
   // 평균 정확도 계산
   const calculateAverageAccuracy = () => {
@@ -47,7 +61,7 @@ export default function HistoryPage() {
   const averageAccuracy = calculateAverageAccuracy()
 
   const handleLoginRedirect = () => {
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   if (!isLoggedIn) {
@@ -74,8 +88,8 @@ export default function HistoryPage() {
   }
 
   const handleRetrain = (sentence: string) => {
-    // Navigate to training page with the sentence as a query parameter
-    router.push(`/training?customSentence=${encodeURIComponent(sentence)}`)
+    // Navigate to training page with the sentence as a query parameter and custom tab
+    router.push(`/training?customSentence=${encodeURIComponent(sentence)}&tab=custom`)
   }
 
   // 삭제 핸들러 추가
@@ -88,6 +102,27 @@ export default function HistoryPage() {
       } catch (err) {
         console.error('Failed to delete record', err)
       }
+    }
+  }
+
+  // 오디오 재생 토글 함수
+  const toggleAudioPlayback = (id: string) => {
+    if (currentPlayingId === id) {
+      // 현재 재생 중인 오디오 정지
+      if (audioElement) {
+        audioElement.pause()
+        audioElement.currentTime = 0
+      }
+      setCurrentPlayingId(null)
+    } else {
+      // 새로운 오디오 재생
+      if (audioElement) {
+        audioElement.pause()
+      }
+      const newAudio = new Audio(`/api/audio/${id}`)
+      newAudio.play()
+      setAudioElement(newAudio)
+      setCurrentPlayingId(id)
     }
   }
 
@@ -155,6 +190,9 @@ export default function HistoryPage() {
                 }
               }
 
+              // 현재 항목이 재생 중인지 확인
+              const isThisItemPlaying = currentPlayingId === item.id;
+
               return (
                 <div key={item._id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
                   <div className="flex items-center justify-between">
@@ -164,9 +202,6 @@ export default function HistoryPage() {
                       </span>
                       <span className="text-onair-text-sub text-sm">{item.date}</span>
                     </div>
-                    {/* <span className="px-2 py-1 rounded text-xs font-medium border border-onair-mint text-onair-mint">
-                      {item.status}
-                    </span> */}
                   </div>
 
                   {/* 문장 */}
@@ -197,11 +232,16 @@ export default function HistoryPage() {
                     {/* 음성 재생 및 다시 훈련 버튼 그룹 */}
                     <div className="flex gap-2">
                       {/* 음성 재생 버튼 */}
-                      <button className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M8 5v10l7-5-7-5z" />
-                        </svg>
-                        음성 재생
+                      <button
+                        onClick={() => toggleAudioPlayback(item.id)} // ID만 전달
+                        className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1"
+                      >
+                        {isThisItemPlaying ? ( // 재생 상태에 따라 아이콘 변경
+                          <Pause className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Play className="w-4 h-4 mr-2" />
+                        )}
+                        {isThisItemPlaying ? '음성 정지' : '음성 재생'} {/* 텍스트도 변경 */}
                       </button>
                       {/* 다시 훈련 버튼 */}
                       <button
@@ -220,7 +260,7 @@ export default function HistoryPage() {
                     </div>
                     {/* 삭제 버튼 */}
                     <button
-                      onClick={() => handleDelete(item.id)}
+                      onClick={() => handleDelete(item._id)}
                       className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-red-400 hover:bg-onair-bg-sub rounded flex items-center gap-1"
                     >
                       <Trash2 className="w-4 h-4" />
