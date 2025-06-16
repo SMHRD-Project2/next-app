@@ -9,6 +9,7 @@ import { AccuracyTrendChart } from "@/components/accuracy-trend-chart"
 import { WaveformVisualizer } from "@/components/waveform-visualizer"
 import { useRouter } from "next/navigation"
 import { AIVoiceShowcase } from "@/components/ai-voice-showcase"
+import { useAuth } from "@/hooks/use-auth"
 
 
 
@@ -24,6 +25,17 @@ function getCurrentKoreanDate() {
 
 
 export default function HomePage() {
+  const { isLoggedIn } = useAuth()
+  const router = useRouter()
+
+  const handleStartButtonClick = () => {
+    if (isLoggedIn) {
+      router.push('/training')
+    } else {
+      router.push('/auth/login')
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* 히어로 섹션 */}
@@ -46,14 +58,14 @@ export default function HomePage() {
               실제 아나운서 발화에 가까운 음성 훈련과 시각적 피드백으로 자기주도 반복학습이 가능한 실전형 플랫폼
             </p>
             <Button
-              asChild
               size="lg"
               className="bg-onair-orange hover:bg-onair-orange/90 text-onair-bg font-medium px-6"
+              onClick={handleStartButtonClick}
             >
-              <Link href="/training" className="flex items-center gap-2">
+              <span className="flex items-center gap-2">
                 지금 훈련 시작하기
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </span>
             </Button>
           </div>
           {/* TTS 불러오는 버튼 */}
@@ -179,17 +191,13 @@ export default function HomePage() {
               ON AIR의 AI 음성 모델과 실시간 피드백 시스템으로 아나운서 수준의 발음을 완성하세요. 지금 가입하면 7일간
               무료로 모든 기능을 이용할 수 있습니다.
             </p>
-            <div className="flex justify-center gap-4 flex-wrap">
-              <Button asChild size="lg" className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-6">
-                <Link href="/auth/signup">무료로 시작하기</Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="border-onair-mint text-onair-mint hover:bg-onair-mint/10"
+            <div className="flex justify-center">
+              <Button 
+                size="lg" 
+                className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-6"
+                onClick={handleStartButtonClick}
               >
-                <Link href="/training">훈련실 둘러보기</Link>
+                무료로 시작하기
               </Button>
             </div>
           </CardContent>

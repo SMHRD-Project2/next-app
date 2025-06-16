@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,9 +10,20 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+<<<<<<< HEAD
 import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2 } from "lucide-react"
+=======
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { aiModels, addNewModel } from "@/components/ai-model-manager"
+>>>>>>> d1739d4c0a8b0b52cc9e234ed9407b77097a37d3
 
-export function VoiceCloningStudio() {
+interface VoiceCloningStudioProps {
+  onSaveSuccess: () => void
+}
+
+export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
   const [recordedSamples, setRecordedSamples] = useState<Blob[]>([])
@@ -425,7 +436,11 @@ export function VoiceCloningStudio() {
 
     setIsProcessing(true)
     setProcessingProgress(0)
+<<<<<<< HEAD
     setStep(3) // 처리 단계로 이동
+=======
+    setStep(3)
+>>>>>>> d1739d4c0a8b0b52cc9e234ed9407b77097a37d3
 
     // SSE 연결 테스트 (옵션)
     // testSSEConnection()
@@ -453,6 +468,41 @@ export function VoiceCloningStudio() {
       simulateLocalProgress()
     }
   }
+
+  const handleSaveModel = () => {
+    // Create a new model object
+    const newModel = {
+      id: aiModels.length + 1,
+      name: modelName,
+      type: "개인 맞춤",
+      quality: "사용자 생성",
+      description: modelDescription || "내 목소리를 기반으로 생성된 AI 모델",
+      avatar: "/placeholder.svg?height=40&width=40",
+      isDefault: false,
+      createdAt: new Date().toISOString().split('T')[0],
+      usageCount: 0
+    };
+
+    // Add the new model to the list
+    addNewModel(newModel);
+
+    // Show success message
+    alert("AI 모델이 성공적으로 저장되었습니다!");
+
+    // Show navigation confirmation
+    if (window.confirm("내 AI 모델로 이동하시겠습니까?")) {
+      // Reset the form
+      setStep(1);
+      setRecordedSamples([]);
+      setModelName("");
+      setModelDescription("");
+      setProcessingProgress(0);
+      
+      // Call the onSaveSuccess callback to switch tabs
+      onSaveSuccess();
+    }
+    // 취소 버튼을 눌렀을 때는 아무 동작도 하지 않음
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -773,9 +823,10 @@ export function VoiceCloningStudio() {
                 </div>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-4 mt-6">
                 <Button
                   onClick={() => {
+<<<<<<< HEAD
                     setStep(1)
                     setRecordedSamples([])
                     setRecordedUrls([])
@@ -783,13 +834,25 @@ export function VoiceCloningStudio() {
                     setModelDescription("")
                     setProcessingProgress(0)
                     generateRandomSample()
+=======
+                    setStep(1);
+                    setRecordedSamples([]);
+                    setModelName("");
+                    setModelDescription("");
+                    setProcessingProgress(0);
+>>>>>>> d1739d4c0a8b0b52cc9e234ed9407b77097a37d3
                   }}
                   variant="outline"
                   className="flex-1 border-onair-text-sub/20"
                 >
                   새 모델 만들기
                 </Button>
-                <Button className="flex-1 bg-onair-mint hover:bg-onair-mint/90 text-onair-bg">모델 테스트하기</Button>
+                <Button 
+                  onClick={handleSaveModel}
+                  className="flex-1 bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                >
+                  내 AI 모델에 저장하기
+                </Button>
               </div>
             </CardContent>
           </Card>
