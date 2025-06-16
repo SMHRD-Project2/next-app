@@ -5,12 +5,26 @@ import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
-import { useState } from "react"
+import { useState, useRef } from "react"
+import { Play, Pause } from "lucide-react";
+
+// 랜덤 날짜 생성 함수 추가
+const getRandomRecentDate = () => {
+  const today = new Date();
+  const randomDaysAgo = Math.floor(Math.random() * 30); // 0일 ~ 29일 전
+  today.setDate(today.getDate() - randomDaysAgo);
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
+  const day = String(today.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
 
 const initialTrainingRecords = [
   {
     id: 1,
-    date: "2024-01-07",
+    date: getRandomRecentDate(), // 랜덤 날짜 적용
     category: "뉴스 읽기",
     sentence: "오늘 서울 지역에 첫눈이 내렸습니다.",
     scores: { pronunciation: 91, intonation: 88, tone: 92 },
@@ -18,19 +32,33 @@ const initialTrainingRecords = [
   },
   {
     id: 2,
-    date: "2024-01-07",
+    date: getRandomRecentDate(), // 랜덤 날짜 적용
     category: "긴 문장",
-    sentence: "정부는 새로운 경제 정책을 발표하며...",
+    sentence: "정부는 새로운 경제 정책을 발표하며... 인플레이션 억제와 고용 증대를 목표로 한다고 밝혔습니다.",
     scores: { pronunciation: 85, intonation: 82, tone: 89 },
     // status: "완료",
   },
   {
     id: 3,
-    date: "2024-01-06",
+    date: getRandomRecentDate(), // 랜덤 날짜 적용
     category: "짧은 문장",
     sentence: "안녕하세요, 시청자 여러분.",
     scores: { pronunciation: 88, intonation: 85, tone: 86 },
     // status: "완료",
+  },
+  {
+    id: 4, // 새 항목 추가 (옵션)
+    date: getRandomRecentDate(),
+    category: "뉴스 읽기",
+    sentence: "기상청은 내일 전국적으로 맑은 날씨가 이어질 것으로 예보했습니다.",
+    scores: { pronunciation: 90, intonation: 87, tone: 91 },
+  },
+  {
+    id: 5, // 새 항목 추가 (옵션)
+    date: getRandomRecentDate(),
+    category: "짧은 문장",
+    sentence: "반갑습니다.",
+    scores: { pronunciation: 95, intonation: 92, tone: 94 },
   },
 ];
 
@@ -39,7 +67,65 @@ export default function HistoryPage() {
   const { isLoggedIn } = useAuth()
   const [trainingRecords, setTrainingRecords] = useState(initialTrainingRecords);
 
-  // 평균 정확도 계산
+  // 현재 재생 중인 항목의 ID를 추적 (null이면 재생 중인 항목 없음)
+  const [currentPlayingId, setCurrentPlayingId] = useState<number | null>(null);
+  // Audio 객체를 저장할 useRef. 컴포넌트 리렌더링 시에도 객체 유지.
+  const audioInstanceRef = useRef<HTMLAudioElement | null>(null);
+
+  // 음성 재생/정지 토글 함수 (public/audio/female.wav 파일 재생)
+  const toggleAudioPlayback = (id: number) => {
+    console.log(`[${id}] 버튼 클릭됨. 현재 currentPlayingId: ${currentPlayingId}`);
+
+    // 만약 현재 재생 중인 항목이 있고, 그 항목이 방금 클릭한 항목이 아니라면, 기존 재생을 중지합니다.
+    if (audioInstanceRef.current && currentPlayingId !== null && currentPlayingId !== id) {
+      audioInstanceRef.current.pause();
+      audioInstanceRef.current.currentTime = 0; // 처음으로 되감기
+      console.log(`[${currentPlayingId}] 이전 오디오 중지됨.`);
+      setCurrentPlayingId(null); // 이전 재생 상태 초기화
+    }
+
+    // 클릭된 항목의 재생 상태를 토글합니다.
+    if (currentPlayingId === id) {
+      // 이 항목이 현재 재생 중이라면, 정지합니다.
+      if (audioInstanceRef.current) {
+        audioInstanceRef.current.pause();
+        audioInstanceRef.current.currentTime = 0;
+        console.log(`[${id}] 오디오 정지됨.`);
+      }
+      setCurrentPlayingId(null); // 재생 상태를 null로 설정
+    } else {
+      // 이 항목이 재생 중이 아니라면, 재생을 시작합니다.
+      // Audio 객체가 아직 없다면 새로 생성합니다.
+      if (!audioInstanceRef.current) {
+        audioInstanceRef.current = new Audio('/audio/female.wav');
+        console.log('새 Audio 객체 생성됨: /audio/female.wav');
+
+        // Audio 객체의 이벤트 리스너를 한 번만 설정
+        audioInstanceRef.current.onended = () => {
+          console.log(`[${currentPlayingId}] 오디오 재생 완료됨.`);
+          setCurrentPlayingId(null); // 재생 완료 시 상태 초기화
+        };
+        audioInstanceRef.current.onerror = (e) => {
+          console.error(`[${currentPlayingId}] 오디오 로드 또는 재생 중 에러 발생:`, e);
+          setCurrentPlayingId(null); // 에러 발생 시 상태 초기화
+        };
+      } else {
+        // 기존 Audio 객체가 있다면, 재생 위치를 처음으로 되감습니다.
+        audioInstanceRef.current.currentTime = 0;
+        console.log('기존 Audio 객체 재사용.');
+      }
+
+      // 오디오 재생 시도
+      audioInstanceRef.current.play().then(() => {
+        console.log(`[${id}] 오디오 재생 시작됨.`);
+        setCurrentPlayingId(id); // 재생 시작 시 현재 ID로 업데이트
+      }).catch(error => {
+        console.error(`[${id}] audio.play() Promise 에러:`, error);
+        setCurrentPlayingId(null); // Promise 에러 시 상태 초기화
+      });
+    }
+  };
+
   const calculateAverageAccuracy = () => {
     if (trainingRecords.length === 0) {
       return 0
@@ -93,7 +179,12 @@ export default function HistoryPage() {
   const handleDelete = (id: number) => {
     if (confirm("정말로 이 기록을 삭제하시겠습니까?")) {
       setTrainingRecords(prevRecords => prevRecords.filter(record => record.id !== id));
-      /* 기록 삭제 완료 알림 */
+      // 만약 삭제된 항목이 현재 재생 중인 항목이라면 음성 중지
+      if (currentPlayingId === id && audioInstanceRef.current) {
+        audioInstanceRef.current.pause();
+        audioInstanceRef.current.currentTime = 0;
+        setCurrentPlayingId(null);
+      }
       alert("기록이 삭제되었습니다.");
     }
   };
@@ -162,6 +253,9 @@ export default function HistoryPage() {
                 }
               }
 
+              // 현재 항목이 재생 중인지 확인
+              const isThisItemPlaying = currentPlayingId === item.id;
+
               return (
                 <div key={item.id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
                   {/* 헤더 */}
@@ -172,9 +266,6 @@ export default function HistoryPage() {
                       </span>
                       <span className="text-onair-text-sub text-sm">{item.date}</span>
                     </div>
-                    {/* <span className="px-2 py-1 rounded text-xs font-medium border border-onair-mint text-onair-mint">
-                      {item.status}
-                    </span> */}
                   </div>
 
                   {/* 문장 */}
@@ -205,11 +296,16 @@ export default function HistoryPage() {
                     {/* 음성 재생 및 다시 훈련 버튼 그룹 */}
                     <div className="flex gap-2">
                       {/* 음성 재생 버튼 */}
-                      <button className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M8 5v10l7-5-7-5z" />
-                        </svg>
-                        음성 재생
+                      <button
+                        onClick={() => toggleAudioPlayback(item.id)} // ID만 전달
+                        className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1"
+                      >
+                        {isThisItemPlaying ? ( // 재생 상태에 따라 아이콘 변경
+                          <Pause className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Play className="w-4 h-4 mr-2" />
+                        )}
+                        {isThisItemPlaying ? '음성 정지' : '음성 재생'} {/* 텍스트도 변경 */}
                       </button>
                       {/* 다시 훈련 버튼 */}
                       <button
