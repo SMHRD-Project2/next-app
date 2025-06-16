@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { aiModels } from "./ai-model-manager"
 import { LoadingMessage } from "@/components/loading-message"
+import { Progress } from "@/components/ui/progress"
 import {
   WaveformPlayer,
   type WaveformPlayerHandle,
@@ -48,6 +49,20 @@ export function SentenceCard({
 }: SentenceCardProps) {
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
+
+  // TTS progress state (for AI announcer playback)
+  const [ttsProgress, setTtsProgress] = useState<number | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
+  const pendingAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  const maybePlayPendingAudio = () => {
+    if (ttsProgress !== null && ttsProgress >= 100 && pendingAudioRef.current) {
+      const audio = pendingAudioRef.current
+      aiExampleAudioRef.current = audio
+      audio.play()
+      pendingAudioRef.current = null
+    }
+  }
   
 
 
@@ -81,6 +96,14 @@ export function SentenceCard({
     setWaveformHeights(heights)
   }, [])
 
+  // // Cleanup SSE when unmounting
+  // useEffect(() => {
+  //   return () => {
+  //     if (eventSourceRef.current) {
+  //       eventSourceRef.current.close()
+  //     }
+  //   }
+  // }, [])
 
   // 250609 박남규 - textarea onChange 핸들러에서 내부 상태 및 부모 콜백 호출
   const handleSentenceChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -221,11 +244,51 @@ export function SentenceCard({
       formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
       formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
 
-      // console.log('전송할 데이터:', {
-        // text: localSentence,
-        // voiceFileName: modelUrl?.split('/').pop(),
-        // formDataKeys: Array.from(formData.keys())
-      // });
+      if (currentTab === 'custom') {
+        try {
+          setTtsProgress(0);
+          const progressForm = new FormData();
+          progressForm.append('text', localSentence);
+          progressForm.append('audio', voiceBlob, 'voice.wav');
+          const progressRes = await fetch('http://localhost:8000/process-voice', {
+            method: 'POST',
+            body: progressForm,
+          });
+          if (progressRes.ok) {
+            const { task_id } = await progressRes.json();
+            if (task_id) {
+              const es = new EventSource(`http://localhost:8000/process-voice-stream/${task_id}`);
+              eventSourceRef.current = es;
+              es.onmessage = (e) => {
+                try {
+                  const data = JSON.parse(e.data);
+                  setTtsProgress(data.progress);
+                  if (data.completed || data.progress >= 100) {
+                    es.close();
+                    eventSourceRef.current = null;
+                    maybePlayPendingAudio();
+                  }
+                } catch (err) {
+                  console.error('SSE parse error', err);
+                }
+              };
+              es.onerror = (err) => {
+                console.error('SSE error', err);
+                es.close();
+                eventSourceRef.current = null;
+              };
+            }
+          }
+        } catch (err) {
+          console.error('Progress stream error', err);
+        }
+      }
+
+      console.log('전송할 데이터:', {
+        text: localSentence,
+        voiceFileName: modelUrl?.split('/').pop(),
+        formDataKeys: Array.from(formData.keys())
+      });
 
       // Next.js API를 통해 요청
       const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
@@ -251,17 +314,22 @@ export function SentenceCard({
 
 // ###############################################################
       const audio = new Audio(audioUrl);
-      aiExampleAudioRef.current = audio; // 오디오 객체 저장
+      pendingAudioRef.current = audio;
+      aiExampleAudioRef.current = audio; // 미리 저장해두었다가 나중에 재생
 
       audio.onended = () => {
         setIsPlayingAIExample(false);
-        // 로컬 파일이므로 URL.revokeObjectURL 필요 없음
+        setTtsProgress(null);
         if (aiExampleAudioRef.current === audio) {
           aiExampleAudioRef.current = null;
         }
       };
 
-      audio.play();
+// ############################################################### 둘 중 하나
+      // audio.play();
+      
+      maybePlayPendingAudio();
+// ###############################################################
 
     } catch (error) {
       console.error('AI 예시 음성 재생 중 오류:', error);
@@ -570,6 +638,15 @@ export function SentenceCard({
           <p className="text-sm text-onair-text-sub text-right">
             {localSentence.length}/500
           </p>
+          {currentTab === 'custom' && ttsProgress !== null && (
+            <div className="mt-2">
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-onair-text-sub">AI 진행률</span>
+                <span className="text-onair-mint">{Math.round(ttsProgress)}%</span>
+              </div>
+              <Progress value={ttsProgress} className="h-2" />
+            </div>
+          )}
         </div>
 
         {/* 녹음 컨트롤러 추가 */}
