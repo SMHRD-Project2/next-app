@@ -70,11 +70,8 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
 
   // 재생 상태에 따라 파형 높이 업데이트 (이전 코드를 제거하여 CSS 애니메이션에만 의존)
   const handlePlayPause = () => {
-    // Audio 객체가 없거나, 현재 소스가 gender에 맞지 않으면 새로 생성합니다.
-    const currentAudioSource = getAudioSource(gender);
-    if (!audioRef.current || audioRef.current.src !== window.location.origin + currentAudioSource) {
-      audioRef.current = new Audio(currentAudioSource);
-      // 새로운 Audio 객체에 ended 이벤트 리스너 다시 연결
+    if (!audioRef.current) {
+      audioRef.current = new Audio(getAudioSource(gender));
       audioRef.current.addEventListener("ended", () => {
         setIsPlaying(false);
         setProgress(0);
@@ -84,16 +81,16 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
     }
 
     if (isPlaying) {
-      audioRef.current.pause()
+      audioRef.current.pause();
       if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
+        cancelAnimationFrame(animationRef.current);
       }
     } else {
-      audioRef.current.play()
-      animationRef.current = requestAnimationFrame(updateProgress)
+      audioRef.current.play();
+      animationRef.current = requestAnimationFrame(updateProgress);
     }
 
-    setIsPlaying(!isPlaying)
+    setIsPlaying(!isPlaying);
   }
 
   const updateProgress = () => {
