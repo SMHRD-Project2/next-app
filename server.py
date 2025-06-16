@@ -77,17 +77,26 @@ s3_client = boto3.client(
    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
         
-@app.post("/upload")
-async def upload_audio(file: UploadFile = File(...)):
+@app.post("/upload_record")
+async def upload_recording(file: UploadFile = File(...)):
+    tmp_in_path = None
+    tmp_out_path = None
     try:
+        print(f"[DEBUG] 파일 업로드 시작: {file.filename}, 타입: {file.content_type}")
+        
         # 250612 박남규 s3 수정: WebM 파일을 임시 저장
         with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp_in:
             content = await file.read()
+            if not content:
+                raise ValueError("업로드된 파일이 비어있습니다.")
+            print(f"[DEBUG] 파일 크기: {len(content)} bytes")
             tmp_in.write(content)
             tmp_in_path = tmp_in.name
+            print(f"[DEBUG] 임시 WebM 파일 저장됨: {tmp_in_path}")
 
         # 250612 박남규 s3 수정: .wav 파일로 변환할 경로 생성
         tmp_out_path = tmp_in_path.replace(".webm", ".wav")
+        print(f"[DEBUG] 변환될 WAV 파일 경로: {tmp_out_path}")
 
         # 250612 박남규 s3 수정: ffmpeg를 이용한 변환 수행
         cmd = [
@@ -98,29 +107,57 @@ async def upload_audio(file: UploadFile = File(...)):
             "-y",            # 기존 파일 덮어쓰기
             tmp_out_path
         ]
+        print(f"[DEBUG] ffmpeg 명령어: {' '.join(cmd)}")
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
-            raise RuntimeError(f"ffmpeg 변환 실패: {result.stderr.decode()}")
+            error_msg = result.stderr.decode()
+            print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
+            raise RuntimeError(f"ffmpeg 변환 실패: {error_msg}")
+        print("[DEBUG] ffmpeg 변환 성공")
+
+        # 변환된 파일이 존재하는지 확인
+        if not os.path.exists(tmp_out_path):
+            raise RuntimeError("변환된 WAV 파일이 생성되지 않았습니다.")
+
+        # 변환된 파일 크기 확인
+        wav_size = os.path.getsize(tmp_out_path)
+        print(f"[DEBUG] 변환된 WAV 파일 크기: {wav_size} bytes")
+        if wav_size == 0:
+            raise RuntimeError("변환된 WAV 파일이 비어있습니다.")
 
         # 250612 박남규 s3 수정: 고유한 파일 이름 생성
         unique_filename = f"recordings/{uuid.uuid4()}.wav"
 
         # 250612 박남규 s3 수정: S3에 업로드
-        with open(tmp_out_path, "rb") as wav_file:
-            s3_client.upload_fileobj(
-                wav_file,
-                S3_BUCKET_NAME,
-                unique_filename,
-                ExtraArgs={"ContentType": "audio/wav"}
-            )
+        print(f"[DEBUG] S3 업로드 시작: {unique_filename}")
+        try:
+            with open(tmp_out_path, "rb") as wav_file:
+                file_content = wav_file.read()
+                if not file_content:
+                    raise ValueError("WAV 파일이 비어있습니다.")
+                print(f"[DEBUG] S3에 업로드할 파일 크기: {len(file_content)} bytes")
+                s3_client.upload_fileobj(
+                    io.BytesIO(file_content),
+                    S3_BUCKET_NAME,
+                    unique_filename,
+                    ExtraArgs={"ContentType": "audio/wav"}
+                )
+            print(f"[DEBUG] S3_BUCKET_NAME: {S3_BUCKET_NAME} (type: {type(S3_BUCKET_NAME)})")
+            print(f"[DEBUG] S3_REGION: {S3_REGION}")
+            print(f"[DEBUG] unique_filename: {unique_filename}")
+            print("[DEBUG] S3 업로드 완료")
+        except Exception as e:
+            print(f"[ERROR] S3 업로드 실패: {str(e)}")
+            raise
 
         # 250612 박남규 s3 수정: S3 URL 생성
         s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{unique_filename}"
+        print(f"[DEBUG] S3 URL 생성됨: {s3_url}")
 
         return {
             "success": True,
             "filename": unique_filename,
-            "url": s3_url  # 250612 박남규 s3 수정
+            "url": s3_url
         }
 
     except ClientError as e:
@@ -130,13 +167,185 @@ async def upload_audio(file: UploadFile = File(...)):
         print("[ERROR] AWS 인증 오류 발생")
         return {"success": False, "error": "AWS 인증 오류"}
     except Exception as e:
-        print(f"[ERROR] 예외 발생: {e}")
+        print(f"[ERROR] 예외 발생: {str(e)}")
         return {"success": False, "error": str(e)}
     finally:
         # 250612 박남규 s3 수정: 임시 파일 정리
-        for path in [locals().get("tmp_in_path"), locals().get("tmp_out_path")]:
+        for path in [tmp_in_path, tmp_out_path]:
             if path and os.path.exists(path):
-                os.unlink(path)
+                try:
+                    os.unlink(path)
+                    print(f"[DEBUG] 임시 파일 삭제됨: {path}")
+                except Exception as e:
+                    print(f"[ERROR] 임시 파일 삭제 실패: {path}, 에러: {e}")
+
+
+@app.post("/upload_model")
+async def upload_recording(file: UploadFile = File(...)):
+    tmp_in_path = None
+    tmp_out_path = None
+    try:
+        print(f"[DEBUG] 파일 업로드 시작: {file.filename}, 타입: {file.content_type}")
+        
+        # 250612 박남규 s3 수정: WebM 파일을 임시 저장
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp_in:
+            content = await file.read()
+            if not content:
+                raise ValueError("업로드된 파일이 비어있습니다.")
+            print(f"[DEBUG] 파일 크기: {len(content)} bytes")
+            tmp_in.write(content)
+            tmp_in_path = tmp_in.name
+            print(f"[DEBUG] 임시 WebM 파일 저장됨: {tmp_in_path}")
+
+        # 250612 박남규 s3 수정: .wav 파일로 변환할 경로 생성
+        tmp_out_path = tmp_in_path.replace(".webm", ".wav")
+        print(f"[DEBUG] 변환될 WAV 파일 경로: {tmp_out_path}")
+
+        # 250612 박남규 s3 수정: ffmpeg를 이용한 변환 수행
+        cmd = [
+            "ffmpeg",
+            "-i", tmp_in_path,
+            "-ar", "16000",  # 16kHz 샘플레이트
+            "-ac", "1",      # 모노
+            "-y",            # 기존 파일 덮어쓰기
+            tmp_out_path
+        ]
+        print(f"[DEBUG] ffmpeg 명령어: {' '.join(cmd)}")
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            error_msg = result.stderr.decode()
+            print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
+            raise RuntimeError(f"ffmpeg 변환 실패: {error_msg}")
+        print("[DEBUG] ffmpeg 변환 성공")
+
+        # 변환된 파일이 존재하는지 확인
+        if not os.path.exists(tmp_out_path):
+            raise RuntimeError("변환된 WAV 파일이 생성되지 않았습니다.")
+
+        # 변환된 파일 크기 확인
+        wav_size = os.path.getsize(tmp_out_path)
+        print(f"[DEBUG] 변환된 WAV 파일 크기: {wav_size} bytes")
+        if wav_size == 0:
+            raise RuntimeError("변환된 WAV 파일이 비어있습니다.")
+
+        # 250612 박남규 s3 수정: 고유한 파일 이름 생성
+        unique_filename = f"model/{uuid.uuid4()}.wav"
+
+        # 250612 박남규 s3 수정: S3에 업로드
+        print(f"[DEBUG] S3 업로드 시작: {unique_filename}")
+        try:
+            with open(tmp_out_path, "rb") as wav_file:
+                file_content = wav_file.read()
+                if not file_content:
+                    raise ValueError("WAV 파일이 비어있습니다.")
+                print(f"[DEBUG] S3에 업로드할 파일 크기: {len(file_content)} bytes")
+                s3_client.upload_fileobj(
+                    io.BytesIO(file_content),
+                    S3_BUCKET_NAME,
+                    unique_filename,
+                    ExtraArgs={"ContentType": "audio/wav"}
+                )
+            print(f"[DEBUG] S3_BUCKET_NAME: {S3_BUCKET_NAME} (type: {type(S3_BUCKET_NAME)})")
+            print(f"[DEBUG] S3_REGION: {S3_REGION}")
+            print(f"[DEBUG] unique_filename: {unique_filename}")
+            print("[DEBUG] S3 업로드 완료")
+        except Exception as e:
+            print(f"[ERROR] S3 업로드 실패: {str(e)}")
+            raise
+
+        # 250612 박남규 s3 수정: S3 URL 생성
+        s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{unique_filename}"
+        print(f"[DEBUG] S3 URL 생성됨: {s3_url}")
+
+        return {
+            "success": True,
+            "filename": unique_filename,
+            "url": s3_url
+        }
+
+    except ClientError as e:
+        print(f"[ERROR] AWS ClientError: {e}")
+        return {"success": False, "error": f"AWS ClientError: {e}"}
+    except NoCredentialsError:
+        print("[ERROR] AWS 인증 오류 발생")
+        return {"success": False, "error": "AWS 인증 오류"}
+    except Exception as e:
+        print(f"[ERROR] 예외 발생: {str(e)}")
+        return {"success": False, "error": str(e)}
+    finally:
+        # 250612 박남규 s3 수정: 임시 파일 정리
+        for path in [tmp_in_path, tmp_out_path]:
+            if path and os.path.exists(path):
+                try:
+                    os.unlink(path)
+                    print(f"[DEBUG] 임시 파일 삭제됨: {path}")
+                except Exception as e:
+                    print(f"[ERROR] 임시 파일 삭제 실패: {path}, 에러: {e}")
+
+
+
+
+
+# @app.post("/upload_model")
+# async def upload_model(file: UploadFile = File(...)):
+#     try:
+#         # 250612 박남규 s3 수정: WebM 파일을 임시 저장
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp_in:
+#             content = await file.read()
+#             tmp_in.write(content)
+#             tmp_in_path = tmp_in.name
+
+#         # 250612 박남규 s3 수정: .wav 파일로 변환할 경로 생성
+#         tmp_out_path = tmp_in_path.replace(".webm", ".wav")
+
+#         # 250612 박남규 s3 수정: ffmpeg를 이용한 변환 수행
+#         cmd = [
+#             "ffmpeg",
+#             "-i", tmp_in_path,
+#             "-ar", "16000",  # 16kHz 샘플레이트
+#             "-ac", "1",      # 모노
+#             "-y",            # 기존 파일 덮어쓰기
+#             tmp_out_path
+#         ]
+#         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#         if result.returncode != 0:
+#             raise RuntimeError(f"ffmpeg 변환 실패: {result.stderr.decode()}")
+
+#         # 250612 박남규 s3 수정: 고유한 파일 이름 생성
+#         unique_filename = f"model/{uuid.uuid4()}.wav"
+
+#         # 250612 박남규 s3 수정: S3에 업로드
+#         with open(tmp_out_path, "rb") as wav_file:
+#             s3_client.upload_fileobj(
+#                 wav_file,
+#                 S3_BUCKET_NAME,
+#                 unique_filename,
+#                 ExtraArgs={"ContentType": "audio/wav"}
+#             )
+
+#         # 250612 박남규 s3 수정: S3 URL 생성
+#         s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{unique_filename}"
+
+#         return {
+#             "success": True,
+#             "filename": unique_filename,
+#             "url": s3_url  # 250612 박남규 s3 수정
+#         }
+
+#     except ClientError as e:
+#         print(f"[ERROR] AWS ClientError: {e}")
+#         return {"success": False, "error": f"AWS ClientError: {e}"}
+#     except NoCredentialsError:
+#         print("[ERROR] AWS 인증 오류 발생")
+#         return {"success": False, "error": "AWS 인증 오류"}
+#     except Exception as e:
+#         print(f"[ERROR] 예외 발생: {e}")
+#         return {"success": False, "error": str(e)}
+#     finally:
+#         # 250612 박남규 s3 수정: 임시 파일 정리
+#         for path in [locals().get("tmp_in_path"), locals().get("tmp_out_path")]:
+#             if path and os.path.exists(path):
+#                 os.unlink(path)                
 
 
 @app.get("/health")

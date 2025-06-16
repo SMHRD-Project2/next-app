@@ -93,7 +93,8 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
         }
 
         // 녹음 완료 시 처리
-        mediaRecorder.onstop = () => {
+        mediaRecorder.onstop = async () => {
+          console.log("mediaRecorder onstop 이벤트 발생");
           const audioBlob = new Blob(audioChunksRef.current, {
             type: mimeType || 'audio/webm'
           })
@@ -106,21 +107,56 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
           const url = URL.createObjectURL(audioBlob)
           setAudioURL(url)
 
-          // 250611 박남규 업로드
-          uploadToS3(audioBlob)
-          audioChunksRef.current = []
-
           // 녹음 종료 시
           if (timerRef.current) {
             clearInterval(timerRef.current)
             timerRef.current = null
           }
           setRecordingTime(0)
+
+          // 서버로 녹음 파일 전송
+          try {
+            console.log("[DEBUG] 녹음 파일 서버 전송 시작");
+            const formData = new FormData();
+            const file = new File([audioBlob], "recording.webm", { type: "audio/webm" });
+            formData.append("file", file);
+
+            console.log("[DEBUG] FormData 생성됨:", {
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size
+            });
+
+            const response = await fetch("http://localhost:8000/upload_model", {
+              method: "POST",
+              body: formData,
+            });
+
+            console.log("[DEBUG] 서버 응답 받음:", response.status);
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error("[ERROR] 서버 응답 오류:", errorText);
+              throw new Error(`서버 응답 오류: ${response.status} ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log("[DEBUG] 서버 응답 데이터:", data);
+
+            if (data.success) {
+              console.log("[DEBUG] 파일 업로드 성공:", data.url);
+            } else {
+              console.error("[ERROR] 파일 업로드 실패:", data.error);
+            }
+          } catch (error) {
+            console.error("[ERROR] 파일 업로드 중 오류 발생:", error);
+          }
         }
 
         mediaRecorder.start()
+        console.log("이벤트 발생");
         onRecord()
-        
+
         // 타이머 시작
         setRecordingTime(0)
         timerRef.current = setInterval(() => {
@@ -168,44 +204,6 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-    }
-  }
-
-  //  2506011 박남규 aws 업로드하기
-  const uploadToS3 = async (blob: Blob) => {
-
-    console.log("전달된 blob:", blob) // 1. blob 확인 남규 테스트
-
-    const formData = new FormData()
-    const file = new File([blob], "recording.wav", { type: "audio/wav" }) // 250611 박남규 확장자 변경
-
-    console.log("생성된 File 객체:", file) // 2. file 확인 남규 테스트
-    console.log("File 타입:", file.type)
-    console.log("File 크기:", file.size)
-
-
-    formData.append("file", file)
-
-
-    for (let [key, value] of formData.entries()) {
-      console.log("FormData 항목:", key, value) // 3. formData 확인 남규 테스트
-    }
-
-    try {
-      const res = await fetch("http://localhost:8000/upload", {
-        method: "POST",
-        body: formData,
-      })
-      console.log("응답 상태:", res.status) // 4. 응답 확인 남규 테스트
-      const data = await res.json()
-      if (data.success) {
-        console.log("업로드 성공:", data.url)
-      } else {
-        const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."
-        console.error("업로드 실패:", data.error)
-      }
-    } catch (error) {
-      console.error("에러:", error)
     }
   }
 

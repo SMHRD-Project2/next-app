@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     await client.connect();
     const db = client.db("ONAIR");
-    const collection = db.collection("model");
+    const collection = db.collection("MODEL");
 
     const newModel = {
       name,
