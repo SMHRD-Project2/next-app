@@ -403,7 +403,6 @@ export function SentenceCard({
                 className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
                 onClick={handlePlayAIExample}
               >
-                {isPlayingAIExample}
                 {isPlayingAIExample ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
                 {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
               </Button>
@@ -430,13 +429,6 @@ export function SentenceCard({
                           URL.revokeObjectURL(aiExampleAudioRef.current.src);
                           aiExampleAudioRef.current = null;
                           setIsPlayingAIExample(false);
-                        }
-                        // Stop Selected Model Sentence playback if it's playing when a new model is selected
-                        if (selectedModelAudioRef.current) {
-                          selectedModelAudioRef.current.pause();
-                          URL.revokeObjectURL(selectedModelAudioRef.current.src);
-                          selectedModelAudioRef.current = null;
-                          setIsPlayingSelectedModel(false);
                         }
                       }}
                       className="flex items-center space-x-2 cursor-pointer"

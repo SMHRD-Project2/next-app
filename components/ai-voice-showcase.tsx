@@ -135,7 +135,7 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
 
           {/* 음성 파형 시각화 */}
           <div className="relative h-12 bg-onair-bg rounded-md overflow-hidden">
-            {isClient ? ( // 클라이언트에서만 전체 파형을 렌더링
+            {isClient ? (
               <div className="absolute inset-0 flex items-center justify-center space-x-1 px-2">
                 {waveHeights.map((height, i) => (
                   <div
@@ -149,11 +149,11 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
                   />
                 ))}
               </div>
-            ) : ( // 서버 렌더링 또는 클라이언트 초기 로드 시 단순 플레이스홀더 렌더링
+            ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div
                   className={`bg-${colors[gender].primary}/60 rounded-full`}
-                  style={{ height: "15px", width: "20px" }} // 간단한 고정 높이/너비의 플레이스홀더
+                  style={{ height: "15px", width: "20px" }}
                 />
               </div>
             )}
@@ -163,6 +163,17 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
               className={`absolute bottom-0 left-0 h-1 bg-${colors[gender].primary}`}
               style={{ width: `${progress}%` }}
             />
+          </div>
+          {/* 파형 아래 안내 문구 */}
+          <div className="mt-2 flex items-center text-xs text-onair-text-sub">
+            <Volume2 className={`w-4 h-4 mr-2 text-${colors[gender].primary}`} />
+            재생 버튼을 클릭하여 AI 음성을 들어보세요
+          </div>
+          {/* 파형 아래 구분선 */}
+          <div className="border-t border-onair-text-sub/30 my-3" />
+          {/* 파형 아래 설명 문구 */}
+          <div className="text-xs text-onair-text-sub">
+            {description}
           </div>
         </div>
       </CardContent>
