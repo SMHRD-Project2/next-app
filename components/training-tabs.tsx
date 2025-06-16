@@ -115,8 +115,8 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
 
             {hasRecorded && (
               <div className="space-y-6">
-                <AIResultPanel />
                 <VoiceComparisonPanel />
+                <AIResultPanel />
               </div>
             )}
           </TabsContent>
@@ -143,8 +143,8 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
 
           {hasRecorded && (
             <div className="space-y-6">
-              <AIResultPanel />
               <VoiceComparisonPanel />
+              <AIResultPanel />
             </div>
           )}
         </TabsContent>
@@ -160,8 +160,8 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
           {/* AI 분석 결과 및 음성 비교 분석 패널 배치 */}
           {hasRecorded && (
             <div className="space-y-6">
-              <AIResultPanel />
               <VoiceComparisonPanel />
+              <AIResultPanel />
             </div>
           )}
         </TabsContent>

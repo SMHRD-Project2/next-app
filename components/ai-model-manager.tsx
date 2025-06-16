@@ -8,8 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Play, Pause, Star, Volume2 } from "lucide-react"
 import { Trash2 } from "lucide-react"
 
-// aiModels 배열을 상수로 정의하고 export 합니다.
-export const aiModels = [
+// Change from const to let to make it mutable
+export let aiModels = [
   {
     id: 1,
     name: "김주하 아나운서",
@@ -78,6 +78,22 @@ export const aiModels = [
     usageCount: 45,
   },
 ]
+
+// Add a function to add new models
+export const addNewModel = (newModel: {
+  id: number;
+  name: string;
+  type: string;
+  quality: string;
+  description: string;
+  avatar: string;
+  isDefault: boolean;
+  createdAt: string;
+  usageCount: number;
+}) => {
+  aiModels = [...aiModels, newModel];
+  return newModel;
+}
 
 export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)

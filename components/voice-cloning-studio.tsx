@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,24 +13,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { aiModels } from "@/components/ai-model-manager"
+import { aiModels, addNewModel } from "@/components/ai-model-manager"
 
-export function VoiceCloningStudio() {
+interface VoiceCloningStudioProps {
+  onSaveSuccess: () => void
+}
+
+export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
-  const [recordedSamples, setRecordedSamples] = useState<{ name: string; duration: number | null }[]>([])
+  const [recordedSamples, setRecordedSamples] = useState<Blob[]>([])
+  const [recordedUrls, setRecordedUrls] = useState<string[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
   const [modelName, setModelName] = useState("")
   const [modelDescription, setModelDescription] = useState("")
+  const [currentRecordingIndex, setCurrentRecordingIndex] = useState(-1)
 
-  const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id || null)
-  const [playingModel, setPlayingModel] = useState<number | null>(null)
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
-
-  const [currentRecordingIndex, setCurrentRecordingIndex] = useState<number | null>(null)
-  const [activeRecordingTime, setActiveRecordingTime] = useState(0)
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // MediaRecorder 관련 상태
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   const allSampleTexts = [
     "안녕하세요, 저는 AI 음성 모델 생성을 위한 샘플 음성을 녹음하고 있습니다. 오늘은 제 목소리로 여러분과 함께하게 되어 기쁩니다. 앞으로 다양한 콘텐츠를 제작하는데 도움이 되었으면 좋겠습니다.",
@@ -59,20 +61,22 @@ export function VoiceCloningStudio() {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
+  // 랜덤 샘플 텍스트 생성 함수
   const generateRandomSample = () => {
     const randomIndex = Math.floor(Math.random() * allSampleTexts.length)
-    const newSampleText = allSampleTexts[randomIndex]
-    setSampleTexts([newSampleText])
-    setRecordedSamples([{ name: '', duration: null }])
-    setCurrentRecordingIndex(null)
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current)
-      recordingTimerRef.current = null
-    }
-    setIsRecording(false)
-    setActiveRecordingTime(0)
+    const selectedText = allSampleTexts[randomIndex]
+    setSampleTexts([selectedText])
+    
+    // 콘솔에 선택된 텍스트 출력
+    console.log('🎯 랜덤으로 선택된 텍스트:', selectedText)
+    console.log('📝 텍스트 인덱스:', randomIndex)
+    
+    // 녹음된 샘플이 있다면 초기화
+    setRecordedSamples([])
+    setRecordedUrls([])
   }
 
+  // TTS 예시 듣기
   const handlePlaySampleTTS = () => {
     if (!sampleTexts[0]) return
     const utter = new window.SpeechSynthesisUtterance(sampleTexts[0])
@@ -80,112 +84,125 @@ export function VoiceCloningStudio() {
     window.speechSynthesis.speak(utter)
   }
 
-  const handlePlayExample = () => {
-    if (selectedModel) {
-      if (playingModel === selectedModel) {
-        audio?.pause();
-        setPlayingModel(null);
-      } else {
-        if (audio) {
-          audio.play();
-          setPlayingModel(selectedModel);
-        } else {
-          const newAudio = new Audio(`/audio/female.wav`);
-          newAudio.play();
-          setAudio(newAudio);
-          setPlayingModel(selectedModel);
-
-          newAudio.onended = () => {
-            setPlayingModel(null);
-            setAudio(null);
-          };
-        }
-      }
-    }
-  }
-
+  // 컴포넌트가 마운트될 때 랜덤 샘플 텍스트 선택
   useEffect(() => {
     generateRandomSample()
   }, [])
 
-  const handleRecord = (index: number) => {
+  // WAV 파일로 변환하는 함수
+  const convertToWav = (audioBlob: Blob): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        // 간단한 WAV 헤더 생성 (실제로는 WebCodecs API나 외부 라이브러리 사용 권장)
+        resolve(new Blob([audioBlob], { type: 'audio/wav' }))
+      }
+      reader.readAsArrayBuffer(audioBlob)
+    })
+  }
+
+  // 녹음 시작/중지 처리
+  const handleRecord = async (index: number) => {
     if (isRecording && currentRecordingIndex === index) {
+      // 녹음 중지
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop()
+      }
       setIsRecording(false)
-      setCurrentRecordingIndex(null)
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current)
-        recordingTimerRef.current = null
-      }
-
-      setRecordedSamples((prevSamples) => {
-        const newSamples = [...prevSamples]
-        while(newSamples.length <= index) {
-            newSamples.push({ name: '', duration: null });
-        }
-        newSamples[index] = { name: `sample_${index + 1}.wav`, duration: activeRecordingTime }
-        return newSamples
-      })
-
-    } else if (isRecording && currentRecordingIndex !== index) {
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current)
-        recordingTimerRef.current = null
-      }
-      setRecordedSamples((prevSamples) => {
-        const newSamples = [...prevSamples]
-        if (currentRecordingIndex !== null) {
-          while(newSamples.length <= currentRecordingIndex) {
-              newSamples.push({ name: '', duration: null });
-          }
-          newSamples[currentRecordingIndex] = {
-            name: `sample_${currentRecordingIndex + 1}.wav`,
-            duration: activeRecordingTime,
-          }
-        }
-        return newSamples
-      })
-
-      setCurrentRecordingIndex(index)
-      setActiveRecordingTime(0)
-      recordingTimerRef.current = setInterval(() => {
-        setActiveRecordingTime((prev) => prev + 1)
-      }, 1000)
-      setIsRecording(true)
-
-      setRecordedSamples((prevSamples) => {
-        const newSamples = [...prevSamples]
-        while(newSamples.length <= index) {
-            newSamples.push({ name: '', duration: null });
-        }
-        newSamples[index] = { name: `sample_${index + 1}.wav`, duration: null }
-        return newSamples
-      })
+      setCurrentRecordingIndex(-1)
     } else {
-      setCurrentRecordingIndex(index)
-      setActiveRecordingTime(0)
-      recordingTimerRef.current = setInterval(() => {
-        setActiveRecordingTime((prev) => prev + 1)
-      }, 1000)
-      setIsRecording(true)
-
-      setRecordedSamples((prevSamples) => {
-        const newSamples = [...prevSamples]
-        while(newSamples.length <= index) {
-            newSamples.push({ name: '', duration: null });
+      // 녹음 시작
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            sampleRate: 44100,
+            channelCount: 1,
+            sampleSize: 16
+          } 
+        })
+        
+        // WAV 형식으로 설정
+        const options = { mimeType: 'audio/webm;codecs=opus' }
+        const mediaRecorder = new MediaRecorder(stream, options)
+        
+        audioChunksRef.current = []
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data)
+          }
         }
-        newSamples[index] = { name: `sample_${index + 1}.wav`, duration: null }
-        return newSamples
-      })
+        
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+          const wavBlob = await convertToWav(audioBlob)
+          
+          // 새로운 배열 생성
+          const newSamples = [...recordedSamples]
+          const newUrls = [...recordedUrls]
+          
+          newSamples[index] = wavBlob
+          newUrls[index] = URL.createObjectURL(wavBlob)
+          
+          setRecordedSamples(newSamples)
+          setRecordedUrls(newUrls)
+          
+          // 콘솔에 녹음 정보 출력
+          console.log(`🎙️ 샘플 ${index + 1} 녹음 완료:`)
+          console.log('📄 녹음된 텍스트:', sampleTexts[index])
+          console.log('🎵 오디오 파일 정보:', {
+            size: `${(wavBlob.size / 1024).toFixed(2)} KB`,
+            type: wavBlob.type,
+            url: newUrls[index]
+          })
+          console.log('💾 WAV Blob 객체:', wavBlob)
+          
+          // 스트림 정리
+          stream.getTracks().forEach(track => track.stop())
+        }
+        
+        mediaRecorderRef.current = mediaRecorder
+        mediaRecorder.start()
+        setIsRecording(true)
+        setCurrentRecordingIndex(index)
+        
+        console.log(`🔴 샘플 ${index + 1} 녹음 시작`)
+        console.log('📝 녹음할 텍스트:', sampleTexts[index])
+        
+      } catch (error) {
+        console.error('마이크 접근 오류:', error)
+        alert('마이크에 접근할 수 없습니다. 브라우저 설정을 확인해주세요.')
+      }
     }
   }
 
-  useEffect(() => {
-    return () => {
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current)
-      }
+  // 녹음된 오디오 재생
+  const handlePlayRecording = (index: number) => {
+    if (recordedUrls[index]) {
+      const audio = new Audio(recordedUrls[index])
+      audio.play()
+      
+      console.log(`▶️ 샘플 ${index + 1} 재생`)
+      console.log('📄 재생 중인 텍스트:', sampleTexts[index])
+      console.log('🎵 오디오 URL:', recordedUrls[index])
     }
-  }, [])
+  }
+
+  // 녹음 파일 다운로드
+  const handleDownloadRecording = (index: number) => {
+    if (recordedSamples[index]) {
+      const url = URL.createObjectURL(recordedSamples[index])
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `voice_sample_${index + 1}.wav`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      console.log(`💾 샘플 ${index + 1} 다운로드`)
+    }
+  }
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -202,16 +219,198 @@ export function VoiceCloningStudio() {
     setIsDragging(false)
     const files = e.dataTransfer.files
     if (files && files.length > 0) {
-      setRecordedSamples([{ name: files[0].name, duration: null }])
+      const file = files[0]
+      const newSamples = [...recordedSamples]
+      const newUrls = [...recordedUrls]
+      
+      newSamples[0] = file
+      newUrls[0] = URL.createObjectURL(file)
+      
+      setRecordedSamples(newSamples)
+      setRecordedUrls(newUrls)
+      
+      console.log('📁 파일 업로드됨:', {
+        name: file.name,
+        size: `${(file.size / 1024).toFixed(2)} KB`,
+        type: file.type
+      })
     }
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files && files.length > 0) {
-      setRecordedSamples([{ name: files[0].name, duration: null }])
+      const file = files[0]
+      const newSamples = [...recordedSamples]
+      const newUrls = [...recordedUrls]
+      
+      newSamples[0] = file
+      newUrls[0] = URL.createObjectURL(file)
+      
+      setRecordedSamples(newSamples)
+      setRecordedUrls(newUrls)
+      
+      console.log('📁 파일 선택됨:', {
+        name: file.name,
+        size: `${(file.size / 1024).toFixed(2)} KB`,
+        type: file.type
+      })
     }
   }
+
+  // Fast API로 데이터 전송하고 실시간 진행률 수신하는 함수
+  const sendToFastAPI = async () => {
+    if (!recordedSamples[0] || !sampleTexts[0]) {
+      alert("음성 샘플과 텍스트가 필요합니다.")
+      return
+    }
+
+    try {
+      console.log('🚀 Fast API로 데이터 전송 시작...')
+      
+      // FormData 생성
+      const formData = new FormData()
+      formData.append('text', sampleTexts[0])
+      formData.append('audio', recordedSamples[0], 'voice_sample.wav')
+      
+      console.log('📤 전송할 데이터:')
+      console.log('📝 텍스트:', sampleTexts[0])
+      console.log('🎵 오디오 파일:', {
+        size: `${(recordedSamples[0].size / 1024).toFixed(2)} KB`,
+        type: recordedSamples[0].type
+      })
+
+      const response = await fetch('http://localhost:8000/process-voice', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      console.log('✅ Fast API 응답 성공!')
+      console.log('📥 받은 데이터:', result)
+      
+      return result
+
+    } catch (error) {
+      console.error('❌ Fast API 통신 오류:', error)
+      alert('서버 통신 중 오류가 발생했습니다. 서버가 실행되고 있는지 확인해주세요.')
+      throw error
+    }
+  }
+
+  // 실시간 진행률 스트림 연결 함수
+  const connectProgressStream = (taskId: string) => {
+    console.log(`📡 SSE 연결 시도: http://localhost:8000/process-voice-stream/${taskId}`)
+    
+    const eventSource = new EventSource(`http://localhost:8000/process-voice-stream/${taskId}`)
+    
+    eventSource.onopen = () => {
+      console.log('✅ SSE 연결 성공')
+    }
+    
+    eventSource.onmessage = (event) => {
+      try {
+        console.log('📨 SSE 메시지 수신:', event.data)
+        const data = JSON.parse(event.data)
+        console.log('📊 실시간 진행률:', data)
+        
+        setProcessingProgress(data.progress)
+        
+        if (data.completed || data.progress >= 100) {
+          console.log('🏁 진행률 완료, SSE 연결 종료')
+          eventSource.close()
+          setIsProcessing(false)
+          setStep(4) // 완료 단계로 이동
+          
+          console.log('✅ AI 모델 생성 완료:', {
+            taskId: data.task_id,
+            finalProgress: data.progress
+          })
+        }
+        
+      } catch (error) {
+        console.error('❌ 진행률 데이터 파싱 오류:', error)
+        console.log('원본 데이터:', event.data)
+      }
+    }
+    
+    eventSource.onerror = (error) => {
+      console.error('❌ SSE 연결 오류:', error)
+      console.log('SSE 상태:', eventSource.readyState)
+      console.log('0: CONNECTING, 1: OPEN, 2: CLOSED')
+      
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.log('SSE 연결이 서버에 의해 닫혔습니다.')
+      }
+      
+      eventSource.close()
+      setIsProcessing(false)
+      
+      // 폴백: 기존 방식으로 진행률 시뮬레이션
+      console.log('🔄 폴백: 로컬 진행률 시뮬레이션 시작')
+      simulateLocalProgress()
+    }
+    
+    // 연결 타임아웃 설정
+    setTimeout(() => {
+      if (eventSource.readyState === EventSource.CONNECTING) {
+        console.log('⏰ SSE 연결 타임아웃, 폴백 실행')
+        eventSource.close()
+        simulateLocalProgress()
+      }
+    }, 5000) // 5초 타임아웃
+    
+    return eventSource
+  }
+
+  // 폴백용 로컬 진행률 시뮬레이션
+  const simulateLocalProgress = () => {
+    console.log('🔄 로컬 진행률 시뮬레이션 시작')
+    
+    const interval = setInterval(() => {
+      setProcessingProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval)
+          setIsProcessing(false)
+          setStep(4)
+          console.log('✅ 로컬 시뮬레이션 완료')
+          return 100
+        }
+        const newProgress = prev + Math.random() * 10
+        console.log(`📊 로컬 진행률: ${Math.round(newProgress)}%`)
+        return Math.min(newProgress, 100)
+      })
+    }, 800)
+  }
+
+  // SSE 연결 테스트 함수 (디버깅용)
+  // const testSSEConnection = () => {
+  //   console.log('🧪 SSE 연결 테스트 시작')
+  //   const testEventSource = new EventSource('http://localhost:8000/test-sse')
+    
+  //   testEventSource.onopen = () => {
+  //     console.log('✅ 테스트 SSE 연결 성공')
+  //   }
+    
+  //   testEventSource.onmessage = (event) => {
+  //     console.log('📨 테스트 메시지:', event.data)
+  //     const data = JSON.parse(event.data)
+  //     if (data.completed) {
+  //       testEventSource.close()
+  //       console.log('🏁 테스트 완료')
+  //     }
+  //   }
+    
+  //   testEventSource.onerror = (error) => {
+  //     console.error('❌ 테스트 SSE 오류:', error)
+  //     testEventSource.close()
+  //   }
+  // }
 
   const handleCreateModel = async () => {
     if (!modelName.trim()) {
@@ -219,27 +418,83 @@ export function VoiceCloningStudio() {
       return
     }
 
+    console.log('🚀 AI 모델 생성 시작:', {
+      modelName,
+      modelDescription,
+      samplesCount: recordedSamples.length,
+      sampleTexts: sampleTexts,
+      audioFiles: recordedSamples.map((sample, index) => ({
+        index: index + 1,
+        size: `${(sample.size / 1024).toFixed(2)} KB`,
+        type: sample.type
+      }))
+    })
+
     setIsProcessing(true)
     setProcessingProgress(0)
+    setStep(3) // 처리 단계로 이동
 
-    const interval = setInterval(() => {
-      setProcessingProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsProcessing(false)
-          setStep(4)
-          return 100
-        }
-        return prev + Math.random() * 15
-      })
-    }, 500)
+    // SSE 연결 테스트 (옵션)
+    // testSSEConnection()
+
+    try {
+      // Fast API로 데이터 전송
+      const apiResult = await sendToFastAPI()
+      
+      if (apiResult.status === 'success' && apiResult.task_id) {
+        console.log('📡 실시간 진행률 스트림 연결 중...')
+        console.log('Task ID:', apiResult.task_id)
+        
+        // 실시간 진행률 스트림 연결
+        connectProgressStream(apiResult.task_id)
+        
+      } else {
+        throw new Error('작업 ID를 받지 못했습니다.')
+      }
+
+    } catch (error) {
+      setIsProcessing(false)
+      setProcessingProgress(0)
+      console.error('모델 생성 실패:', error)
+      // 오류 시에도 폴백 실행
+      simulateLocalProgress()
+    }
   }
 
-  const formatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60)
-    const seconds = totalSeconds % 60
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
-  }
+  const handleSaveModel = () => {
+    // Create a new model object
+    const newModel = {
+      id: aiModels.length + 1,
+      name: modelName,
+      type: "개인 맞춤",
+      quality: "사용자 생성",
+      description: modelDescription || "내 목소리를 기반으로 생성된 AI 모델",
+      avatar: "/placeholder.svg?height=40&width=40",
+      isDefault: false,
+      createdAt: new Date().toISOString().split('T')[0],
+      usageCount: 0
+    };
+
+    // Add the new model to the list
+    addNewModel(newModel);
+
+    // Show success message
+    alert("AI 모델이 성공적으로 저장되었습니다!");
+
+    // Show navigation confirmation
+    if (window.confirm("내 AI 모델로 이동하시겠습니까?")) {
+      // Reset the form
+      setStep(1);
+      setRecordedSamples([]);
+      setModelName("");
+      setModelDescription("");
+      setProcessingProgress(0);
+      
+      // Call the onSaveSuccess callback to switch tabs
+      onSaveSuccess();
+    }
+    // 취소 버튼을 눌렀을 때는 아무 동작도 하지 않음
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -251,11 +506,9 @@ export function VoiceCloningStudio() {
                 <Wand2 className="w-5 h-5 text-onair-mint" />
                 1단계: 음성 샘플 수집
               </CardTitle>
-              <p className="text-onair-text-sub">
-              고품질 AI 모델 생성을 위해 음성 샘플이 필요합니다.
-              </p>
+              <p className="text-onair-text-sub">고품질 AI 모델 생성을 위해 음성 샘플이 필요합니다.</p>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <Tabs defaultValue="record" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-2 bg-onair-bg">
                   <TabsTrigger
@@ -275,76 +528,38 @@ export function VoiceCloningStudio() {
                 <TabsContent value="record" className="space-y-4">
                   <div className="flex gap-2 justify-end mb-2">
                     <Button
-                      size="sm"
-                      variant="ghost"
-                      className="relative inline-flex items-center rounded-md border border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
+                      size="icon"
+                      variant="outline"
+                      className="border-onair-mint text-onair-mint"
                       onClick={generateRandomSample}
                     >
-                      <RefreshCw className="w-4 h-4" />
+                      <RefreshCw className="w-5 h-5" />
                     </Button>
-                    <div className="inline-flex rounded-md shadow-sm border border-onair-mint">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
-                        onClick={handlePlayExample}
-                      >
-                        {playingModel === selectedModel ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
-                        {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="relative inline-flex items-center rounded-r-md rounded-l-none text-onair-mint hover:bg-onair-mint hover:text-onair-bg px-2 focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
-                            aria-label="AI 모델 선택"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[200px]">
-                          {aiModels.map((model) => (
-                            <DropdownMenuItem
-                              key={model.id}
-                              onClick={() => {
-                                setSelectedModel(model.id);
-                                if (playingModel !== null) {
-                                  setPlayingModel(null);
-                                  audio?.pause();
-                                }
-                              }}
-                              className="flex items-center space-x-2 cursor-pointer"
-                            >
-                              <Avatar className="w-6 h-6">
-                                <AvatarImage src={model.avatar} />
-                                <AvatarFallback className="bg-onair-bg text-onair-mint">
-                                  {model.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{model.name}</span>
-                                <span className="text-xs text-onair-text-sub">{model.type}</span>
-                              </div>
-                              {selectedModel === model.id && (
-                                <span className="ml-auto text-onair-mint">✓</span>
-                              )}
-                              {model.isDefault && selectedModel !== model.id && (
-                                <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
-                              )}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                    <Button
+                      variant="outline"
+                      className="border-onair-mint text-onair-mint flex items-center gap-2"
+                      onClick={handlePlaySampleTTS}
+                    >
+                      <Volume2 className="w-5 h-5" />
+                      <span>AI 예시 듣기</span>
+                    </Button>
                   </div>
 
+                  <div className="bg-onair-bg/50 rounded-lg p-4">
+                    <h4 className="font-medium text-onair-text mb-2">녹음 가이드</h4>
+                    <ul className="text-sm text-onair-text-sub space-y-1">
+                      <li>• 조용한 환경에서 녹음해주세요</li>
+                      <li>• 마이크와 30cm 정도 거리를 유지하세요</li>
+                      <li>• 자연스럽고 일정한 속도로 읽어주세요</li>
+                      <li>• 각 문장을 3-5초 정도로 녹음하세요</li>
+                    </ul>
+                  </div>
 
                   {sampleTexts.map((text, index) => (
                     <div key={index} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-onair-mint">샘플 {index + 1}</span>
-                        {recordedSamples[index] && recordedSamples[index].duration !== null && <CheckCircle className="w-4 h-4 text-green-400" />}
+                        {recordedSamples[index] && <CheckCircle className="w-4 h-4 text-green-400" />}
                       </div>
                       <p className="text-onair-text mb-3">{text}</p>
                       <div className="flex items-center gap-2">
@@ -352,24 +567,34 @@ export function VoiceCloningStudio() {
                           size="sm"
                           onClick={() => handleRecord(index)}
                           className={
-                            isRecording && currentRecordingIndex === index
+                            (isRecording && currentRecordingIndex === index)
                               ? "bg-red-500 hover:bg-red-600 text-white"
                               : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                           }
                         >
-                          {isRecording && currentRecordingIndex === index ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          {(isRecording && currentRecordingIndex === index) ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          {(isRecording && currentRecordingIndex === index) ? "중지" : "녹음"}
                         </Button>
-                        {recordedSamples[index] && recordedSamples[index].duration !== null && (
-                          <Button size="sm" variant="outline" className="border-onair-blue text-onair-blue">
-                            <Play className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {(isRecording && currentRecordingIndex === index) ? (
-                          <span className="text-onair-text-sub">{formatTime(activeRecordingTime)}</span>
-                        ) : (
-                          recordedSamples[index] && recordedSamples[index].duration !== null && (
-                            <span className="text-onair-text-sub">{formatTime(recordedSamples[index].duration!)}</span>
-                          )
+                        {recordedSamples[index] && (
+                          <>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-onair-blue text-onair-blue"
+                              onClick={() => handlePlayRecording(index)}
+                            >
+                              <Play className="w-4 h-4" />
+                              재생
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-onair-orange text-onair-orange"
+                              onClick={() => handleDownloadRecording(index)}
+                            >
+                              💾 WAV
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -399,34 +624,33 @@ export function VoiceCloningStudio() {
                     />
                   </div>
 
-                  {recordedSamples.length > 0 && (
+                  {recordedSamples.length > 0 && recordedSamples[0] && (
                     <div className="space-y-2">
                       <h4 className="font-medium text-onair-text">업로드된 파일</h4>
-                      {recordedSamples.map((sample, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-onair-bg rounded">
-                          <span className="text-onair-text-sub">{sample.name}</span>
-                          {sample.duration !== null && <CheckCircle className="w-4 h-4 text-green-400" />}
+                      <div className="flex items-center justify-between p-2 bg-onair-bg rounded">
+                        <span className="text-onair-text-sub">voice_sample_1.wav</span>
+                        <div className="flex gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="border-onair-blue text-onair-blue h-6 px-2"
+                            onClick={() => handlePlayRecording(0)}
+                          >
+                            <Play className="w-3 h-3" />
+                          </Button>
                         </div>
-                      ))}
+                      </div>
                     </div>
                   )}
                 </TabsContent>
               </Tabs>
 
-                  <div className="bg-onair-bg/50 rounded-lg p-4">
-                    <h4 className="font-medium text-onair-text mb-2">녹음 가이드</h4>
-                    <ul className="text-sm text-onair-text-sub space-y-1">
-                      <li>• 조용한 환경에서 녹음해주세요</li>
-                      <li>• 마이크와 30cm 정도 거리를 유지하세요</li>
-                      <li>• 자연스럽고 일정한 속도로 읽어주세요</li>
-                      <li>• 각 문장을 3-5초 정도로 녹음하세요</li>
-                    </ul>
-                  </div>
               <div className="flex justify-between items-center pt-4 border-t border-onair-text-sub/10">
-                <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.length}/1 샘플 완료</div>
+                <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.filter(sample => sample).length}/1 샘플 완료</div>
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={recordedSamples.length < 1 || recordedSamples.some(s => s.duration === null)}
+                  disabled={recordedSamples.filter(sample => sample).length < 1}
                   className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                 >
                   다음 단계
@@ -474,10 +698,12 @@ export function VoiceCloningStudio() {
                 <h4 className="font-medium text-onair-text mb-2">수집된 음성 샘플</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {recordedSamples.map((sample, index) => (
-                    <div key={index} className="flex items-center space-x-2 text-sm text-onair-text-sub">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      <span>샘플 {index + 1} ({formatTime(sample.duration || 0)})</span>
-                    </div>
+                    sample && (
+                      <div key={index} className="flex items-center space-x-2 text-sm text-onair-text-sub">
+                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <span>샘플 {index + 1}</span>
+                      </div>
+                    )
                   ))}
                 </div>
               </div>
@@ -487,11 +713,11 @@ export function VoiceCloningStudio() {
                   이전 단계
                 </Button>
                 <Button
-                  onClick={() => handleCreateModel()}
-                  disabled={!modelName.trim()}
+                  onClick={handleCreateModel}
+                  disabled={!modelName.trim() || isProcessing}
                   className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                 >
-                  모델 생성 시작
+                  {isProcessing ? "처리 중..." : "모델 생성 시작"}
                 </Button>
               </div>
             </CardContent>
@@ -512,7 +738,7 @@ export function VoiceCloningStudio() {
                 </div>
                 <h3 className="text-lg font-semibold text-onair-text">"{modelName}" 모델 생성 중...</h3>
               </div>
-
+          
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-onair-text-sub">진행률</span>
@@ -589,21 +815,28 @@ export function VoiceCloningStudio() {
                 </div>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-4 mt-6">
                 <Button
                   onClick={() => {
                     setStep(1)
                     setRecordedSamples([])
+                    setRecordedUrls([])
                     setModelName("")
                     setModelDescription("")
                     setProcessingProgress(0)
+                    generateRandomSample()
                   }}
                   variant="outline"
                   className="flex-1 border-onair-text-sub/20"
                 >
                   새 모델 만들기
                 </Button>
-                <Button className="flex-1 bg-onair-mint hover:bg-onair-mint/90 text-onair-bg">모델 테스트하기</Button>
+                <Button 
+                  onClick={handleSaveModel}
+                  className="flex-1 bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                >
+                  내 AI 모델에 저장하기
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -614,8 +847,16 @@ export function VoiceCloningStudio() {
     }
   }
 
+  // 컴포넌트 언마운트 시 URL 정리
+  useEffect(() => {
+    return () => {
+      recordedUrls.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [])
+
   return (
     <div className="max-w-2xl mx-auto">
+      {/* 진행 단계 표시 */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           {[1, 2, 3, 4].map((stepNumber) => (

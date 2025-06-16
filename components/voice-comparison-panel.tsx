@@ -16,6 +16,7 @@ export function VoiceComparisonPanel() {
     // 클라이언트 마운트 확인
     setIsClient(true)
     
+    
     // 각 트랙별 파형 높이 생성
     const tracks = ["my", "ai", "clone"]
     const heights: { [key: string]: number[] } = {}
