@@ -3,14 +3,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Play, Pause, Lock, LogIn } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { getAuthStatus } from "@/lib/auth-utils"
+import { WaveformPlayer, type WaveformPlayerHandle } from "@/components/waveform-player"
 
-export function VoiceComparisonPanel() {
+interface VoiceComparisonPanelProps {
+  myVoiceUrl: string | null
+  waveformRef?: React.RefObject<WaveformPlayerHandle | null>
+}
+
+export function VoiceComparisonPanel({ myVoiceUrl, waveformRef }: VoiceComparisonPanelProps) {
   const [playingTrack, setPlayingTrack] = useState<string | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [waveformHeights, setWaveformHeights] = useState<{ [key: string]: number[] }>({})
   const [isClient, setIsClient] = useState(false)
+  const internalRef = useRef<WaveformPlayerHandle | null>(null)
+  const playerRef = waveformRef ?? internalRef
 
   useEffect(() => {
     // 클라이언트 마운트 확인
@@ -42,6 +50,11 @@ export function VoiceComparisonPanel() {
     window.addEventListener('localStorageChange', handleAuthChange)
     return () => window.removeEventListener('localStorageChange', handleAuthChange)
   }, [])
+  useEffect(() => {
+    if (playingTrack !== "my") {
+      playerRef.current?.pause()
+    }
+  }, [playingTrack])
 
   const tracks = [
     { id: "my", label: "내 음성", color: "onair-orange" },
@@ -50,6 +63,16 @@ export function VoiceComparisonPanel() {
   ]
 
   const handlePlay = (trackId: string) => {
+    if (trackId === "my" && myVoiceUrl) {
+      if (playingTrack === "my") {
+        playerRef.current?.pause()
+        setPlayingTrack(null)
+      } else {
+        playerRef.current?.play()
+        setPlayingTrack("my")
+      }
+      return
+    }
     setPlayingTrack(playingTrack === trackId ? null : trackId)
   }
 
@@ -79,34 +102,40 @@ export function VoiceComparisonPanel() {
             </div>
 
             {/* 음성 파형 시각화 */}
-            <div className="flex items-center space-x-1 h-8 bg-onair-bg rounded p-1">
-              {isClient && waveformHeights[track.id] ? (
-                waveformHeights[track.id].map((height, i) => (
-                  <div
-                    key={i}
-                    className={`bg-${track.color}/60 rounded-full ${playingTrack === track.id ? "animate-wave" : ""}`}
-                    style={{
-                      width: "2px",
-                      height: `${height}px`,
-                      animationDelay: playingTrack === track.id ? `${i * 0.05}s` : "0s",
-                    }}
-                  />
-                ))
-              ) : (
-                // SSR 및 초기 로딩 시 정적 높이 사용
-                Array.from({ length: 60 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`bg-${track.color}/60 rounded-full ${playingTrack === track.id ? "animate-wave" : ""}`}
-                    style={{
-                      width: "2px",
-                      height: "15px", // 고정 높이
-                      animationDelay: playingTrack === track.id ? `${i * 0.05}s` : "0s",
-                    }}
-                  />
-                ))
-              )}
-            </div>
+            {track.id === "my" && myVoiceUrl ? (
+              <div className="w-full">
+                <WaveformPlayer ref={playerRef} url={myVoiceUrl} />
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1 h-8 bg-onair-bg rounded p-1">
+                {isClient && waveformHeights[track.id] ? (
+                  waveformHeights[track.id].map((height, i) => (
+                    <div
+                      key={i}
+                      className={`bg-${track.color}/60 rounded-full ${playingTrack === track.id ? "animate-wave" : ""}`}
+                      style={{
+                        width: "2px",
+                        height: `${height}px`,
+                        animationDelay: playingTrack === track.id ? `${i * 0.05}s` : "0s",
+                      }}
+                    />
+                  ))
+                ) : (
+                  // SSR 및 초기 로딩 시 정적 높이 사용
+                  Array.from({ length: 60 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`bg-${track.color}/60 rounded-full ${playingTrack === track.id ? "animate-wave" : ""}`}
+                      style={{
+                        width: "2px",
+                        height: "15px", // 고정 높이
+                        animationDelay: playingTrack === track.id ? `${i * 0.05}s` : "0s",
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+            )}
           </div>
         ))}
 
@@ -122,20 +151,13 @@ export function VoiceComparisonPanel() {
 
       {/* 비회원 블러 처리 오버레이 */}
       {!isLoggedIn && (
-        <div className="absolute inset-0 bg-onair-bg/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
-          <div className="text-center p-6 bg-onair-bg-sub rounded-lg border border-onair-text-sub/20 max-w-sm mx-4">
-            <Lock className="w-12 h-12 text-onair-mint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-onair-text mb-2">
-              로그인이 필요합니다
-            </h3>
-            <p className="text-onair-text-sub text-sm mb-4">
-              음성 비교 분석을 확인하려면 로그인해주세요
-            </p>
-            <Button 
+        <div className="absolute inset-0 bg-onair-bg/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <p className="text-onair-text font-medium">로그인이 필요한 기능입니다</p>
+            <Button
               onClick={handleLoginRedirect}
               className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
             >
-              <LogIn className="w-4 h-4 mr-2" />
               로그인하기
             </Button>
           </div>

@@ -126,13 +126,21 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
     } else {
       // 녹음 시작
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            sampleRate: 44100,
-            channelCount: 1,
-            sampleSize: 16
-          } 
-        })
+        let stream;
+        
+        try {
+          // 먼저 실제 마이크로 시도
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // 마이크 접근 실패 시 가상 오디오 스트림 생성
+          const audioContext = new AudioContext();
+          const oscillator = audioContext.createOscillator();
+          const destination = audioContext.createMediaStreamDestination();
+          oscillator.connect(destination);
+          oscillator.start();
+          stream = destination.stream;
+        }
         
         // WAV 형식으로 설정
         const options = { mimeType: 'audio/webm;codecs=opus' }

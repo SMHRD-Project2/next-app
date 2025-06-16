@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, useMemo } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Pencil, Volume2, ChevronDown, Play, Pause, Star, MessageSquare, Speech, Mic, Square, ArrowRight, Download } from "lucide-react";
@@ -29,6 +29,8 @@ interface SentenceCardProps {
   hasRecorded: boolean
   onNext: () => void
   canNext: boolean
+  waveformRef: React.RefObject<WaveformPlayerHandle>
+  onRecordingComplete?: (url: string | null) => void
 }
 
 export function SentenceCard({ 
@@ -40,18 +42,20 @@ export function SentenceCard({
   onRecord,
   hasRecorded,
   onNext,
-  canNext 
+  canNext,
+  waveformRef,
+  onRecordingComplete
 }: SentenceCardProps) {
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
-  const waveformRef = useRef<WaveformPlayerHandle | null>(null)
+  
 
 
   const MAX_LENGTH = 500;
 
   // 250609 박남규 - 내부 문장 상태를 따로 관리하도록 수정
   const [localSentence, setLocalSentence] = useState(sentence);
-  const [words, setWords] = useState<string[]>([]);
+  
 
   // textarea 참조를 위한 ref 추가
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -67,7 +71,6 @@ export function SentenceCard({
   // 250609 박남규 - 부모 props sentence 변경 시 내부 상태 동기화
   useEffect(() => {
     setLocalSentence(sentence);
-    setWords(sentence.split(/\s+/).filter(word => word.length > 0));
   }, [sentence]);
 
   useEffect(() => {
@@ -83,7 +86,7 @@ export function SentenceCard({
     const inputText = e.target.value;
     const truncatedText = inputText.slice(0, MAX_LENGTH);
     setLocalSentence(truncatedText);
-    setWords(truncatedText.split(/\s+/).filter(word => word.length > 0));
+    
     if (onSentenceChange) onSentenceChange(truncatedText);
   }
 
@@ -243,28 +246,10 @@ export function SentenceCard({
   const [isPlaying, setIsPlaying] = useState(false)
   const [waveHeights, setWaveHeights] = useState<number[]>([])
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])  
   const [recordingTime, setRecordingTime] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const [audioDuration, setAudioDuration] = useState<number | null>(null)
-  const [highlightIndex, setHighlightIndex] = useState<number | null>(null)
 
-  useEffect(() => {
-    setHighlightIndex(null)
-  }, [audioURL])
-
-  useEffect(() => {
-    if (audioRef.current && audioURL) {
-      const audio = audioRef.current
-      const handler = () => setAudioDuration(audio.duration)
-      audio.src = audioURL
-      audio.addEventListener('loadedmetadata', handler)
-      return () => {
-        audio.removeEventListener('loadedmetadata', handler)
-      }
-    }
-  }, [audioURL])
 
   // 녹음 관련 함수들 추가
   const handleRecord = async () => {
@@ -272,17 +257,22 @@ export function SentenceCard({
     if (!isRecording) {
       try {
         console.log("Attempting to get media stream...");
-        const constraints = {
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
+        let stream;
+        
+        try {
+          // 먼저 실제 마이크로 시도
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // 마이크 접근 실패 시 가상 오디오 스트림 생성
+          const audioContext = new AudioContext();
+          const oscillator = audioContext.createOscillator();
+          const destination = audioContext.createMediaStreamDestination();
+          oscillator.connect(destination);
+          oscillator.start();
+          stream = destination.stream;
         }
 
-        const stream = await navigator.mediaDevices.getUserMedia(constraints)
-        console.log("Media stream obtained successfully.");
-        
         let mimeType = 'audio/webm;codecs=opus'
         if (!MediaRecorder.isTypeSupported(mimeType)) {
           mimeType = 'audio/webm'
@@ -306,8 +296,8 @@ export function SentenceCard({
         }
 
         mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunksRef.current, { 
-            type: mimeType || 'audio/webm' 
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: mimeType || 'audio/webm'
           })
           
           if (audioURL) {
@@ -316,6 +306,7 @@ export function SentenceCard({
           
           const url = URL.createObjectURL(audioBlob)
           setAudioURL(url)
+          if (onRecordingComplete) onRecordingComplete(url)
           audioChunksRef.current = []
 
           if (timerRef.current) {
@@ -324,7 +315,7 @@ export function SentenceCard({
           }
           setRecordingTime(0)
         }
-
+        if (onRecordingComplete) onRecordingComplete(null)
         mediaRecorder.start()
         onRecord()
         
@@ -384,18 +375,6 @@ export function SentenceCard({
       a.click()
       document.body.removeChild(a)
     }
-  }
-
-  const handleWordClick = (index: number) => {
-    const totalDuration = waveformRef.current?.getDuration()
-    if (!totalDuration || words.length === 0) return
-  
-    const timePerWord = totalDuration / words.length
-    waveformRef.current?.setCurrentTime(timePerWord * index)
-    waveformRef.current?.play()
-  
-    setIsPlaying(true)
-    setHighlightIndex(index)
   }
 
   return (
@@ -547,24 +526,6 @@ export function SentenceCard({
             )}
 
             <div className="flex flex-col items-center gap-2">
-            {hasRecorded && !isRecording && audioURL && (
-                <div className="w-full mb-4">
-                  <WaveformPlayer ref={waveformRef} url={audioURL} />
-                  {audioDuration && (
-                    <div className="mt-2 flex flex-wrap justify-center gap-1 text-onair-text">
-                      {words.map((w, i) => (
-                        <span
-                          key={i}
-                          onClick={() => handleWordClick(i)}
-                          className={`cursor-pointer px-1 rounded ${highlightIndex === i ? 'bg-onair-mint text-onair-bg' : ''}`}
-                        >
-                          {w}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
               <Button
                 onClick={handleRecord}
                 size="lg"

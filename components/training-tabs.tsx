@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SentenceCard } from "@/components/sentence-card";
 import { AIResultPanel } from "@/components/ai-result-panel";
 import { VoiceComparisonPanel } from "@/components/voice-comparison-panel";
 import { CustomSentenceUpload } from "@/components/custom-sentence-upload";
 import { PronunciationChallenge } from "@/components/pronunciation-challenge";
+import { type WaveformPlayerHandle } from "@/components/waveform-player";
 
 interface TrainingTabsProps {
   initialCustomSentence?: string;
@@ -20,6 +21,8 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
   const [customSentence, setCustomSentence] = useState(initialCustomSentence || "");
+  const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null);
+  const waveformRef = useRef<WaveformPlayerHandle>(null!);
 
   // Set initial custom sentence and tab when component mounts
   useEffect(() => {
@@ -48,6 +51,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     } finally {
       setLoading(false);
       setHasRecorded(false);
+      setMyVoiceUrl(null);
     }
   }
 
@@ -56,6 +60,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     if (activeTab === "custom") {
       setSentence(customSentence);
       setHasRecorded(false);
+      setMyVoiceUrl(null);
       return;
     }
     if (["short", "long", "news"].includes(activeTab)) {
@@ -82,6 +87,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
   const handleCustomSentenceSelect = (sentence: string) => {
     setCustomSentence(sentence);
     setHasRecorded(false);
+    setMyVoiceUrl(null);
   };
 
   if (loading) return <div className="text-center py-10">문장을 불러오는 중...</div>;
@@ -115,12 +121,19 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
               hasRecorded={hasRecorded}
               onNext={handleRefreshSentence}
               canNext={true}
+              waveformRef={waveformRef}
+              onRecordingComplete={setMyVoiceUrl}
             />
           
             {hasRecorded && (
               <div className="space-y-6">
+<<<<<<< HEAD
                 <VoiceComparisonPanel />
                 <AIResultPanel />
+=======
+                <AIResultPanel />
+                <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+>>>>>>> dfea39929615732b8f609b6f5a8803916305a624
               </div>
             )}
           </TabsContent>
@@ -143,29 +156,44 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
             hasRecorded={hasRecorded}
             onNext={() => {}}
             canNext={false}
+            waveformRef={waveformRef}
+            onRecordingComplete={setMyVoiceUrl}
           />
 
           {hasRecorded && (
             <div className="space-y-6">
+<<<<<<< HEAD
               <VoiceComparisonPanel />
               <AIResultPanel />
+=======
+              <AIResultPanel />
+              <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+>>>>>>> dfea39929615732b8f609b6f5a8803916305a624
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="challenge" className="space-y-6">
-          <PronunciationChallenge
-            isRecording={isRecording}
-            onRecord={handleRecord}
-            hasRecorded={hasRecorded}
-            onReset={() => setHasRecorded(false)}
-          />
+        <PronunciationChallenge
+          isRecording={isRecording}
+          onRecord={handleRecord}
+          hasRecorded={hasRecorded}
+          onReset={() => {
+            setHasRecorded(false);
+            setMyVoiceUrl(null);
+          }}
+        />
 
           {/* AI 분석 결과 및 음성 비교 분석 패널 배치 */}
           {hasRecorded && (
             <div className="space-y-6">
+<<<<<<< HEAD
               <VoiceComparisonPanel />
               <AIResultPanel />
+=======
+              <AIResultPanel />
+              <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+>>>>>>> dfea39929615732b8f609b6f5a8803916305a624
             </div>
           )}
         </TabsContent>

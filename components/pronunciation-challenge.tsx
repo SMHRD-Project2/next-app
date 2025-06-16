@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Mic, Square, RotateCcw, Trophy, Star, ChevronDown, Play, Pause, Volume2 } from "lucide-react"
+import { Mic, Square, RotateCcw, Trophy, Star, ChevronDown, Play, Pause, Volume2, Download } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { aiModels } from "@/components/ai-model-manager"
 import { LoadingMessage } from "@/components/loading-message"
+import { WaveformPlayer, WaveformPlayerHandle } from "@/components/waveform-player"
+import { VoiceComparisonPanel } from "@/components/voice-comparison-panel"
 
 interface PronunciationChallengeProps {
   isRecording: boolean
@@ -79,9 +81,14 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const currentChallengeRef = useRef<HTMLDivElement>(null)
   const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id || null)
   const [playingModel, setPlayingModel] = useState<number | null>(null)
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+  const [audioURL, setAudioURL] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const waveformRef = useRef<WaveformPlayerHandle>(null)
 
   const handleChallengeSelect = (challenge: (typeof challenges)[0]) => {
     setSelectedChallenge(challenge)
@@ -130,6 +137,118 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
           };
         }
       }
+    }
+  }
+
+  // 녹음 시작/중지 처리
+  const handleRecord = async () => {
+    if (!isRecording) {
+      try {
+        let audioStream: MediaStream;
+        
+        try {
+          // 먼저 실제 마이크로 시도
+          audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // 마이크 접근 실패 시 가상 오디오 스트림 생성
+          const audioContext = new AudioContext();
+          const oscillator = audioContext.createOscillator();
+          const destination = audioContext.createMediaStreamDestination();
+          oscillator.connect(destination);
+          oscillator.start();
+          audioStream = destination.stream;
+        }
+
+        let mimeType = 'audio/webm;codecs=opus'
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/webm'
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'audio/mp4'
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+              mimeType = '' // 브라우저 기본값 사용
+            }
+          }
+        }
+
+        const mediaRecorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
+        
+        mediaRecorderRef.current = mediaRecorder
+        audioChunksRef.current = []
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data)
+          }
+        }
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: mimeType || 'audio/webm'
+          })
+          
+          if (audioURL) {
+            URL.revokeObjectURL(audioURL)
+          }
+          
+          const url = URL.createObjectURL(audioBlob)
+          setAudioURL(url)
+          audioChunksRef.current = []
+
+          if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+          }
+          setRecordingTime(0)
+        }
+
+        mediaRecorder.start()
+        onRecord()
+        
+        setRecordingTime(0)
+        timerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1)
+        }, 1000)
+      } catch (err) {
+        console.error('녹음 권한을 얻을 수 없습니다:', err)
+        alert('마이크 접근 권한이 필요합니다. 브라우저 설정에서 마이크 권한을 확인해주세요.')
+      }
+    } else {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      }
+      onRecord()
+    }
+  }
+
+  // 녹음된 오디오 재생
+  const handlePlay = async () => {
+    if (audioURL) {
+      try {
+        if (isPlaying) {
+          waveformRef.current?.pause()
+          setIsPlaying(false)
+        } else {
+          waveformRef.current?.play()
+          setIsPlaying(true)
+        }
+      } catch (err) {
+        console.error('재생 오류:', err)
+        setIsPlaying(false)
+      }
+    }
+  }
+
+  // 녹음 파일 다운로드
+  const handleDownload = () => {
+    if (audioURL) {
+      const a = document.createElement('a')
+      a.href = audioURL
+      a.download = `recording-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
     }
   }
 
@@ -327,7 +446,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
 
             <div className="flex justify-center gap-4">
               <Button
-                onClick={onRecord}
+                onClick={handleRecord}
                 size="lg"
                 className={`${
                   isRecording
@@ -348,6 +467,29 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                 )}
               </Button>
 
+              {hasRecorded && !isRecording && audioURL && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handlePlay}
+                    size="lg"
+                    variant="outline"
+                    className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
+                  >
+                    {isPlaying ? <Pause className="w-5 h-5 mr-2" /> : <Play className="w-5 h-5 mr-2" />}
+                    {isPlaying ? "일시정지" : "재생"}
+                  </Button>
+                  <Button
+                    onClick={handleDownload}
+                    size="lg"
+                    variant="outline"
+                    className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    다운로드
+                  </Button>
+                </div>
+              )}
+
               {hasRecorded && (
                 <Button
                   onClick={onReset}
@@ -365,6 +507,9 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
           </div>
         </CardContent>
       </Card>
+
+      {/* 음성 비교 분석 패널 */}
+      <VoiceComparisonPanel myVoiceUrl={audioURL} waveformRef={waveformRef} />
     </div>
   )
 }

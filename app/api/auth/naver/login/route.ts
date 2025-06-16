@@ -89,7 +89,10 @@ export async function GET(request: NextRequest) {
           <body>
             <script>
               alert('연동된 네이버 계정이 없습니다.\\n\\n먼저 일반 회원가입을 진행한 후,\\n로그인하여 프로필에서 네이버 계정을 연동해주세요.');
-              window.location.href = '/auth/signup';
+              if (window.opener) {
+                window.opener.postMessage({ type: 'SOCIAL_LOGIN_ERROR', error: 'no_linked_account' }, window.location.origin);
+              }
+              window.close();
             </script>
           </body>
         </html>
