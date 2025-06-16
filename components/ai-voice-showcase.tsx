@@ -38,7 +38,7 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
 
   // 성별에 따른 오디오 파일 경로를 반환하는 헬퍼 함수
   const getAudioSource = (currentGender: "male" | "female") => {
-    return currentGender === "female" ? "/audio/female.wav" : "/audio/male.wav";
+    return currentGender === "female" ? "/audio/김주하_자기소개.wav" : "/audio/이동욱_자기소개.wav";
   };
 
   // 클라이언트 마운트 시 isClient 설정 및 파형 높이 초기화

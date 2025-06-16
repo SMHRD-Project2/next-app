@@ -43,40 +43,7 @@ export let aiModels = [
     isDefault: false,
     createdAt: "2024-01-01",
     usageCount: 134,
-  },
-  {
-    id: 4,
-    name: "내 목소리 모델",
-    type: "개인 맞춤",
-    quality: "사용자 생성",
-    description: "내 목소리를 기반으로 생성된 AI 모델",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
-    createdAt: "2024-01-05",
-    usageCount: 23,
-  },
-  {
-    id: 5,
-    name: "친구 목소리",
-    type: "개인 맞춤",
-    quality: "사용자 생성",
-    description: "친구의 목소리를 클로닝한 AI 모델",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
-    createdAt: "2024-01-10",
-    usageCount: 8,
-  },
-  {
-    id: 6,
-    name: "선생님 목소리",
-    type: "교육용",
-    quality: "사용자 생성",
-    description: "발음 선생님의 목소리를 클로닝한 모델",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
-    createdAt: "2024-01-12",
-    usageCount: 45,
-  },
+  }
 ]
 
 // Add a function to add new models

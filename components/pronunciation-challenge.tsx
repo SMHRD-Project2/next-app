@@ -111,6 +111,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         setPlayingModel(null);
       } else {
         // 재생
+        console.log(selectedChallenge)
         if (audio) {
           // 이전에 재생하던 오디오가 있다면 그 지점부터 재생
           audio.play();

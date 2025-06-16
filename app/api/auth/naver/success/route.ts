@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const userProfile = JSON.parse(decodeURIComponent(userStr))
-    console.log('[NAVER LOGIN SUCCESS] 사용자 프로필:', userProfile)
+    //console.log('[NAVER LOGIN SUCCESS] 사용자 프로필:', userProfile)
 
     return new NextResponse(`
       <!DOCTYPE html>
@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
           </div>
           
           <script>
-            console.log('[NAVER LOGIN SUCCESS] 로그인 성공');
-            console.log('[NAVER LOGIN SUCCESS] 사용자 정보:', ${JSON.stringify(userProfile)});
+            //console.log('[NAVER LOGIN SUCCESS] 로그인 성공');
+            //console.log('[NAVER LOGIN SUCCESS] 사용자 정보:', ${JSON.stringify(userProfile)});
             
             // localStorage에 로그인 정보 저장
             localStorage.setItem("isLoggedIn", "true");

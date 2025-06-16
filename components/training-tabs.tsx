@@ -100,7 +100,7 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
                 {key === "short" ? "짧은 문장" : key === "long" ? "긴 문장" : "뉴스 읽기"}
               </h2>
             </div>
-
+            
             <SentenceCard
               sentence={sentence}
               onRefresh={handleRefreshSentence}
@@ -112,7 +112,7 @@ export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
               onNext={handleRefreshSentence}
               canNext={true}
             />
-
+          
             {hasRecorded && (
               <div className="space-y-6">
                 <VoiceComparisonPanel />

@@ -66,9 +66,9 @@ def call_api(session_hash, audio_path, silence_path, tts_text):
                 "is_stream": False,
                 "meta": {"_type": "gradio.FileData"}
             },
-            1, 0.05, 0.05, 0.05, 0.05, 0.05,
-            0.1, 0.2, 0.78, 24000,
-            45, 15, 4, False, 2,
+            0.28, 0.05, 0.05, 0.05, 0.05, 0.05,
+            0.1, 0.8, 0.78, 24000,
+            45, 19.5, 4, False, 2,
             0, 0, 0, 0.5, 0.4, 0,
             420, True,
             ["emotion"]
@@ -195,7 +195,7 @@ if __name__ == "__main__":
             session_hash=session_hash,
             audio_path=audio_path,
             silence_path=silence_path,
-            tts_text="안녕하세요 안녕하세요 안녕하세요 안녕하세요 안녕하세요 안녕하세요 "
+            tts_text="텍스트 호출 실패. 조노스점파이 "
         )
 
         # 결과 대기 및 다운로드

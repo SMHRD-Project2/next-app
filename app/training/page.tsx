@@ -2,8 +2,9 @@
 
 import { useSearchParams } from "next/navigation"
 import { TrainingTabs } from "@/components/training-tabs"
+import { Suspense } from "react"
 
-export default function TrainingPage() {
+function TrainingContent() {
   const searchParams = useSearchParams()
   const customSentence = searchParams.get("customSentence")
 
@@ -15,8 +16,8 @@ export default function TrainingPage() {
       </div>
 
       <TrainingTabs initialCustomSentence={customSentence} />
- {/* 스크롤 버튼 */}
- <div className="fixed bottom-8 right-8 flex flex-col gap-4">
+      {/* 스크롤 버튼 */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4">
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"
@@ -57,5 +58,13 @@ export default function TrainingPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function TrainingPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <TrainingContent />
+    </Suspense>
   )
 }

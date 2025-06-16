@@ -144,7 +144,7 @@ export default function HistoryPage() {
   const averageAccuracy = calculateAverageAccuracy()
 
   const handleLoginRedirect = () => {
-    router.push('/login')
+    router.push('/auth/login')
   }
 
   if (!isLoggedIn) {

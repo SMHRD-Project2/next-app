@@ -4,8 +4,19 @@ import clientPromise from "@/lib/mongodb"
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
 import { Session } from "next-auth"
 
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      role?: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    }
+  }
+}
 
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -13,19 +24,19 @@ export const authOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  adapter: MongoDBAdapter(clientPromise),      // USER 컬렉션 재사용
+  adapter: MongoDBAdapter(clientPromise),
   pages: {
-    signIn: "/auth/login",                     // 실패 시 돌아올 페이지
+    signIn: "/auth/login",
   },
   callbacks: {
-    // 세션 객체에 DB-id 넣어두기
     async session({ session, user }: { session: Session; user: any }) {
-      ;(session as any).userId = user.id
-      ;(session as any).role   = (user as any).role ?? "user"
-      return session
+      if (session.user) {
+        session.user.id = user.id;
+        session.user.role = (user as any).role ?? "user";
+      }
+      return session;
     },
   },
-}
+})
 
-const handler = NextAuth(authOptions)
 export { handler as GET, handler as POST } 
