@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
     console.log('[NAVER LOGIN] 연동된 계정 검색 결과:', user ? '찾음' : '못찾음')
 
     if (!user) {
-      // 연동된 계정이 없으면 alert 후 회원가입 페이지로 이동
-      console.log('[NAVER LOGIN] 연동된 계정이 없습니다. alert 후 회원가입 페이지로 이동')
+      // 연동된 계정이 없으면 alert 후 팝업 닫기 + 메인창에 메시지 전달
+      console.log('[NAVER LOGIN] 연동된 계정이 없습니다. alert 후 팝업 닫기 및 메인창에 메시지 전달')
       
       return new NextResponse(`
         <!DOCTYPE html>
@@ -89,7 +89,10 @@ export async function GET(request: NextRequest) {
           <body>
             <script>
               alert('연동된 네이버 계정이 없습니다.\\n\\n먼저 일반 회원가입을 진행한 후,\\n로그인하여 프로필에서 네이버 계정을 연동해주세요.');
-              window.location.href = '/auth/signup';
+              if (window.opener) {
+                window.opener.postMessage({ type: 'SOCIAL_LOGIN_ERROR', error: 'no_linked_account' }, window.location.origin);
+              }
+              window.close();
             </script>
           </body>
         </html>
