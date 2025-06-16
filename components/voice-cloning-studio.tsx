@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,9 +10,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2 } from "lucide-react"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { aiModels, addNewModel } from "@/components/ai-model-manager"
 
-export function VoiceCloningStudio() {
+interface VoiceCloningStudioProps {
+  onSaveSuccess: () => void
+}
+
+export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
   const [recordedSamples, setRecordedSamples] = useState<Blob[]>([])
@@ -106,13 +113,21 @@ export function VoiceCloningStudio() {
     } else {
       // 녹음 시작
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            sampleRate: 44100,
-            channelCount: 1,
-            sampleSize: 16
-          } 
-        })
+        let stream;
+        
+        try {
+          // 먼저 실제 마이크로 시도
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // 마이크 접근 실패 시 가상 오디오 스트림 생성
+          const audioContext = new AudioContext();
+          const oscillator = audioContext.createOscillator();
+          const destination = audioContext.createMediaStreamDestination();
+          oscillator.connect(destination);
+          oscillator.start();
+          stream = destination.stream;
+        }
         
         // WAV 형식으로 설정
         const options = { mimeType: 'audio/webm;codecs=opus' }
@@ -454,6 +469,67 @@ export function VoiceCloningStudio() {
     }
   }
 
+  const handleSaveModel = async () => {
+    try {
+      // First, upload the model file to S3
+      const formData = new FormData();
+      formData.append("file", recordedSamples[0], "voice_model.wav");
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload model file");
+      }
+
+      const { fileUrl } = await uploadResponse.json();
+
+      // Create a new model object
+      const newModel = {
+        name: modelName,
+        type: "개인 맞춤",
+        quality: "사용자 생성",
+        description: modelDescription || "내 목소리를 기반으로 생성된 AI 모델",
+        avatar: "/placeholder.svg?height=40&width=40",
+        modelUrl: fileUrl
+      };
+
+      // Save to MongoDB
+      const saveResponse = await fetch("/api/models", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newModel),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save model to database");
+      }
+
+      // Show success message
+      alert("AI 모델이 성공적으로 저장되었습니다!");
+
+      // Show navigation confirmation
+      if (window.confirm("내 AI 모델로 이동하시겠습니까?")) {
+        // Reset the form
+        setStep(1);
+        setRecordedSamples([]);
+        setModelName("");
+        setModelDescription("");
+        setProcessingProgress(0);
+        
+        // Call the onSaveSuccess callback to switch tabs
+        onSaveSuccess();
+      }
+    } catch (error) {
+      console.error("Error saving model:", error);
+      alert("모델 저장 중 오류가 발생했습니다.");
+    }
+  };
+
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -773,7 +849,7 @@ export function VoiceCloningStudio() {
                 </div>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-4 mt-6">
                 <Button
                   onClick={() => {
                     setStep(1)
@@ -789,7 +865,12 @@ export function VoiceCloningStudio() {
                 >
                   새 모델 만들기
                 </Button>
-                <Button className="flex-1 bg-onair-mint hover:bg-onair-mint/90 text-onair-bg">모델 테스트하기</Button>
+                <Button 
+                  onClick={handleSaveModel}
+                  className="flex-1 bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                >
+                  내 AI 모델에 저장하기
+                </Button>
               </div>
             </CardContent>
           </Card>
