@@ -20,6 +20,7 @@ export const aiModels = [
     isDefault: false,
     createdAt: "2024-01-01",
     usageCount: 156,
+    url: "/audio/SPK005.wav"
   },
   {
     id: 2,

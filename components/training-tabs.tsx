@@ -15,7 +15,7 @@ interface TrainingTabsProps {
 export function TrainingTabs({ initialCustomSentence }: TrainingTabsProps) {
   const [sentence, setSentence] = useState<string>(""); // 현재 문장 상태 // 250609 박남규
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("custom"); // Default to custom tab
+  const [activeTab, setActiveTab] = useState("short"); // Default to custom tab
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecorded, setHasRecorded] = useState(false);
   const [customSentence, setCustomSentence] = useState(initialCustomSentence || "");

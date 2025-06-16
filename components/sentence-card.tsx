@@ -171,9 +171,45 @@ export function SentenceCard({
 
     try {
       setIsPlayingAIExample(true);
+      // ##########################################################################
+      const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
+      console.log("Selected Model URL:", modelUrl)
+      console.log("Selected localSentence:", localSentence)
       
-      // AI 예시 음성도 /audio/female.wav로 통일 (현재 요청에 따라)
-      const audioUrl = "/audio/female.wav"; // 재생할 오디오 파일 경로 고정
+      // 음성 파일 가져오기
+      const voiceResponse = await fetch(modelUrl || '');
+      const voiceBlob = await voiceResponse.blob();
+
+      // 무음 파일 가져오기
+      const silenceResponse = await fetch('/audio/silence_100ms.wav');
+      const silenceBlob = await silenceResponse.blob();
+
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
+      formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
+
+      console.log('전송할 데이터:', {
+        text: localSentence,
+        voiceFileName: modelUrl?.split('/').pop(),
+        formDataKeys: Array.from(formData.keys())
+      });
+
+      // Next.js API를 통해 요청
+      const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('서버 응답:', errorText);
+        throw new Error(`TTS 변환 실패: ${errorText}`);
+      }
+
+      // 오디오 데이터를 Blob으로 변환
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       aiExampleAudioRef.current = audio; // 오디오 객체 저장
 
@@ -340,6 +376,7 @@ export function SentenceCard({
                 className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
                 onClick={handlePlayAIExample}
               >
+                {isPlayingAIExample}
                 {isPlayingAIExample ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
                 {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
               </Button>
