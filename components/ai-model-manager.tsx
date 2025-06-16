@@ -8,8 +8,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Play, Pause, Star, Volume2 } from "lucide-react"
 import { Trash2 } from "lucide-react"
 
-// Change from const to let to make it mutable
-export let aiModels = [
+// localStorage에서 기본 모델 ID를 가져오는 함수
+const getDefaultModelId = (): number | null => {
+  if (typeof window !== 'undefined') {
+    const savedDefaultId = localStorage.getItem('defaultModelId');
+    return savedDefaultId ? parseInt(savedDefaultId) : null;
+  }
+  return null;
+}
+
+// 초기 aiModels 설정 시 localStorage의 기본 모델 ID를 반영
+export const aiModels = [
   {
     id: 1,
     name: "김주하 아나운서",
@@ -17,7 +26,7 @@ export let aiModels = [
     quality: "프리미엄",
     description: "정확하고 신뢰감 있는 뉴스 전달 스타일",
     avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
+    isDefault: getDefaultModelId() === 1,
     createdAt: "2024-01-01",
     usageCount: 156,
     url: "/audio/SPK005.wav"
@@ -29,7 +38,7 @@ export let aiModels = [
     quality: "프리미엄",
     description: "역동적이고 열정적인 스포츠 중계 스타일",
     avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
+    isDefault: getDefaultModelId() === 2,
     createdAt: "2024-01-01",
     usageCount: 89,
   },
@@ -40,13 +49,15 @@ export let aiModels = [
     quality: "프리미엄",
     description: "부드럽고 친근한 교양 프로그램 진행 스타일",
     avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: false,
+    isDefault: getDefaultModelId() === 3,
     createdAt: "2024-01-01",
     usageCount: 134,
   }
 ]
 
-// Add a function to add new models
+// Add event emitter for model changes
+const modelChangeEvent = new Event('aiModelChange')
+
 export const addNewModel = (newModel: {
   id: number;
   name: string;
@@ -58,13 +69,13 @@ export const addNewModel = (newModel: {
   createdAt: string;
   usageCount: number;
 }) => {
-  aiModels = [...aiModels, newModel];
+  aiModels.push(newModel);
+  window.dispatchEvent(modelChangeEvent);
   return newModel;
 }
 
 export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)
-  // export된 aiModels를 사용하여 상태를 초기화합니다.
   const [models, setModels] = useState(aiModels)
 
   const handlePlay = (modelId: number) => {
@@ -72,13 +83,25 @@ export function AIModelManager() {
   }
 
   const handleSetDefault = (modelId: number) => {
-    // 선택된 모델만 isDefault를 true로, 나머지는 false로 설정
+    // Update local state
     setModels(currentModels =>
       currentModels.map(model => ({
         ...model,
         isDefault: model.id === modelId,
       }))
     )
+    
+    // Update global aiModels array
+    aiModels.forEach(model => {
+      model.isDefault = model.id === modelId;
+    });
+    
+    // Save to localStorage
+    localStorage.setItem('defaultModelId', modelId.toString());
+    
+    // Dispatch event to notify other components
+    window.dispatchEvent(modelChangeEvent);
+    
     console.log("기본 모델로 설정 (API 호출 필요):", modelId);
   }
 

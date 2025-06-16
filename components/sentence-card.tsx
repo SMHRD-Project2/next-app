@@ -91,14 +91,33 @@ export function SentenceCard({
   }
 
   // selectedModel 상태 초기화 로직 개선 및 aiModels 변경 시 업데이트
-  const [selectedModel, setSelectedModel] = useState<number | null>(null) // 초기값은 null로 설정
-
-  useEffect(() => {
-    // aiModels가 로드되었고, 아직 모델이 선택되지 않았다면 첫 번째 모델을 선택
-    if (aiModels.length > 0 && selectedModel === null) {
-      setSelectedModel(aiModels[0].id);
+  const [selectedModel, setSelectedModel] = useState<number | null>(() => {
+    // 초기값을 localStorage에서 가져옴
+    if (typeof window !== 'undefined') {
+      const savedDefaultId = localStorage.getItem('defaultModelId');
+      return savedDefaultId ? parseInt(savedDefaultId) : null;
     }
-  }, [aiModels, selectedModel]); // aiModels 또는 selectedModel이 변경될 때마다 실행
+    return null;
+  });
+  
+  useEffect(() => {
+    // Find the default model and set it as selected
+    const defaultModel = aiModels.find(model => model.isDefault);
+    if (defaultModel) {
+      setSelectedModel(defaultModel.id);
+    }
+    
+    // Listen for model changes
+    const handleModelChange = () => {
+      const defaultModel = aiModels.find(model => model.isDefault);
+      if (defaultModel) {
+        setSelectedModel(defaultModel.id);
+      }
+    };
+    
+    window.addEventListener('aiModelChange', handleModelChange);
+    return () => window.removeEventListener('aiModelChange', handleModelChange);
+  }, []);
 
   const [playingModel, setPlayingModel] = useState<number | null>(null)
   const selectedModelAudioRef = useRef<HTMLAudioElement | null>(null);
