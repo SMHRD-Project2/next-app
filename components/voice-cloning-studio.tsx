@@ -10,14 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-<<<<<<< HEAD
-import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2 } from "lucide-react"
-=======
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { aiModels, addNewModel } from "@/components/ai-model-manager"
->>>>>>> d1739d4c0a8b0b52cc9e234ed9407b77097a37d3
 
 interface VoiceCloningStudioProps {
   onSaveSuccess: () => void
@@ -436,11 +432,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
 
     setIsProcessing(true)
     setProcessingProgress(0)
-<<<<<<< HEAD
     setStep(3) // 처리 단계로 이동
-=======
-    setStep(3)
->>>>>>> d1739d4c0a8b0b52cc9e234ed9407b77097a37d3
 
     // SSE 연결 테스트 (옵션)
     // testSSEConnection()
@@ -826,7 +818,6 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
               <div className="flex gap-4 mt-6">
                 <Button
                   onClick={() => {
-<<<<<<< HEAD
                     setStep(1)
                     setRecordedSamples([])
                     setRecordedUrls([])
@@ -834,13 +825,6 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                     setModelDescription("")
                     setProcessingProgress(0)
                     generateRandomSample()
-=======
-                    setStep(1);
-                    setRecordedSamples([]);
-                    setModelName("");
-                    setModelDescription("");
-                    setProcessingProgress(0);
->>>>>>> d1739d4c0a8b0b52cc9e234ed9407b77097a37d3
                   }}
                   variant="outline"
                   className="flex-1 border-onair-text-sub/20"
