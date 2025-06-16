@@ -17,6 +17,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 from dotenv import load_dotenv
 import uuid
+from botocore.exceptions import ClientError
 import time
 import logging
 import sys
@@ -295,7 +296,6 @@ async def create_tts(
         if os.path.exists(silence_path):
             os.remove(silence_path)
 
-# 전역 변수로 작업 상태 관리
 processing_tasks = {}
 
 @app.get("/")
@@ -523,8 +523,8 @@ async def list_tasks():
         })
     return {"tasks": tasks, "total": len(tasks)}
 
+
 if __name__ == "__main__":
     import uvicorn
     # uvicorn.run(app, host="localhost", port=8000) 
     uvicorn.run(app, host="localhost", port=8000, log_config=None)
-
