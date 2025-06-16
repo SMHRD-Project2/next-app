@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import clientPromise from '@/lib/mongodb'
 
 export async function GET(request: NextRequest) {
-  console.log('[GOOGLE] 구글 콜백 시작')
+  //console.log('[GOOGLE] 구글 콜백 시작')
   
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')
   const state = searchParams.get('state')
 
-  console.log('[GOOGLE] 받은 파라미터:', { code: code?.substring(0, 10) + '...', state })
+  //console.log('[GOOGLE] 받은 파라미터:', { code: code?.substring(0, 10) + '...', state })
 
   if (!code) {
     console.error('[GOOGLE] Authorization code가 없습니다')
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log('[GOOGLE] 토큰 요청 시작')
+    //console.log('[GOOGLE] 토큰 요청 시작')
     
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
     
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     })
 
     const tokenData = await tokenResponse.json()
-    console.log('[GOOGLE] 토큰 응답:', tokenData)
+    //console.log('[GOOGLE] 토큰 응답:', tokenData)
 
     if (!tokenResponse.ok) {
       console.error('[GOOGLE] 토큰 요청 실패:', tokenData)
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     const accessToken = tokenData.access_token
-    console.log('[GOOGLE] 액세스 토큰 받음:', accessToken?.substring(0, 20) + '...')
+    //console.log('[GOOGLE] 액세스 토큰 받음:', accessToken?.substring(0, 20) + '...')
 
     // 토큰으로 사용자 정보 가져오기
     const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -54,14 +54,14 @@ export async function GET(request: NextRequest) {
     })
     
     const googleUserInfo = await userInfoResponse.json()
-    console.log('[GOOGLE] 사용자 정보:', googleUserInfo)
+    //console.log('[GOOGLE] 사용자 정보:', googleUserInfo)
 
     const googleId = googleUserInfo.id
     const googleName = googleUserInfo.name
 
     // 현재 로그인한 사용자 정보 가져오기
     const userEmail = decodeURIComponent(state || '')
-    console.log('[GOOGLE] 연동할 사용자 이메일:', userEmail)
+    //console.log('[GOOGLE] 연동할 사용자 이메일:', userEmail)
 
     if (!userEmail) {
       console.error('[GOOGLE] 사용자 이메일이 없습니다')
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     }
 
     // MongoDB에 토큰 저장
-    console.log('[GOOGLE] MongoDB에 토큰 저장 시작')
+    //console.log('[GOOGLE] MongoDB에 토큰 저장 시작')
     const client = await clientPromise
     const db = client.db('ONAIR')
     const collection = db.collection('USER')
@@ -86,18 +86,18 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    console.log('[GOOGLE] MongoDB 저장 결과:', result)
-    console.log('[GOOGLE] 매칭된 문서 수:', result.matchedCount)
-    console.log('[GOOGLE] 수정된 문서 수:', result.modifiedCount)
+    //console.log('[GOOGLE] MongoDB 저장 결과:', result)
+    //console.log('[GOOGLE] 매칭된 문서 수:', result.matchedCount)
+    //console.log('[GOOGLE] 수정된 문서 수:', result.modifiedCount)
 
     // 저장된 데이터 확인
     const savedUser = await collection.findOne({ email: userEmail })
-    console.log('[GOOGLE] 저장된 사용자 데이터:', {
-      email: savedUser?.email,
-      hasGoogleToken: !!savedUser?.USER_GOOGLETOKEN,
-      googleUserId: savedUser?.GOOGLE_USER_ID,
-      tokenLength: savedUser?.USER_GOOGLETOKEN?.length
-    })
+    // console.log('[GOOGLE] 저장된 사용자 데이터:', {
+    //   email: savedUser?.email,
+    //   hasGoogleToken: !!savedUser?.USER_GOOGLETOKEN,
+    //   googleUserId: savedUser?.GOOGLE_USER_ID,
+    //   tokenLength: savedUser?.USER_GOOGLETOKEN?.length
+    // })
 
     // 성공 응답과 함께 창 닫기
     return new NextResponse(`
@@ -110,8 +110,8 @@ export async function GET(request: NextRequest) {
         </head>
         <body>
           <script>
-            console.log('[GOOGLE POPUP] 구글 연동 성공!');
-            console.log('[GOOGLE POPUP] 구글 ID: ${googleId}');
+            //console.log('[GOOGLE POPUP] 구글 연동 성공!');
+            //console.log('[GOOGLE POPUP] 구글 ID: ${googleId}');
             if (window.opener) {
               window.opener.postMessage({ 
                 type: 'SNS_CONNECT_SUCCESS', 

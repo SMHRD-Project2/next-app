@@ -171,8 +171,8 @@ export default function HistoryPage() {
   }
 
   const handleRetrain = (sentence: string) => {
-    // Navigate to training page with the sentence as a query parameter
-    router.push(`/training?customSentence=${encodeURIComponent(sentence)}`)
+    // Navigate to training page with the sentence as a query parameter and custom tab
+    router.push(`/training?customSentence=${encodeURIComponent(sentence)}&tab=custom`)
   }
 
   // 삭제 핸들러 추가

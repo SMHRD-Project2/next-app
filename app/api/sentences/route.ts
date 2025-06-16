@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
     
-    console.log('Requested sentence type:', type) // 디버깅용 로그 // 250609 박남규
+    //console.log('Requested sentence type:', type) // 디버깅용 로그 // 250609 박남규
     
     // type에 따라 필터링하여 무작위 1개 문장 추출 // 250609 박남규
     const [randomSentence] = await db.collection('SENTENCE')
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       ])
       .toArray()
     
-    // console.log('Found sentence:', randomSentence) // 디버깅용 로그 // 250609 박남규
+    // //console.log('Found sentence:', randomSentence) // 디버깅용 로그 // 250609 박남규
     
     if (!randomSentence) {
       return NextResponse.json({ error: `No sentence found for type: ${type}` }, { status: 404 })

@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import clientPromise from '@/lib/mongodb'
 
 export async function GET(request: NextRequest) {
-  console.log('[GOOGLE LOGIN] 구글 로그인 콜백 시작')
-  console.log('[GOOGLE LOGIN] Request URL:', request.url)
-  console.log('[GOOGLE LOGIN] Request method:', request.method)
+  //console.log('[GOOGLE LOGIN] 구글 로그인 콜백 시작')
+  //console.log('[GOOGLE LOGIN] Request URL:', request.url)
+  //console.log('[GOOGLE LOGIN] Request method:', request.method)
   
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')
   const state = searchParams.get('state')
   const error = searchParams.get('error')
 
-  console.log('[GOOGLE LOGIN] 받은 파라미터:', { 
+  //console.log('[GOOGLE LOGIN] 받은 파라미터:', { 
     code: code ? code.substring(0, 10) + '...' : null, 
     state, 
     error 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log('[GOOGLE LOGIN] 토큰 요청 시작')
+    //console.log('[GOOGLE LOGIN] 토큰 요청 시작')
     
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
     
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
     })
 
     const tokenData = await tokenResponse.json()
-    console.log('[GOOGLE LOGIN] 토큰 응답 상태:', tokenResponse.status)
-    console.log('[GOOGLE LOGIN] 토큰 응답:', tokenData)
+    //console.log('[GOOGLE LOGIN] 토큰 응답 상태:', tokenResponse.status)
+    //console.log('[GOOGLE LOGIN] 토큰 응답:', tokenData)
 
     if (!tokenResponse.ok) {
       throw new Error(tokenData.error_description || tokenData.error || 'Failed to get access token')
@@ -66,22 +66,22 @@ export async function GET(request: NextRequest) {
     })
     
     const googleUserInfo = await userInfoResponse.json()
-    console.log('[GOOGLE LOGIN] 구글 사용자 정보:', googleUserInfo)
+    //console.log('[GOOGLE LOGIN] 구글 사용자 정보:', googleUserInfo)
 
     const googleId = googleUserInfo.id
     const googleName = googleUserInfo.name || '구글 사용자'
     const googleEmail = googleUserInfo.email
 
-    console.log('[GOOGLE LOGIN] 구글 ID:', googleId)
-    console.log('[GOOGLE LOGIN] 구글 이름:', googleName)
-    console.log('[GOOGLE LOGIN] 구글 이메일:', googleEmail)
+    //console.log('[GOOGLE LOGIN] 구글 ID:', googleId)
+    //console.log('[GOOGLE LOGIN] 구글 이름:', googleName)
+    //console.log('[GOOGLE LOGIN] 구글 이메일:', googleEmail)
 
     // 3. MongoDB에서 연동된 계정 찾기
     const client = await clientPromise
     const db = client.db('ONAIR')
     const collection = db.collection('USER')
 
-    console.log('[GOOGLE LOGIN] 구글 ID로 계정 검색 시작:', googleId)
+    //console.log('[GOOGLE LOGIN] 구글 ID로 계정 검색 시작:', googleId)
     
     // 구글 ID로 연동된 계정 찾기
     let user = await collection.findOne({ 
@@ -91,11 +91,11 @@ export async function GET(request: NextRequest) {
       ]
     })
 
-    console.log('[GOOGLE LOGIN] 연동된 계정 검색 결과:', user ? '찾음' : '못찾음')
+    //console.log('[GOOGLE LOGIN] 연동된 계정 검색 결과:', user ? '찾음' : '못찾음')
 
     if (!user) {
       // 연동된 계정이 없으면 alert 후 회원가입 페이지로 이동
-      console.log('[GOOGLE LOGIN] 연동된 계정이 없습니다. alert 후 회원가입 페이지로 이동')
+      //console.log('[GOOGLE LOGIN] 연동된 계정이 없습니다. alert 후 회원가입 페이지로 이동')
       
       return new NextResponse(`
         <!DOCTYPE html>
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log('[GOOGLE LOGIN] 찾은 사용자 정보:', {
+    //console.log('[GOOGLE LOGIN] 찾은 사용자 정보:', {
       _id: user._id,
       email: user.email,
       name: user.name,
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
         }
       }
     )
-    console.log('[GOOGLE LOGIN] 기존 계정 토큰 업데이트 완료')
+    //console.log('[GOOGLE LOGIN] 기존 계정 토큰 업데이트 완료')
 
     // 5. 로그인 성공 처리 - 데이터베이스의 실제 사용자 정보 사용
     const userProfile = {
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
       role: user.role || 'user'
     }
 
-    console.log('[GOOGLE LOGIN] 로그인 성공, 사용자 프로필:', userProfile)
+    //console.log('[GOOGLE LOGIN] 로그인 성공, 사용자 프로필:', userProfile)
 
     // 성공 페이지로 리다이렉트하면서 사용자 정보 전달
     const successUrl = new URL('/api/auth/google/success', request.url)

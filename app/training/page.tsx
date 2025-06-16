@@ -5,7 +5,8 @@ import { TrainingTabs } from "@/components/training-tabs"
 
 export default function TrainingPage() {
   const searchParams = useSearchParams()
-  const customSentence = searchParams.get("customSentence")
+  const customSentence = searchParams.get("customSentence") ?? undefined
+  const initialTab = searchParams.get("tab") ?? "short"
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -14,9 +15,10 @@ export default function TrainingPage() {
         <p className="text-onair-text-sub">다양한 유형의 발음 훈련으로 실력을 향상시켜보세요</p>
       </div>
 
-      <TrainingTabs initialCustomSentence={customSentence} />
- {/* 스크롤 버튼 */}
- <div className="fixed bottom-8 right-8 flex flex-col gap-4">
+      <TrainingTabs initialCustomSentence={customSentence} initialTab={initialTab} />
+
+      {/* 스크롤 버튼 */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4">
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="w-10 h-10 rounded-full bg-onair-mint text-white flex items-center justify-center shadow-lg hover:bg-onair-mint/90 transition-colors"

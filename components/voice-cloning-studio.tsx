@@ -29,6 +29,9 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   const [modelName, setModelName] = useState("")
   const [modelDescription, setModelDescription] = useState("")
   const [currentRecordingIndex, setCurrentRecordingIndex] = useState(-1)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [recordingDurations, setRecordingDurations] = useState<number[]>([])
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   // MediaRecorder 관련 상태
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -110,6 +113,16 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       }
       setIsRecording(false)
       setCurrentRecordingIndex(-1)
+      // 타이머 정지 및 녹음 시간 저장
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+        // 녹음 시간 저장
+        const newDurations = [...recordingDurations]
+        newDurations[index] = recordingTime
+        setRecordingDurations(newDurations)
+      }
+      setRecordingTime(0)
     } else {
       // 녹음 시작
       try {
@@ -165,6 +178,12 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
         mediaRecorder.start()
         setIsRecording(true)
         setCurrentRecordingIndex(index)
+        
+        // 타이머 시작
+        setRecordingTime(0)
+        timerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1)
+        }, 1000)
         
         console.log(`🔴 샘플 ${index + 1} 녹음 시작`)
         console.log('📝 녹음할 텍스트:', sampleTexts[index])
@@ -571,21 +590,19 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                     </Button>
                   </div>
 
-                  <div className="bg-onair-bg/50 rounded-lg p-4">
-                    <h4 className="font-medium text-onair-text mb-2">녹음 가이드</h4>
-                    <ul className="text-sm text-onair-text-sub space-y-1">
-                      <li>• 조용한 환경에서 녹음해주세요</li>
-                      <li>• 마이크와 30cm 정도 거리를 유지하세요</li>
-                      <li>• 자연스럽고 일정한 속도로 읽어주세요</li>
-                      <li>• 각 문장을 3-5초 정도로 녹음하세요</li>
-                    </ul>
-                  </div>
 
                   {sampleTexts.map((text, index) => (
                     <div key={index} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-onair-mint">샘플 {index + 1}</span>
-                        {recordedSamples[index] && <CheckCircle className="w-4 h-4 text-green-400" />}
+                        {recordedSamples[index] && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-onair-text-sub">
+                              {formatTime(recordingDurations[index] || 0)}
+                            </span>
+                            <CheckCircle className="w-4 h-4 text-green-400" />
+                          </div>
+                        )}
                       </div>
                       <p className="text-onair-text mb-3">{text}</p>
                       <div className="flex items-center gap-2">
@@ -598,8 +615,17 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                               : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
                           }
                         >
-                          {(isRecording && currentRecordingIndex === index) ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                          {(isRecording && currentRecordingIndex === index) ? "중지" : "녹음"}
+                          {(isRecording && currentRecordingIndex === index) ? (
+                            <>
+                              <Square className="w-4 h-4 mr-1" />
+                              중지 {formatTime(recordingTime)}
+                            </>
+                          ) : (
+                            <>
+                              <Mic className="w-4 h-4 mr-1" />
+                              녹음
+                            </>
+                          )}
                         </Button>
                         {recordedSamples[index] && (
                           <>
@@ -627,6 +653,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                   ))}
                 </TabsContent>
 
+                  
                 <TabsContent value="upload" className="space-y-4">
                   <div
                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
@@ -655,7 +682,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                       <h4 className="font-medium text-onair-text">업로드된 파일</h4>
                       <div className="flex items-center justify-between p-2 bg-onair-bg rounded">
                         <span className="text-onair-text-sub">voice_sample_1.wav</span>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
                           <CheckCircle className="w-4 h-4 text-green-400" />
                           <Button 
                             size="sm" 
@@ -671,6 +698,16 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                   )}
                 </TabsContent>
               </Tabs>
+              
+                  <div className="bg-onair-bg/50 rounded-lg p-4">
+                    <h4 className="font-medium text-onair-text mb-2">녹음 가이드</h4>
+                    <ul className="text-sm text-onair-text-sub space-y-1">
+                      <li>• 조용한 환경에서 녹음해주세요</li>
+                      <li>• 마이크와 30cm 정도 거리를 유지하세요</li>
+                      <li>• 자연스럽고 일정한 속도로 읽어주세요</li>
+                      <li>• 각 문장을 3-5초 정도로 녹음하세요</li>
+                    </ul>
+                  </div>
 
               <div className="flex justify-between items-center pt-4 border-t border-onair-text-sub/10">
                 <div className="text-sm text-onair-text-sub">진행률: {recordedSamples.filter(sample => sample).length}/1 샘플 완료</div>
@@ -879,6 +916,22 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       recordedUrls.forEach(url => URL.revokeObjectURL(url))
     }
   }, [])
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [])
+
+  // 녹음 시간 포맷팅 함수
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
