@@ -119,7 +119,7 @@ export const connectSNS = (provider: string) => {
     return Promise.resolve(false)
   }
 
-  console.log(`[${provider.toUpperCase()}] 연동 시작 - 사용자:`, userProfile.email)
+  // console.log(`[${provider.toUpperCase()}] 연동 시작 - 사용자:`, userProfile.email)
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
   let authUrl = ''
@@ -154,7 +154,7 @@ export const connectSNS = (provider: string) => {
       return Promise.resolve(false)
   }
 
-  console.log(`[${provider.toUpperCase()}] OAuth URL:`, authUrl)
+  // console.log(`[${provider.toUpperCase()}] OAuth URL:`, authUrl)
 
   // 팝업으로 연동 페이지 열기
   const popup = window.open(
@@ -174,7 +174,7 @@ export const connectSNS = (provider: string) => {
       if (event.origin !== window.location.origin) return
       
       if (event.data.type === 'SNS_CONNECT_SUCCESS') {
-        console.log(`[${provider.toUpperCase()}] 연동 성공:`, event.data)
+        // console.log(`[${provider.toUpperCase()}] 연동 성공:`, event.data)
         clearInterval(timer)
         window.removeEventListener('message', messageHandler)
         popup.close()
@@ -197,7 +197,7 @@ export const connectSNS = (provider: string) => {
       if (popup.closed) {
         clearInterval(timer)
         window.removeEventListener('message', messageHandler)
-        console.log(`[${provider.toUpperCase()}] 연동 팝업이 닫혔습니다.`)
+        // console.log(`[${provider.toUpperCase()}] 연동 팝업이 닫혔습니다.`)
         resolve(false)
       }
     }, 800)

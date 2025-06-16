@@ -64,7 +64,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
           // 먼저 실제 마이크로 시도
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
-          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
           // 마이크 접근 실패 시 가상 오디오 스트림 생성
           const audioContext = new AudioContext();
           const oscillator = audioContext.createOscillator();
@@ -179,21 +179,21 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
   //  2506011 박남규 aws 업로드하기
   const uploadToS3 = async (blob: Blob) => {
 
-    console.log("전달된 blob:", blob) // 1. blob 확인 남규 테스트
+    // console.log("전달된 blob:", blob) // 1. blob 확인 남규 테스트
 
     const formData = new FormData()
     const file = new File([blob], "recording.wav", { type: "audio/wav" }) // 250611 박남규 확장자 변경
 
-    console.log("생성된 File 객체:", file) // 2. file 확인 남규 테스트
-    console.log("File 타입:", file.type)
-    console.log("File 크기:", file.size)
+    // console.log("생성된 File 객체:", file) // 2. file 확인 남규 테스트
+    // console.log("File 타입:", file.type)
+    // console.log("File 크기:", file.size)
 
 
     formData.append("file", file)
 
 
     for (let [key, value] of formData.entries()) {
-      console.log("FormData 항목:", key, value) // 3. formData 확인 남규 테스트
+      // console.log("FormData 항목:", key, value) // 3. formData 확인 남규 테스트
     }
 
     try {
@@ -201,10 +201,10 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
         method: "POST",
         body: formData,
       })
-      console.log("응답 상태:", res.status) // 4. 응답 확인 남규 테스트
+      // console.log("응답 상태:", res.status) // 4. 응답 확인 남규 테스트
       const data = await res.json()
       if (data.success) {
-        console.log("업로드 성공:", data.url)
+        // console.log("업로드 성공:", data.url)
       } else {
         const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."
         console.error("업로드 실패:", data.error)

@@ -71,8 +71,8 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
     setSampleTexts([selectedText])
     
     // 콘솔에 선택된 텍스트 출력
-    console.log('🎯 랜덤으로 선택된 텍스트:', selectedText)
-    console.log('📝 텍스트 인덱스:', randomIndex)
+    // console.log('🎯 랜덤으로 선택된 텍스트:', selectedText)
+    // console.log('📝 텍스트 인덱스:', randomIndex)
     
     // 녹음된 샘플이 있다면 초기화
     setRecordedSamples([])
@@ -169,14 +169,14 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
           setRecordedUrls(newUrls)
           
           // 콘솔에 녹음 정보 출력
-          console.log(`🎙️ 샘플 ${index + 1} 녹음 완료:`)
-          console.log('📄 녹음된 텍스트:', sampleTexts[index])
-          console.log('🎵 오디오 파일 정보:', {
-            size: `${(wavBlob.size / 1024).toFixed(2)} KB`,
-            type: wavBlob.type,
-            url: newUrls[index]
-          })
-          console.log('💾 WAV Blob 객체:', wavBlob)
+          // console.log(`🎙️ 샘플 ${index + 1} 녹음 완료:`)
+          // console.log('📄 녹음된 텍스트:', sampleTexts[index])
+          // console.log('🎵 오디오 파일 정보:', {
+          //   size: `${(wavBlob.size / 1024).toFixed(2)} KB`,
+          //   type: wavBlob.type,
+          //   url: newUrls[index]
+          // })
+          // console.log('�� WAV Blob 객체:', wavBlob)
           
           // 스트림 정리
           stream.getTracks().forEach(track => track.stop())
@@ -193,11 +193,11 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
           setRecordingTime(prev => prev + 1)
         }, 1000)
         
-        console.log(`🔴 샘플 ${index + 1} 녹음 시작`)
-        console.log('📝 녹음할 텍스트:', sampleTexts[index])
+        // console.log(`🔴 샘플 ${index + 1} 녹음 시작`)
+        // console.log('📝 녹음할 텍스트:', sampleTexts[index])
         
       } catch (error) {
-        console.error('마이크 접근 오류:', error)
+        // console.error('마이크 접근 오류:', error)
         alert('마이크에 접근할 수 없습니다. 브라우저 설정을 확인해주세요.')
       }
     }
@@ -209,9 +209,9 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       const audio = new Audio(recordedUrls[index])
       audio.play()
       
-      console.log(`▶️ 샘플 ${index + 1} 재생`)
-      console.log('📄 재생 중인 텍스트:', sampleTexts[index])
-      console.log('🎵 오디오 URL:', recordedUrls[index])
+      // console.log(`▶️ 샘플 ${index + 1} 재생`)
+      // console.log('📄 재생 중인 텍스트:', sampleTexts[index])
+      // console.log('🎵 오디오 URL:', recordedUrls[index])
     }
   }
 
@@ -227,7 +227,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
       
-      console.log(`💾 샘플 ${index + 1} 다운로드`)
+      // console.log(`💾 샘플 ${index + 1} 다운로드`)
     }
   }
 
@@ -256,11 +256,11 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       setRecordedSamples(newSamples)
       setRecordedUrls(newUrls)
       
-      console.log('📁 파일 업로드됨:', {
-        name: file.name,
-        size: `${(file.size / 1024).toFixed(2)} KB`,
-        type: file.type
-      })
+      // console.log('📁 파일 업로드됨:', {
+      //   name: file.name,
+      //   size: `${(file.size / 1024).toFixed(2)} KB`,
+      //   type: file.type
+      // })
     }
   }
 
@@ -277,11 +277,11 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       setRecordedSamples(newSamples)
       setRecordedUrls(newUrls)
       
-      console.log('📁 파일 선택됨:', {
-        name: file.name,
-        size: `${(file.size / 1024).toFixed(2)} KB`,
-        type: file.type
-      })
+      // console.log('📁 파일 선택됨:', {
+      //   name: file.name,
+      //   size: `${(file.size / 1024).toFixed(2)} KB`,
+      //   type: file.type
+      // })
     }
   }
 
@@ -293,19 +293,19 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
     }
 
     try {
-      console.log('🚀 Fast API로 데이터 전송 시작...')
+      // console.log('🚀 Fast API로 데이터 전송 시작...')
       
       // FormData 생성
       const formData = new FormData()
       formData.append('text', sampleTexts[0])
       formData.append('audio', recordedSamples[0], 'voice_sample.wav')
       
-      console.log('📤 전송할 데이터:')
-      console.log('📝 텍스트:', sampleTexts[0])
-      console.log('🎵 오디오 파일:', {
-        size: `${(recordedSamples[0].size / 1024).toFixed(2)} KB`,
-        type: recordedSamples[0].type
-      })
+      // console.log('📤 전송할 데이터:')
+      // console.log('📝 텍스트:', sampleTexts[0])
+      // console.log('🎵 오디오 파일:', {
+      //   size: `${(recordedSamples[0].size / 1024).toFixed(2)} KB`,
+      //   type: recordedSamples[0].type
+      // })
 
       const response = await fetch('http://localhost:8000/process-voice', {
         method: 'POST',
@@ -318,13 +318,13 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
 
       const result = await response.json()
       
-      console.log('✅ Fast API 응답 성공!')
-      console.log('📥 받은 데이터:', result)
+      // console.log('✅ Fast API 응답 성공!')
+      // console.log('📥 받은 데이터:', result)
       
       return result
 
     } catch (error) {
-      console.error('❌ Fast API 통신 오류:', error)
+      // console.error('❌ Fast API 통신 오류:', error)
       alert('서버 통신 중 오류가 발생했습니다. 서버가 실행되고 있는지 확인해주세요.')
       throw error
     }
@@ -332,61 +332,61 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
 
   // 실시간 진행률 스트림 연결 함수
   const connectProgressStream = (taskId: string) => {
-    console.log(`📡 SSE 연결 시도: http://localhost:8000/process-voice-stream/${taskId}`)
+    // console.log(`📡 SSE 연결 시도: http://localhost:8000/process-voice-stream/${taskId}`)
     
     const eventSource = new EventSource(`http://localhost:8000/process-voice-stream/${taskId}`)
     
     eventSource.onopen = () => {
-      console.log('✅ SSE 연결 성공')
+      // console.log('✅ SSE 연결 성공')
     }
     
     eventSource.onmessage = (event) => {
       try {
-        console.log('📨 SSE 메시지 수신:', event.data)
+        // console.log('📨 SSE 메시지 수신:', event.data)
         const data = JSON.parse(event.data)
-        console.log('📊 실시간 진행률:', data)
+        // console.log('📊 실시간 진행률:', data)
         
         setProcessingProgress(data.progress)
         
         if (data.completed || data.progress >= 100) {
-          console.log('🏁 진행률 완료, SSE 연결 종료')
+          // console.log('🏁 진행률 완료, SSE 연결 종료')
           eventSource.close()
           setIsProcessing(false)
           setStep(4) // 완료 단계로 이동
           
-          console.log('✅ AI 모델 생성 완료:', {
-            taskId: data.task_id,
-            finalProgress: data.progress
-          })
+          // console.log('✅ AI 모델 생성 완료:', {
+          //   taskId: data.task_id,
+          //   finalProgress: data.progress
+          // })
         }
         
       } catch (error) {
-        console.error('❌ 진행률 데이터 파싱 오류:', error)
-        console.log('원본 데이터:', event.data)
+        // console.error('❌ 진행률 데이터 파싱 오류:', error)
+        // console.log('원본 데이터:', event.data)
       }
     }
     
     eventSource.onerror = (error) => {
-      console.error('❌ SSE 연결 오류:', error)
-      console.log('SSE 상태:', eventSource.readyState)
-      console.log('0: CONNECTING, 1: OPEN, 2: CLOSED')
+      // console.error('❌ SSE 연결 오류:', error)
+      // console.log('SSE 상태:', eventSource.readyState)
+      // console.log('0: CONNECTING, 1: OPEN, 2: CLOSED')
       
       if (eventSource.readyState === EventSource.CLOSED) {
-        console.log('SSE 연결이 서버에 의해 닫혔습니다.')
+        // console.log('SSE 연결이 서버에 의해 닫혔습니다.')
       }
       
       eventSource.close()
       setIsProcessing(false)
       
       // 폴백: 기존 방식으로 진행률 시뮬레이션
-      console.log('🔄 폴백: 로컬 진행률 시뮬레이션 시작')
+      // console.log('🔄 폴백: 로컬 진행률 시뮬레이션 시작')
       simulateLocalProgress()
     }
     
     // 연결 타임아웃 설정
     setTimeout(() => {
       if (eventSource.readyState === EventSource.CONNECTING) {
-        console.log('⏰ SSE 연결 타임아웃, 폴백 실행')
+        // console.log('⏰ SSE 연결 타임아웃, 폴백 실행')
         eventSource.close()
         simulateLocalProgress()
       }
@@ -397,7 +397,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
 
   // 폴백용 로컬 진행률 시뮬레이션
   const simulateLocalProgress = () => {
-    console.log('🔄 로컬 진행률 시뮬레이션 시작')
+    // console.log('🔄 로컬 진행률 시뮬레이션 시작')
     
     const interval = setInterval(() => {
       setProcessingProgress((prev) => {
@@ -405,11 +405,11 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
           clearInterval(interval)
           setIsProcessing(false)
           setStep(4)
-          console.log('✅ 로컬 시뮬레이션 완료')
+          // console.log('✅ 로컬 시뮬레이션 완료')
           return 100
         }
         const newProgress = prev + Math.random() * 10
-        console.log(`📊 로컬 진행률: ${Math.round(newProgress)}%`)
+        // console.log(`📊 로컬 진행률: ${Math.round(newProgress)}%`)
         return Math.min(newProgress, 100)
       })
     }, 800)
@@ -445,17 +445,17 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       return
     }
 
-    console.log('🚀 AI 모델 생성 시작:', {
-      modelName,
-      modelDescription,
-      samplesCount: recordedSamples.length,
-      sampleTexts: sampleTexts,
-      audioFiles: recordedSamples.map((sample, index) => ({
-        index: index + 1,
-        size: `${(sample.size / 1024).toFixed(2)} KB`,
-        type: sample.type
-      }))
-    })
+    // console.log('🚀 AI 모델 생성 시작:', {
+    //   modelName,
+    //   modelDescription,
+    //   samplesCount: recordedSamples.length,
+    //   sampleTexts: sampleTexts,
+    //   audioFiles: recordedSamples.map((sample, index) => ({
+    //     index: index + 1,
+    //     size: `${(sample.size / 1024).toFixed(2)} KB`,
+    //     type: sample.type
+    //   }))
+    // })
 
     setIsProcessing(true)
     setProcessingProgress(0)
@@ -469,8 +469,8 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       const apiResult = await sendToFastAPI()
       
       if (apiResult.status === 'success' && apiResult.task_id) {
-        console.log('📡 실시간 진행률 스트림 연결 중...')
-        console.log('Task ID:', apiResult.task_id)
+        // console.log('📡 실시간 진행률 스트림 연결 중...')
+        // console.log('Task ID:', apiResult.task_id)
         
         // 실시간 진행률 스트림 연결
         connectProgressStream(apiResult.task_id)

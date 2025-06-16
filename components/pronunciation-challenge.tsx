@@ -118,7 +118,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         setPlayingModel(null);
       } else {
         // 재생
-        console.log(selectedChallenge)
+        // console.log(selectedChallenge)
         if (audio) {
           // 이전에 재생하던 오디오가 있다면 그 지점부터 재생
           audio.play();
@@ -150,7 +150,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
           // 먼저 실제 마이크로 시도
           audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
-          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
           // 마이크 접근 실패 시 가상 오디오 스트림 생성
           const audioContext = new AudioContext();
           const oscillator = audioContext.createOscillator();

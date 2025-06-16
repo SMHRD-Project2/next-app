@@ -74,13 +74,13 @@ export default function HistoryPage() {
 
   // 음성 재생/정지 토글 함수 (public/audio/female.wav 파일 재생)
   const toggleAudioPlayback = (id: number) => {
-    console.log(`[${id}] 버튼 클릭됨. 현재 currentPlayingId: ${currentPlayingId}`);
+    // console.log(`[${id}] 버튼 클릭됨. 현재 currentPlayingId: ${currentPlayingId}`);
 
     // 만약 현재 재생 중인 항목이 있고, 그 항목이 방금 클릭한 항목이 아니라면, 기존 재생을 중지합니다.
     if (audioInstanceRef.current && currentPlayingId !== null && currentPlayingId !== id) {
       audioInstanceRef.current.pause();
       audioInstanceRef.current.currentTime = 0; // 처음으로 되감기
-      console.log(`[${currentPlayingId}] 이전 오디오 중지됨.`);
+      // console.log(`[${currentPlayingId}] 이전 오디오 중지됨.`);
       setCurrentPlayingId(null); // 이전 재생 상태 초기화
     }
 
@@ -90,7 +90,7 @@ export default function HistoryPage() {
       if (audioInstanceRef.current) {
         audioInstanceRef.current.pause();
         audioInstanceRef.current.currentTime = 0;
-        console.log(`[${id}] 오디오 정지됨.`);
+        // console.log(`[${id}] 오디오 정지됨.`);
       }
       setCurrentPlayingId(null); // 재생 상태를 null로 설정
     } else {
@@ -98,11 +98,11 @@ export default function HistoryPage() {
       // Audio 객체가 아직 없다면 새로 생성합니다.
       if (!audioInstanceRef.current) {
         audioInstanceRef.current = new Audio('/audio/female.wav');
-        console.log('새 Audio 객체 생성됨: /audio/female.wav');
+        // console.log('새 Audio 객체 생성됨: /audio/female.wav');
 
         // Audio 객체의 이벤트 리스너를 한 번만 설정
         audioInstanceRef.current.onended = () => {
-          console.log(`[${currentPlayingId}] 오디오 재생 완료됨.`);
+          // console.log(`[${currentPlayingId}] 오디오 재생 완료됨.`);
           setCurrentPlayingId(null); // 재생 완료 시 상태 초기화
         };
         audioInstanceRef.current.onerror = (e) => {
@@ -112,12 +112,12 @@ export default function HistoryPage() {
       } else {
         // 기존 Audio 객체가 있다면, 재생 위치를 처음으로 되감습니다.
         audioInstanceRef.current.currentTime = 0;
-        console.log('기존 Audio 객체 재사용.');
+        // console.log('기존 Audio 객체 재사용.');
       }
 
       // 오디오 재생 시도
       audioInstanceRef.current.play().then(() => {
-        console.log(`[${id}] 오디오 재생 시작됨.`);
+        // console.log(`[${id}] 오디오 재생 시작됨.`);
         setCurrentPlayingId(id); // 재생 시작 시 현재 ID로 업데이트
       }).catch(error => {
         console.error(`[${id}] audio.play() Promise 에러:`, error);

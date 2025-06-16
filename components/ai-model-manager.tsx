@@ -79,13 +79,13 @@ export function AIModelManager() {
         isDefault: model.id === modelId,
       }))
     )
-    console.log("기본 모델로 설정 (API 호출 필요):", modelId);
+    // console.log("기본 모델로 설정 (API 호출 필요):", modelId);
   }
 
   const handleDelete = (modelId: number) => {
     if (window.confirm("이 모델을 정말 삭제하시겠습니까?")) {
       setModels(currentModels => currentModels.filter(model => model.id !== modelId));
-      console.log("모델 삭제 (API 호출 필요):", modelId);
+      // console.log("모델 삭제 (API 호출 필요):", modelId);
       /* 모델 삭제  */
       alert("모델이 삭제되었습니다.");
     }

@@ -184,8 +184,8 @@ export function SentenceCard({
       setIsPlayingAIExample(true);
       // ##########################################################################
       const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
-      console.log("Selected Model URL:", modelUrl)
-      console.log("Selected localSentence:", localSentence)
+      // console.log("Selected Model URL:", modelUrl)
+      // console.log("Selected localSentence:", localSentence)
       
       // 음성 파일 가져오기
       const voiceResponse = await fetch(modelUrl || '');
@@ -200,11 +200,11 @@ export function SentenceCard({
       formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
       formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
 
-      console.log('전송할 데이터:', {
-        text: localSentence,
-        voiceFileName: modelUrl?.split('/').pop(),
-        formDataKeys: Array.from(formData.keys())
-      });
+      // console.log('전송할 데이터:', {
+        // text: localSentence,
+        // voiceFileName: modelUrl?.split('/').pop(),
+        // formDataKeys: Array.from(formData.keys())
+      // });
 
       // Next.js API를 통해 요청
       const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
@@ -253,17 +253,17 @@ export function SentenceCard({
 
   // 녹음 관련 함수들 추가
   const handleRecord = async () => {
-    console.log("handleRecord called. isRecording:", isRecording);
+    // console.log("handleRecord called. isRecording:", isRecording);
     if (!isRecording) {
       try {
-        console.log("Attempting to get media stream...");
+        // console.log("Attempting to get media stream...");
         let stream;
         
         try {
           // 먼저 실제 마이크로 시도
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
-          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
           // 마이크 접근 실패 시 가상 오디오 스트림 생성
           const audioContext = new AudioContext();
           const oscillator = audioContext.createOscillator();

@@ -60,7 +60,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
           throw new Error('지원하지 않는 소셜 로그인 제공자입니다.')
       }
 
-      console.log(`[${provider.toUpperCase()} LOGIN] 로그인 URL:`, authUrl)
+      // console.log(`[${provider.toUpperCase()} LOGIN] 로그인 URL:`, authUrl)
 
       // 팝업으로 소셜 로그인 페이지 열기
       const popup = window.open(
@@ -80,7 +80,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
         if (popup.closed) {
           clearInterval(timer)
           setLoadingProvider(null)
-          console.log(`[${provider.toUpperCase()} LOGIN] 팝업이 닫혔습니다.`)
+          // console.log(`[${provider.toUpperCase()} LOGIN] 팝업이 닫혔습니다.`)
           
           // 로그인 상태 확인
           const checkLoginStatus = async () => {
@@ -117,7 +117,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
               if (event.origin !== window.location.origin) return
               
               if (event.data.type === 'SOCIAL_LOGIN_SUCCESS') {
-                console.log(`[${provider.toUpperCase()} LOGIN] 로그인 성공 메시지 받음:`, event.data)
+                // console.log(`[${provider.toUpperCase()} LOGIN] 로그인 성공 메시지 받음:`, event.data)
                 clearInterval(timer)
                 setLoadingProvider(null)
                 window.removeEventListener('message', messageHandler)

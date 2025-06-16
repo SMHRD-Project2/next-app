@@ -125,15 +125,10 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
               onRecordingComplete={setMyVoiceUrl}
             />
           
-            {hasRecorded && (
+             {hasRecorded && (
               <div className="space-y-6">
-<<<<<<< HEAD
-                <VoiceComparisonPanel />
-                <AIResultPanel />
-=======
                 <AIResultPanel />
                 <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
->>>>>>> dfea39929615732b8f609b6f5a8803916305a624
               </div>
             )}
           </TabsContent>
@@ -162,13 +157,8 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
           {hasRecorded && (
             <div className="space-y-6">
-<<<<<<< HEAD
-              <VoiceComparisonPanel />
-              <AIResultPanel />
-=======
               <AIResultPanel />
               <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
->>>>>>> dfea39929615732b8f609b6f5a8803916305a624
             </div>
           )}
         </TabsContent>
@@ -187,13 +177,8 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
           {/* AI 분석 결과 및 음성 비교 분석 패널 배치 */}
           {hasRecorded && (
             <div className="space-y-6">
-<<<<<<< HEAD
-              <VoiceComparisonPanel />
-              <AIResultPanel />
-=======
               <AIResultPanel />
               <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
->>>>>>> dfea39929615732b8f609b6f5a8803916305a624
             </div>
           )}
         </TabsContent>
