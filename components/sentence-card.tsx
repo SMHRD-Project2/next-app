@@ -22,7 +22,9 @@ import {
 
 interface SentenceCardProps {
   sentence: string
-  voiceUrl?: string  // DB에서 가져온 voiceUrl 추가
+  voiceUrl1?: string  // DB에서 가져온 voiceUrl 추가
+  voiceUrl2?: string  // DB에서 가져온 voiceUrl 추가
+  voiceUrl3?: string  // DB에서 가져온 voiceUrl 추가
   onSentenceChange?: (newSentence: string) => void  // 문장 수정 콜백
   onRefresh?: () => void
   currentTab: string             // 현재 탭 정보를 props로 받기
@@ -37,7 +39,9 @@ interface SentenceCardProps {
 
 export function SentenceCard({
   sentence,
-  voiceUrl,  // voiceUrl prop 추가
+  voiceUrl1,  // voiceUrl prop 추가
+  voiceUrl2,  // voiceUrl prop 추가
+  voiceUrl3,  // voiceUrl prop 추가
   onSentenceChange,
   onRefresh,
   currentTab,
@@ -72,7 +76,7 @@ export function SentenceCard({
   // 250609 박남규 - 내부 문장 상태를 따로 관리하도록 수정
   const [localSentence, setLocalSentence] = useState(sentence);
   
-  console.log("Initial sentence prop:", sentence);  // 초기 sentence prop 값 확인
+  // console.log("Initial sentence prop:", sentence);  // 초기 sentence prop 값 확인
 
   // textarea 참조를 위한 ref 추가
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -87,9 +91,9 @@ export function SentenceCard({
 
   // 250609 박남규 - 부모 props sentence 변경 시 내부 상태 동기화
   useEffect(() => {
-    console.log("Sentence prop changed to:", sentence);  // sentence prop 변경 시점 로그
+    // console.log("Sentence prop changed to:", sentence);  // sentence prop 변경 시점 로그
     setLocalSentence(sentence);
-    console.log("localSentence updated to:", sentence);  // localSentence 업데이트 후 값 확인
+    // console.log("localSentence updated to:", sentence);  // localSentence 업데이트 후 값 확인
   }, [sentence]);
 
   useEffect(() => {
@@ -112,10 +116,10 @@ export function SentenceCard({
   // 250609 박남규 - textarea onChange 핸들러에서 내부 상태 및 부모 콜백 호출
   const handleSentenceChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const inputText = e.target.value;
-    console.log("Textarea input:", inputText);  // 입력된 텍스트 확인
+    // console.log("Textarea input:", inputText);  // 입력된 텍스트 확인
     const truncatedText = inputText.slice(0, MAX_LENGTH);
     setLocalSentence(truncatedText);
-    console.log("localSentence set to:", truncatedText);  // localSentence 설정 값 확인
+    // console.log("localSentence set to:", truncatedText);  // localSentence 설정 값 확인
     
     if (onSentenceChange) onSentenceChange(truncatedText);
   }
@@ -226,40 +230,109 @@ export function SentenceCard({
 
     console.log("Selected Model Details:", modelDetails);
     console.log("Current Sentence:", localSentence);
-    console.log("Voice URL from DB:", voiceUrl);
+    console.log("Voice URLs from DB:", { voiceUrl1, voiceUrl2, voiceUrl3 });
 
-    // 이동욱 아나운서 모델이고 voiceUrl이 있으며, custom 탭이 아닌 경우에만 DB의 voiceUrl 재생
-    if (modelDetails.name === '이동욱 아나운서' && voiceUrl && currentTab !== 'custom') {
-      console.log("Playing voice from DB:", voiceUrl);
+    // 아나운서 모델이고 voiceUrl이 있으며, custom 탭이 아닌 경우에만 DB의 voiceUrl 재생
+    if (currentTab !== 'custom') {
+      let selectedVoiceUrl = null;
       
-      // 현재 재생 중인 오디오가 있다면 중지
-      if (currentAudioRef.current) {
-        currentAudioRef.current.pause();
-        currentAudioRef.current = null;
+      // 각 아나운서별로 해당하는 voiceUrl을 선택
+      if (modelDetails.name === '김주하 아나운서' && voiceUrl1) {
+        selectedVoiceUrl = voiceUrl1;
+      } else if (modelDetails.name === '이동욱 아나운서' && voiceUrl2) {
+        selectedVoiceUrl = voiceUrl2;
+      } else if (modelDetails.name === '박소현 아나운서' && voiceUrl3) {
+        selectedVoiceUrl = voiceUrl3;
       }
 
-      // 새로운 오디오 생성 및 재생
-      const audio = new Audio(voiceUrl);
+      if (selectedVoiceUrl) {
+        console.log("Playing voice from DB:", selectedVoiceUrl);
+        
+        // 현재 재생 중인 오디오가 있다면 중지
+        if (currentAudioRef.current) {
+          currentAudioRef.current.pause();
+          currentAudioRef.current = null;
+        }
+
+        // 새로운 오디오 생성 및 재생
+        const audio = new Audio(selectedVoiceUrl);
+        currentAudioRef.current = audio;
+        
+        audio.onended = () => {
+          setIsPlaying(false);
+          currentAudioRef.current = null;
+        };
+
+        try {
+          await audio.play();
+          setIsPlaying(true);
+        } catch (error) {
+          console.error("Error playing audio:", error);
+          setIsPlaying(false);
+          currentAudioRef.current = null;
+        }
+        return;
+      }
+    }
+
+    // DB의 voiceUrl이 없거나 custom 탭인 경우 TTS 사용
+    try {
+      console.log("Using TTS for playback");
+      const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
+      console.log("Selected Model URL:", modelUrl);
+      console.log("Selected localSentence:", localSentence);
+
+      // 음성 파일 가져오기
+      const voiceResponse = await fetch(modelUrl || '');
+      const voiceBlob = await voiceResponse.blob();
+
+      // 무음 파일 가져오기
+      const silenceResponse = await fetch('/audio/silence_100ms.wav');
+      const silenceBlob = await silenceResponse.blob();
+
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
+      formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
+
+      console.log('전송할 데이터:', {
+        text: localSentence,
+        voiceFileName: modelUrl?.split('/').pop(),
+        formDataKeys: Array.from(formData.keys())
+      });
+
+      // Next.js API를 통해 요청
+      const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`TTS 변환 실패: ${errorText}`);
+      }
+
+      // 오디오 데이터를 Blob으로 변환
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
-      
+
       audio.onended = () => {
         setIsPlaying(false);
         currentAudioRef.current = null;
+        URL.revokeObjectURL(audioUrl);
       };
 
-      try {
-        await audio.play();
-        setIsPlaying(true);
-      } catch (error) {
-        console.error("Error playing audio:", error);
-        setIsPlaying(false);
-        currentAudioRef.current = null;
-      }
-      return;
-    }
+      await audio.play();
+      setIsPlaying(true);
 
-    // 다른 모델이거나 voiceUrl이 없거나 custom 탭인 경우 아무것도 하지 않음
-    console.log("Skipping playback - not 이동욱 아나운서 or no voiceUrl or custom tab");
+    } catch (error) {
+      console.error('TTS 처리 중 오류:', error);
+      setIsPlaying(false);
+      currentAudioRef.current = null;
+    }
   };
 
   const handleTTSPlayback = async (modelDetails: typeof aiModels[0]) => {

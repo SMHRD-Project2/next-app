@@ -22,7 +22,9 @@ interface SentenceData {
 
 export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabsProps) {
   const [sentence, setSentence] = useState<string>("");
-  const [voiceUrl, setVoiceUrl] = useState<string | undefined>(undefined);
+  const [voiceUrl1, setVoiceUrl1] = useState<string | undefined>(undefined);
+  const [voiceUrl2, setVoiceUrl2] = useState<string | undefined>(undefined);
+  const [voiceUrl3, setVoiceUrl3] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab || "short");
   const [isRecording, setIsRecording] = useState(false);
@@ -60,21 +62,27 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       
       // API 응답 구조에 따라 적절한 필드 사용
       const sentenceText = data.sentence || data.text || "";
-      const voiceUrl = data.audioUrl;  // audioUrl을 voiceUrl로 사용
+      const voiceUrl1 = data.voiceUrl1;  // 김주하 아나운서
+      const voiceUrl2 = data.voiceUrl2;  // 이동욱 아나운서
+      const voiceUrl3 = data.voiceUrl3;  // 박소현 아나운서
       
       console.log("Extracted sentence:", sentenceText);
-      console.log("Extracted voiceUrl:", voiceUrl);
+      console.log("Extracted voiceUrls:", { voiceUrl1, voiceUrl2, voiceUrl3 });
       
       setSentence(sentenceText);
-      setVoiceUrl(voiceUrl);
+      setVoiceUrl1(voiceUrl1);
+      setVoiceUrl2(voiceUrl2);
+      setVoiceUrl3(voiceUrl3);
       
-      if (!voiceUrl) {
-        console.warn("No voiceUrl found in API response. Available fields:", Object.keys(data));
+      if (!voiceUrl1 && !voiceUrl2 && !voiceUrl3) {
+        console.warn("No voiceUrls found in API response. Available fields:", Object.keys(data));
       }
     } catch (error) {
       console.error("문장 불러오기 실패:", error);
       setSentence("");
-      setVoiceUrl(undefined);
+      setVoiceUrl1(undefined);
+      setVoiceUrl2(undefined);
+      setVoiceUrl3(undefined);
     } finally {
       setLoading(false);
       setHasRecorded(false);
@@ -168,7 +176,9 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
             
             <SentenceCard
               sentence={sentence}
-              voiceUrl={voiceUrl}
+              voiceUrl1={voiceUrl1}
+              voiceUrl2={voiceUrl2}
+              voiceUrl3={voiceUrl3}
               onRefresh={handleRefreshSentence}
               currentTab={activeTab}
               onSentenceChange={setSentence}
@@ -200,7 +210,9 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
           <SentenceCard
             sentence={customSentence}
-            voiceUrl={undefined}
+            voiceUrl1={undefined}
+            voiceUrl2={undefined}
+            voiceUrl3={undefined}
             currentTab={activeTab}
             onSentenceChange={setCustomSentence}
             isRecording={isRecording}
