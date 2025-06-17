@@ -467,7 +467,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                 )}
               </Button>
 
-              {hasRecorded && !isRecording && audioURL && (
+              {/* {hasRecorded && !isRecording && audioURL && (
                 <div className="flex gap-2">
                   <Button
                     onClick={handlePlay}
@@ -488,9 +488,9 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                     다운로드
                   </Button>
                 </div>
-              )}
+              )} */}
 
-              {hasRecorded && (
+              {/* {hasRecorded && (
                 <Button
                   onClick={onReset}
                   size="lg"
@@ -500,7 +500,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                   <RotateCcw className="w-5 h-5 mr-2" />
                   다시 도전
                 </Button>
-              )}
+              )} */}
             </div>
 
             {hasRecorded && !isRecording && <LoadingMessage />}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -77,9 +77,36 @@ export const addNewModel = (newModel: {
 export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)
   const [models, setModels] = useState(aiModels)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const handlePlay = (modelId: number) => {
-    setPlayingModel(playingModel === modelId ? null : modelId)
+    if (playingModel === modelId) {
+      // 같은 모델이 클릭된 경우, 재생 중지
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      }
+      setPlayingModel(null)
+    } else {
+      // 다른 모델이 클릭된 경우, 현재 재생 중지하고 새로운 재생 시작
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+      }
+      
+      // 새로운 오디오 요소 생성
+      const audio = new Audio('/audio/female.wav')
+      audioRef.current = audio
+      
+      audio.play()
+      setPlayingModel(modelId)
+      
+      // 오디오가 끝나면 상태 초기화
+      audio.onended = () => {
+        setPlayingModel(null)
+        audioRef.current = null
+      }
+    }
   }
 
   const handleSetDefault = (modelId: number) => {

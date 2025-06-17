@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SentenceCard } from "@/components/sentence-card";
 import { AIResultPanel } from "@/components/ai-result-panel";
@@ -15,6 +16,7 @@ interface TrainingTabsProps {
 }
 
 export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabsProps) {
+  const searchParams = useSearchParams();
   const [sentence, setSentence] = useState<string>(""); // 현재 문장 상태 // 250609 박남규
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab || "short");
@@ -22,6 +24,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
   const [hasRecorded, setHasRecorded] = useState(false);
   const [customSentence, setCustomSentence] = useState(initialCustomSentence || "");
   const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null);
+  const [audioURL, setAudioURL] = useState<string | null>(null);
   const waveformRef = useRef<WaveformPlayerHandle>(null!);
 
   // Set initial custom sentence and tab when component mounts
@@ -34,6 +37,21 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       setActiveTab(initialTab);
     }
   }, [initialCustomSentence, initialTab]);
+
+  // Separate useEffect for handling scroll
+  useEffect(() => {
+    // Only scroll if we have both customSentence and scroll=true in URL
+    const shouldScroll = searchParams.get("scroll") === "true" && initialCustomSentence;
+    if (shouldScroll) {
+      // Add a small delay to ensure the content is rendered
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
+  }, [searchParams, initialCustomSentence]);
 
   // 탭에 따라 API에서 무작위 문장을 가져오는 함수 // 250609 박남규
   async function fetchRandomSentence(tab: string) {
