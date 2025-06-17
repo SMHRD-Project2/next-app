@@ -64,7 +64,12 @@ export async function GET(request: NextRequest) {
 
     let query = {};
     if (email) {
-      query = { userEmail: email };
+      query = {
+        $or: [
+          { userEmail: email },
+          { email: email }
+        ]
+      };
     }
     console.log("MongoDB query:", query);
 
