@@ -517,8 +517,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         </CardContent>
       </Card>
 
-      {/* 음성 비교 분석 패널 */}
-      <VoiceComparisonPanel myVoiceUrl={audioURL} waveformRef={waveformRef} />
     </div>
   )
 }

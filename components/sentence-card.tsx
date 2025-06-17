@@ -65,7 +65,7 @@ export function SentenceCard({
     }
   }
 
-  const MAX_LENGTH = 500;
+  const MAX_LENGTH = 300;
 
   // 250609 박남규 - 내부 문장 상태를 따로 관리하도록 수정
   const [localSentence, setLocalSentence] = useState(sentence);
@@ -234,12 +234,9 @@ export function SentenceCard({
     try {
       setIsPlayingAIExample(true);
       // ##########################################################################
-      // if(custom){
       const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
       console.log("Selected Model URL:", modelUrl)
       console.log("Selected localSentence:", localSentence)
-
-      console.log("Selected localSentenceSelected localSentenceSelected localSentenceSelected localSentenceSelected localSentence:")
 
       console.log("Selected Model ID:", selectedModel)
       console.log("Selected Model Details:", aiModels.find(model => model.id === selectedModel))
@@ -650,7 +647,7 @@ export function SentenceCard({
             maxLength={MAX_LENGTH}
           />
           <p className="text-sm text-onair-text-sub text-right">
-            {localSentence.length}/500
+            {localSentence.length}/300
           </p>
           {currentTab === 'custom' && ttsProgress !== null && (
             <div className="mt-2">

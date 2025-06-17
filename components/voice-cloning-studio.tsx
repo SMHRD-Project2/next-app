@@ -641,12 +641,12 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                   {sampleTexts.map((text, index) => (
                     <div key={index} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-onair-mint">샘플 {index + 1}</span>
+                        <span className="text-sm font-medium text-onair-mint">샘플</span>
                         {recordedSamples[index] && (
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-onair-text-sub">
+                            {/* <span className="text-xs text-onair-text-sub">
                               {formatTime(recordingDurations[index] || 0)}
-                            </span>
+                            </span> */}
                             <CheckCircle className="w-4 h-4 text-green-400" />
                           </div>
                         )}
@@ -688,15 +688,15 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                               size="sm" 
                               variant="outline" 
                               className="border-onair-orange text-onair-orange hover:bg-onair-orange/90" */}
-                            <Button
+                            {/* <Button
                               size="sm"
                               variant="outline"
                               className="border-onair-orange text-onair-orange"
                               onClick={() => handleDownloadRecording(index)}
-                              >
+                              > */}
                               {/* ############################################################################# */}
-                              <Download className="w-4 h-4" />
-                            </Button>
+                              {/* <Download className="w-4 h-4" /> */}
+                            {/* </Button> */}
                           </>
                         )}
                       </div>
@@ -734,14 +734,14 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                         <span className="text-onair-text-sub">voice_sample_1.wav</span>
                         <div className="flex gap-2 items-center">
                           <CheckCircle className="w-4 h-4 text-green-400" />
-                          <Button
+                          {/* <Button
                             size="sm"
                             variant="outline"
                             className="border-onair-blue text-onair-blue h-6 px-2"
                             onClick={() => handlePlayRecording(0)}
                           >
                             <Play className="w-3 h-3" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </div>
                     </div>

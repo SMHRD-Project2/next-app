@@ -223,7 +223,6 @@ export function AIModelManager() {
 
                     <div className="flex items-center space-x-4 text-xs text-onair-text-sub">
                       <span>유형: {model.type}</span>
-                      <span>사용 횟수: {model.usageCount}회</span>
                       <span>생성일: {model.createdAt}</span>
                     </div>
 
