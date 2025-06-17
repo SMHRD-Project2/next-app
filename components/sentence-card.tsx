@@ -47,7 +47,7 @@ export function SentenceCard({
   waveformRef,
   onRecordingComplete
 }: SentenceCardProps) {
-  const { models: aiModels, isLoading } = useAIModels()
+  const { models: aiModels, isLoading, defaultModelId } = useAIModels()
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
 
@@ -127,14 +127,14 @@ export function SentenceCard({
     if (isLoading) return;
     
     // Find the default model and set it as selected
-    const defaultModel = aiModels.find(model => model.isDefault);
+    const defaultModel = aiModels.find(model => model._id === defaultModelId);
     if (defaultModel) {
       setSelectedModel(defaultModel.id);
     }
     
     // Listen for model changes
     const handleModelChange = () => {
-      const defaultModel = aiModels.find(model => model.isDefault);
+      const defaultModel = aiModels.find(model => model._id === defaultModelId);
       if (defaultModel) {
         setSelectedModel(defaultModel.id);
       }
@@ -142,7 +142,7 @@ export function SentenceCard({
     
     window.addEventListener('aiModelChange', handleModelChange);
     return () => window.removeEventListener('aiModelChange', handleModelChange);
-  }, [aiModels, isLoading]);
+  }, [aiModels, isLoading, defaultModelId]);
 
   const [playingModel, setPlayingModel] = useState<number | null>(null)
   const selectedModelAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -624,9 +624,6 @@ export function SentenceCard({
                       </div>
                       {selectedModel === model.id && (
                         <span className="ml-auto text-onair-mint">✓</span>
-                      )}
-                      {model.isDefault && selectedModel !== model.id && (
-                        <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
                       )}
                     </DropdownMenuItem>
                   ))}

@@ -5,17 +5,15 @@ import { getAuthStatus } from "@/lib/auth-utils"
 
 interface AIModel {
   id: number;
-  _id?: string;
+  _id: string;
   name: string;
   type: string;
   quality: string;
   description: string;
   avatar: string;
-  isDefault: boolean;
   createdAt: string;
   usageCount: number;
   url: string;
-  modelUrl?: string;
 }
 
 interface AIModelContextType {
@@ -23,6 +21,7 @@ interface AIModelContextType {
   isLoading: boolean;
   error: string | null;
   refreshModels: () => Promise<void>;
+  defaultModelId: string | null;
 }
 
 const AIModelContext = createContext<AIModelContextType | undefined>(undefined)
@@ -31,6 +30,19 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
   const [models, setModels] = useState<AIModel[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [defaultModelId, setDefaultModelId] = useState<string | null>(null)
+
+  const fetchDefaultModel = async (email: string) => {
+    try {
+      const response = await fetch(`/api/users/default-model?email=${email}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDefaultModelId(data.isDefault);
+      }
+    } catch (error) {
+      console.error("기본 모델 정보를 가져오는데 실패했습니다:", error);
+    }
+  };
 
   const fetchModels = async () => {
     try {
@@ -39,6 +51,9 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
       if (!userProfile?.email) {
         throw new Error('사용자 정보를 찾을 수 없습니다.')
       }
+
+      // 기본 모델 정보 가져오기
+      await fetchDefaultModel(userProfile.email);
 
       // 로컬 스토리지에서 캐시된 데이터 확인
       const cachedData = localStorage.getItem('aiModels')
@@ -66,7 +81,6 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
           quality: model.quality,
           description: model.description,
           avatar: model.avatar || "/placeholder.svg?height=40&width=40",
-          isDefault: model.isDefault || false,
           createdAt: new Date(model.createdAt).toLocaleDateString(),
           usageCount: model.usageCount || 0,
           url: model.url || model.modelUrl,
@@ -87,7 +101,6 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
           quality: model.quality,
           description: model.description,
           avatar: model.avatar || "/placeholder.svg?height=40&width=40",
-          isDefault: model.isDefault || false,
           createdAt: new Date(model.createdAt).toLocaleDateString(),
           usageCount: model.usageCount || 0,
           url: model.url || model.modelUrl,
@@ -120,7 +133,7 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AIModelContext.Provider value={{ models, isLoading, error, refreshModels }}>
+    <AIModelContext.Provider value={{ models, isLoading, error, refreshModels, defaultModelId }}>
       {children}
     </AIModelContext.Provider>
   )

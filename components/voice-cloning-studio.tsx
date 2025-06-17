@@ -627,16 +627,12 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                               {selectedModel === model.id && (
                                 <span className="ml-auto text-onair-mint">✓</span>
                               )}
-                              {model.isDefault && selectedModel !== model.id && (
-                                <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
-                              )}
                             </DropdownMenuItem>
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </div>
-
 
                   {sampleTexts.map((text, index) => (
                     <div key={index} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10">

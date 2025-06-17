@@ -18,7 +18,6 @@ interface AIModel {
   quality: string;
   description: string;
   avatar: string;
-  isDefault: boolean;
   createdAt: string;
   usageCount: number;
   url: string;
@@ -26,10 +25,49 @@ interface AIModel {
 
 export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)
-  const { models, isLoading, error, refreshModels } = useAIModels()
+  const { models, isLoading, error, refreshModels, defaultModelId } = useAIModels()
 
-  const handlePlay = (modelId: number) => {
-    setPlayingModel(playingModel === modelId ? null : modelId)
+  const handlePlay = async (modelId: number) => {
+    try {
+      const selectedModel = models.find(model => model.id === modelId);
+      if (!selectedModel) {
+        console.error("선택한 모델을 찾을 수 없습니다.");
+        return;
+      }
+
+      console.log("=== 음성 재생 정보 ===");
+      console.log("원본 URL:", selectedModel.url);
+      console.log("모델명:", selectedModel.name);
+      console.log("===================");
+
+      if (playingModel === modelId) {
+        // 이미 재생 중인 모델이면 중지
+        setPlayingModel(null);
+        return;
+      }
+
+      // 이전에 재생 중이던 모델이 있다면 중지
+      if (playingModel) {
+        setPlayingModel(null);
+      }
+
+      // 음성 파일 가져오기
+      const response = await fetch(selectedModel.url);
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(audioUrl);
+      audio.onended = () => {
+        setPlayingModel(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.play();
+      setPlayingModel(modelId);
+    } catch (error) {
+      console.error("음성 재생 중 오류 발생:", error);
+      setPlayingModel(null);
+    }
   }
 
   const handleSetDefault = async (modelId: number) => {
@@ -46,13 +84,13 @@ export function AIModelManager() {
         return;
       }
 
-      const response = await fetch("/api/models", {
+      const response = await fetch("/api/users/default-model", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userEmail: userProfile.email,
+          email: userProfile.email,
           modelId: selectedModel._id
         }),
       });
@@ -61,6 +99,9 @@ export function AIModelManager() {
         throw new Error("기본 모델 설정에 실패했습니다.");
       }
 
+      const result = await response.json();
+      console.log("기본 모델 설정 결과:", result);
+      
       await refreshModels();
     } catch (error) {
       console.error("기본 모델 설정 중 오류 발생:", error);
@@ -82,14 +123,13 @@ export function AIModelManager() {
           return;
         }
 
-        const response = await fetch(`/api/models/${selectedModel._id}`, {
+        console.log("삭제할 모델 정보:", {
+          id: selectedModel._id,
+          name: selectedModel.name
+        });
+
+        const response = await fetch(`/api/models?id=${selectedModel._id}`, {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userEmail: userProfile.email,
-          }),
         });
 
         if (!response.ok) {
@@ -175,7 +215,7 @@ export function AIModelManager() {
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center space-x-2">
                       <h3 className="font-semibold text-onair-text">{model.name}</h3>
-                      {model.isDefault && <Star className="w-4 h-4 text-onair-orange fill-current" />}
+                      {defaultModelId === model._id && <Star className="w-4 h-4 text-yellow-400 fill-current" />}
                       <Badge className={getQualityColor(model.quality)}>{model.quality}</Badge>
                     </div>
 
@@ -219,10 +259,10 @@ export function AIModelManager() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-onair-text-sub/20 text-onair-text-sub hover:bg-onair-text-sub hover:text-onair-bg"
+                    className={`${defaultModelId === model._id ? 'border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-white' : 'border-onair-text-sub/20 text-onair-text-sub hover:bg-onair-text-sub hover:text-onair-bg'}`}
                     onClick={() => handleSetDefault(model.id)}
                   >
-                    <Star className="w-4 h-4" />
+                    <Star className={`w-4 h-4 ${defaultModelId === model._id ? 'fill-current' : ''}`} />
                   </Button>
                   {model.quality !== "프리미엄" && (
                     <Button

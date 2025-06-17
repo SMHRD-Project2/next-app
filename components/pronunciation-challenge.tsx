@@ -76,7 +76,7 @@ const challenges = [
 ]
 
 export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onReset }: PronunciationChallengeProps) {
-  const { models: aiModels, isLoading } = useAIModels()
+  const { models: aiModels, isLoading, defaultModelId } = useAIModels()
   const [selectedChallenge, setSelectedChallenge] = useState(challenges[0])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const currentChallengeRef = useRef<HTMLDivElement>(null)
@@ -93,10 +93,10 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
 
   useEffect(() => {
     if (!isLoading && aiModels.length > 0) {
-      const defaultModel = aiModels.find(model => model.isDefault) || aiModels[0]
+      const defaultModel = aiModels.find(model => model._id === defaultModelId) || aiModels[0]
       setSelectedModel(defaultModel.id)
     }
-  }, [aiModels, isLoading])
+  }, [aiModels, isLoading, defaultModelId])
 
   const handleChallengeSelect = (challenge: (typeof challenges)[0]) => {
     setSelectedChallenge(challenge)
@@ -404,9 +404,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                       </div>
                       {selectedModel === model.id && (
                         <span className="ml-auto text-onair-mint">✓</span>
-                      )}
-                      {model.isDefault && selectedModel !== model.id && (
-                        <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
                       )}
                     </DropdownMenuItem>
                   ))}
