@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from ZonosTTS import upload_file, call_api, wait_for_result, download_audio, set_server_url
 import requests as req
+import sseclient
 from bs4 import BeautifulSoup as bs
 from pydantic import BaseModel
 import re
@@ -291,6 +292,87 @@ async def create_tts(
         return {"error": str(e)}
     finally:
         # 임시 파일 정리
+        if os.path.exists(voice_path):
+            os.remove(voice_path)
+        if os.path.exists(silence_path):
+            os.remove(silence_path)
+
+
+def tts_progress_generator(session_hash):
+    """Yield progress events from the underlying gradio server."""
+    url = f"{SERVER_URL}/gradio_api/queue/data?session_hash={session_hash}"
+    headers = {
+        "accept": "text/event-stream",
+        "Referer": f"{SERVER_URL}/",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+    }
+    with req.get(url, headers=headers, stream=True) as response:
+        client = sseclient.SSEClient(response)
+        for event in client.events():
+            if "heartbeat" in event.data:
+                continue
+            try:
+                data = json.loads(event.data)
+                if data.get("msg") == "progress":
+                    pd = data.get("progress_data", [{}])[0]
+                    cur = pd.get("index", 0)
+                    total = pd.get("length", 1)
+                    progress = cur / total * 100
+                    yield f"data: {json.dumps({'progress': progress})}\n\n"
+                if data.get("msg") == "process_completed":
+                    output = data.get("output", {}).get("data", [])
+                    url = None
+                    if output and isinstance(output[0], dict):
+                        url = output[0].get("url")
+                    yield f"data: {json.dumps({'progress': 100, 'completed': True, 'audio_url': url})}\n\n"
+                    break
+                if data.get("msg") == "error":
+                    err = data.get("error", "unknown")
+                    yield f"data: {json.dumps({'error': err})}\n\n"
+                    break
+            except Exception as e:  # noqa: BLE001
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                break
+
+
+@app.post("/tts-stream")
+async def create_tts_stream(
+    text: str = Query(..., description="TTS로 변환할 텍스트"),
+    voice_file: UploadFile = File(...),
+    silence_file: UploadFile = File(...),
+):
+    """Stream TTS progress in real time using Server-Sent Events."""
+
+    temp_dir = "temp"
+    os.makedirs(temp_dir, exist_ok=True)
+    voice_path = os.path.join(temp_dir, "voice.wav")
+    silence_path = os.path.join(temp_dir, "silence.wav")
+
+    with open(voice_path, "wb") as f:
+        f.write(await voice_file.read())
+    with open(silence_path, "wb") as f:
+        f.write(await silence_file.read())
+
+    session_hash = str(int(time.time()))
+
+    try:
+        uploaded_voice_path = upload_file(voice_path, session_hash)
+        uploaded_silence_path = upload_file(silence_path, session_hash)
+
+        call_api(
+            session_hash=session_hash,
+            audio_path=uploaded_voice_path,
+            silence_path=uploaded_silence_path,
+            tts_text=text,
+        )
+
+        return StreamingResponse(
+            tts_progress_generator(session_hash),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+        )
+    finally:
         if os.path.exists(voice_path):
             os.remove(voice_path)
         if os.path.exists(silence_path):
