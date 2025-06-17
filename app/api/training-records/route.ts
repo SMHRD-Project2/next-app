@@ -2,13 +2,20 @@ import { NextResponse } from 'next/server'
 import clientPromise from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const email = searchParams.get('email')
+
+    if (!email) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+    }
+
     const client = await clientPromise
     const db = client.db('ONAIR')
     const records = await db
       .collection('TRAINING_RECORD')
-      .find({})
+      .find({ email: email })
       .sort({ createdAt: -1 })
       .toArray()
     return NextResponse.json(records)

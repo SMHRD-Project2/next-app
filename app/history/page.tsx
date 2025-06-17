@@ -6,25 +6,24 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import { useState, useEffect, useRef } from "react"
+import { getAuthStatus } from "@/lib/auth-utils"
 
 export default function HistoryPage() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
   const [trainingRecords, setTrainingRecords] = useState<any[]>([])
-  
+
   // 이전 버전의 상태 관리
   // const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
   // const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
 
   // 현재 재생 중인 항목의 ID를 추적 (null이면 재생 중인 항목 없음)
-  const [currentPlayingId, setCurrentPlayingId] = useState<number | null>(null)
+  const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
   // Audio 객체를 저장할 useRef. 컴포넌트 리렌더링 시에도 객체 유지.
   const audioInstanceRef = useRef<HTMLAudioElement | null>(null)
 
-  // 음성 재생/정지 토글 함수 (public/audio/female.wav 파일 재생)
-  const toggleAudioPlayback = (id: number) => {
-    // console.log(`[${id}] 버튼 클릭됨. 현재 currentPlayingId: ${currentPlayingId}`)
-
+  // 오디오 재생 토글 함수
+  const toggleAudioPlayback = (id: string, item: any) => {
     // 만약 현재 재생 중인 항목이 있고, 그 항목이 방금 클릭한 항목이 아니라면, 기존 재생을 중지합니다.
     if (audioInstanceRef.current && currentPlayingId !== null && currentPlayingId !== id) {
       audioInstanceRef.current.pause()
@@ -46,7 +45,7 @@ export default function HistoryPage() {
       // 이 항목이 재생 중이 아니라면, 재생을 시작합니다.
       // Audio 객체가 아직 없다면 새로 생성합니다.
       if (!audioInstanceRef.current) {
-        audioInstanceRef.current = new Audio('/audio/female.wav')
+        audioInstanceRef.current = new Audio(item.voiceUrl)
         // console.log('새 Audio 객체 생성됨: /audio/female.wav')
 
         // Audio 객체의 이벤트 리스너를 한 번만 설정
@@ -61,6 +60,7 @@ export default function HistoryPage() {
       } else {
         // 기존 Audio 객체가 있다면, 재생 위치를 처음으로 되감습니다.
         audioInstanceRef.current.currentTime = 0
+        audioInstanceRef.current.src = item.voiceUrl // 새로운 URL로 업데이트
         // console.log('기존 Audio 객체 재사용.')
       }
 
@@ -76,21 +76,28 @@ export default function HistoryPage() {
   }
 
   // 이전 버전의 데이터 로딩 로직
-  // useEffect(() => {
-  //   if (isLoggedIn) {
-  //     const fetchRecords = async () => {
-  //       try {
-  //         const res = await fetch('/api/training-records')
-  //         if (res.ok) {
-  //           const data = await res.json()
-  //           setTrainingRecords(data)
-  //         }
-  //       } catch (err) {
-  //         console.error('Failed to load records', err)
-  //       }
-  //     }
-  //     fetchRecords()
-  // }, [isLoggedIn])
+  useEffect(() => {
+    if (isLoggedIn) {
+      const fetchRecords = async () => {
+        try {
+          const { userProfile } = getAuthStatus()
+          if (!userProfile?.email) {
+            console.error('User email not found')
+            return
+          }
+
+          const res = await fetch(`/api/training-records?email=${userProfile.email}`)
+          if (res.ok) {
+            const data = await res.json()
+            setTrainingRecords(data)
+          }
+        } catch (err) {
+          console.error('Failed to load records', err)
+        }
+      }
+      fetchRecords()
+    }
+  }, [isLoggedIn])
 
   // 컴포넌트 언마운트 시 오디오 정리
   useEffect(() => {
@@ -135,7 +142,7 @@ export default function HistoryPage() {
           <p className="text-onair-text-sub text-sm mb-4">
             훈련 기록을 확인하려면 로그인해주세요
           </p>
-          <Button 
+          <Button
             onClick={handleLoginRedirect}
             className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
           >
@@ -251,7 +258,7 @@ export default function HistoryPage() {
               }
 
               // 현재 항목이 재생 중인지 확인
-              const isThisItemPlaying = currentPlayingId === item.id;
+              const isThisItemPlaying = currentPlayingId === item._id;
 
               return (
                 <div key={item._id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
@@ -293,19 +300,15 @@ export default function HistoryPage() {
                     <div className="flex gap-2">
                       {/* 음성 재생 버튼 */}
                       <button
-                        onClick={() => toggleAudioPlayback(item.id)} // ID만 전달
+                        onClick={(e) => { e.stopPropagation(); toggleAudioPlayback(item._id, item) }}
                         className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1"
                       >
-                        {isThisItemPlaying ? ( // 재생 상태에 따라 아이콘 변경
-                          <Pause className="w-4 h-4 mr-2" />
-                        ) : (
-                          <Play className="w-4 h-4 mr-2" />
-                        )}
-                        {isThisItemPlaying ? '음성 정지' : '음성 재생'} {/* 텍스트도 변경 */}
+                        {isThisItemPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        {isThisItemPlaying ? "일시정지" : "음성 재생"}
                       </button>
                       {/* 다시 훈련 버튼 */}
                       <button
-                        onClick={() => handleRetrain(item.sentence)}
+                        onClick={(e) => { e.stopPropagation(); handleRetrain(item.sentence) }}
                         className="px-3 py-1 text-sm bg-onair-mint text-onair-bg hover:bg-onair-mint/90 rounded flex items-center gap-1"
                       >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -320,7 +323,7 @@ export default function HistoryPage() {
                     </div>
                     {/* 삭제 버튼 */}
                     <button
-                      onClick={() => handleDelete(item._id)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(item._id) }}
                       className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-red-400 hover:bg-onair-bg-sub rounded flex items-center gap-1"
                     >
                       <Trash2 className="w-4 h-4" />
