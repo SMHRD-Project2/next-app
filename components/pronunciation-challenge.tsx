@@ -405,6 +405,10 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                       {selectedModel === model.id && (
                         <span className="ml-auto text-onair-mint">✓</span>
                       )}
+                      {model.id && selectedModel == model.id && (
+                        <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
+                      )}
+
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

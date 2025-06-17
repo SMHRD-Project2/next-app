@@ -23,7 +23,7 @@ interface VoiceCloningStudioProps {
 
 export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   const { data: session } = useSession()
-  const { models: aiModels, isLoading, refreshModels } = useAIModels()
+  const { models: aiModels, isLoading, refreshModels, defaultModelId } = useAIModels()
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
   const [recordedSamples, setRecordedSamples] = useState<Blob[]>([])
@@ -75,9 +75,10 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
 
   useEffect(() => {
     if (!isLoading && aiModels.length > 0) {
-      setSelectedModel(aiModels[0].id)
+      const defaultModel = aiModels.find(model => model._id === defaultModelId) || aiModels[0]
+      setSelectedModel(defaultModel.id)
     }
-  }, [aiModels, isLoading])
+  }, [aiModels, isLoading, defaultModelId])
 
   // 랜덤 샘플 텍스트 생성 함수
   const generateRandomSample = () => {
@@ -626,6 +627,9 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                               </div>
                               {selectedModel === model.id && (
                                 <span className="ml-auto text-onair-mint">✓</span>
+                              )}
+                              {model.id && selectedModel == model.id && (
+                                <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
                               )}
                             </DropdownMenuItem>
                           ))}
