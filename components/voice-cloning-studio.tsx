@@ -3,6 +3,8 @@
 import type React from "react"
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 import { useState, useEffect, useRef } from "react"
+import { useSession } from "next-auth/react"
+import { getAuthStatus } from "@/lib/auth-utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,15 +13,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause } from "lucide-react"
+import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause, Download } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { aiModels, addNewModel } from "@/components/ai-model-manager"
+import { useAIModels } from "@/lib/ai-model-context"
 
 interface VoiceCloningStudioProps {
   onSaveSuccess: () => void
 }
 
 export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
+  const { data: session } = useSession()
+  const { models: aiModels, isLoading, refreshModels } = useAIModels()
   const [step, setStep] = useState(1)
   const [isRecording, setIsRecording] = useState(false)
   const [recordedSamples, setRecordedSamples] = useState<Blob[]>([])
@@ -36,6 +40,9 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   // MediaRecorder 관련 상태
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+
+  const [isPlayingAIExample, setIsPlayingAIExample] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const allSampleTexts = [
     "안녕하세요, 저는 AI 음성 모델 생성을 위한 샘플 음성을 녹음하고 있습니다. 오늘은 제 목소리로 여러분과 함께하게 되어 기쁩니다. 앞으로 다양한 콘텐츠를 제작하는데 도움이 되었으면 좋겠습니다.",
@@ -64,6 +71,14 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
+  const [selectedModel, setSelectedModel] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!isLoading && aiModels.length > 0) {
+      setSelectedModel(aiModels[0].id)
+    }
+  }, [aiModels, isLoading])
+
   // 랜덤 샘플 텍스트 생성 함수
   const generateRandomSample = () => {
     const randomIndex = Math.floor(Math.random() * allSampleTexts.length)
@@ -82,27 +97,34 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
   // TTS 예시 듣기
   const handlePlaySampleTTS = () => {
     if (!sampleTexts[0]) return
-    const utter = new window.SpeechSynthesisUtterance(sampleTexts[0])
-    utter.lang = "ko-KR"
-    window.speechSynthesis.speak(utter)
+
+    if (isPlayingAIExample) {
+      // 현재 재생 중이면 정지
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      setIsPlayingAIExample(false)
+    } else {
+      // 재생 시작
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/audio/female.wav')
+        
+        // 재생이 끝났을 때 상태 초기화
+        audioRef.current.onended = () => {
+          setIsPlayingAIExample(false)
+        }
+      }
+
+      // 재생 시작
+      audioRef.current.play()
+      setIsPlayingAIExample(true)
+    }
   }
 
   // 컴포넌트가 마운트될 때 랜덤 샘플 텍스트 선택
   useEffect(() => {
     generateRandomSample()
   }, [])
-
-  // WAV 파일로 변환하는 함수
-  // const convertToWav = (audioBlob: Blob): Promise<Blob> => {
-  //   return new Promise((resolve) => {
-  //     const reader = new FileReader()
-  //     reader.onload = () => {
-  //       // 간단한 WAV 헤더 생성 (실제로는 WebCodecs API나 외부 라이브러리 사용 권장)
-  //       resolve(new Blob([audioBlob], { type: 'audio/wav' }))
-  //     }
-  //     reader.readAsArrayBuffer(audioBlob)
-  //   })
-  // }
 
   // 녹음 시작/중지 처리
   const handleRecord = async (index: number) => {
@@ -466,23 +488,23 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
         throw new Error(result.error || "파일 업로드 실패");
       }
 
-      // Get current user's email from localStorage
-      const userProfileStr = localStorage.getItem("userProfile");
-      const userProfile = userProfileStr ? JSON.parse(userProfileStr) : null;
+      // Get current user's email using getAuthStatus
+      const { isLoggedIn, userProfile } = getAuthStatus();
       
-      if (!userProfile?.email) {
+      if (!isLoggedIn || !userProfile?.email) {
         throw new Error("로그인이 필요합니다.");
       }
 
+      console.log("[DEBUG] 현재 로그인된 사용자:", userProfile.email);
+
       // Create a new model object
       const newModel = {
+        userEmail: userProfile.email,
         name: modelName,
         type: "개인 맞춤",
         quality: "사용자 생성",
         description: modelDescription || "내 목소리를 기반으로 생성된 AI 모델",
-        avatar: "/placeholder.svg?height=40&width=40",
         modelUrl: result.url,
-        userEmail: userProfile.email, // Add user's email
         createdAt: new Date().toISOString()
       };
 
@@ -510,6 +532,9 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
         setModelName("");
         setModelDescription("");
         setProcessingProgress(0);
+
+        // 모델 목록 새로고침
+        await refreshModels();
 
         // Call the onSaveSuccess callback to switch tabs
         onSaveSuccess();
@@ -554,19 +579,62 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="border-onair-mint text-onair-mint"
+                      className="border-onair-mint text-onair-mint h-[38px] w-10"
                       onClick={generateRandomSample}
                     >
                       <RefreshCw className="w-5 h-5" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="border-onair-mint text-onair-mint flex items-center gap-2"
-                      onClick={handlePlaySampleTTS}
-                    >
-                      <Volume2 className="w-5 h-5" />
-                      <span>AI 예시 듣기</span>
-                    </Button>
+
+                    
+                    <div className="inline-flex rounded-md shadow-sm border border-onair-mint h-[38px]">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
+                        onClick={handlePlaySampleTTS}
+                      >
+                        {isPlayingAIExample ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
+                        {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                             className="relative inline-flex items-center rounded-r-md rounded-l-none text-onair-mint hover:bg-onair-mint hover:text-onair-bg px-2 focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
+                            aria-label="AI 모델 선택"
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px]">
+                          {aiModels.map((model) => (
+                            <DropdownMenuItem
+                              key={model.id}
+                              onClick={() => setSelectedModel(model.id)}
+                              className="flex items-center space-x-2 cursor-pointer"
+                            >
+                              <Avatar className="w-6 h-6">
+                                <AvatarImage src={model.avatar} />
+                                <AvatarFallback className="bg-onair-bg text-onair-mint">
+                                  {model.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{model.name}</span>
+                                <span className="text-xs text-onair-text-sub">{model.type}</span>
+                              </div>
+                              {selectedModel === model.id && (
+                                <span className="ml-auto text-onair-mint">✓</span>
+                              )}
+                              {model.isDefault && selectedModel !== model.id && (
+                                <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
+                              )}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
 
@@ -596,13 +664,12 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                         >
                           {(isRecording && currentRecordingIndex === index) ? (
                             <>
-                              <Square className="w-4 h-4 mr-1" />
-                              중지 {formatTime(recordingTime)}
+                              <Square className="w-4 h-4" />
+                              {/* {formatTime(recordingTime)} */}
                             </>
                           ) : (
                             <>
-                              <Mic className="w-4 h-4 mr-1" />
-                              녹음
+                              <Mic className="w-4 h-4" />
                             </>
                           )}
                         </Button>
@@ -615,15 +682,20 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                               onClick={() => handlePlayRecording(index)}
                             >
                               <Play className="w-4 h-4" />
-                              재생
                             </Button>
+                            {/* ############################################################################# */}
+                            {/* <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="border-onair-orange text-onair-orange hover:bg-onair-orange/90" */}
                             <Button
                               size="sm"
                               variant="outline"
                               className="border-onair-orange text-onair-orange"
                               onClick={() => handleDownloadRecording(index)}
-                            >
-                              💾 WAV
+                              >
+                              {/* ############################################################################# */}
+                              <Download className="w-4 h-4" />
                             </Button>
                           </>
                         )}
@@ -683,7 +755,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                       <li>• 조용한 환경에서 녹음해주세요</li>
                       <li>• 마이크와 30cm 정도 거리를 유지하세요</li>
                       <li>• 자연스럽고 일정한 속도로 읽어주세요</li>
-                      <li>• 각 문장을 3-5초 정도로 녹음하세요</li>
+                      <li>• 문장을 3-5초 정도로 녹음하세요</li>
                     </ul>
                   </div>
 
@@ -900,6 +972,15 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current)
+      }
+    }
+  }, [])
+
+  // 컴포넌트 언마운트 시 오디오 정리
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
       }
     }
   }, [])

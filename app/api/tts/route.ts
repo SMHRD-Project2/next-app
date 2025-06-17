@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('FastAPI 서버 응답:', error);
+      // console.error('FastAPI 서버 응답:', error);
       return NextResponse.json(
         { error: `TTS 서버 오류: ${error}` },
         { status: response.status }

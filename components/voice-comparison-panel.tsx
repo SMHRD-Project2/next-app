@@ -83,7 +83,7 @@ export function VoiceComparisonPanel({ myVoiceUrl, waveformRef }: VoiceCompariso
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20 relative">
       <CardHeader>
-        <CardTitle className="text-onair-text">음성 비교 분석</CardTitle>
+        <CardTitle className="text-onair-text">파형 비교 분석</CardTitle>
         <p className="text-onair-text-sub text-sm">세 가지 음성을 비교하여 차이점을 확인해보세요</p>
       </CardHeader>
       <CardContent className="space-y-6">

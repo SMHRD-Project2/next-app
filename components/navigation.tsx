@@ -119,25 +119,6 @@ export function Navigation() {
     }
   }, [])
 
-  // 외부 클릭 시 드롭다운 닫기 ////// 이 이벤트와 같은 이벤트가 다른 곳에서도 동작
-                              // -> 닫힌 뒤 바로 열림
-  // useEffect(() => {
-  //   const handleClickOutside = (e: MouseEvent) => {
-  //     if (!profileMenuOpen) return
-  //     const target = e.target as Node
-  //     if (
-  //       (desktopMenuRef.current && desktopMenuRef.current.contains(target)) ||
-  //       (mobileMenuRef.current && mobileMenuRef.current.contains(target))
-  //     ) {
-  //       return
-  //     }
-  //     setProfileMenuOpen(false)
-  //   }
-
-  //   if (profileMenuOpen) document.addEventListener("mousedown", handleClickOutside)
-  //   return () => document.removeEventListener("mousedown", handleClickOutside)
-  // }, [profileMenuOpen])
-
   /* ------------------------------------------------------------------ */
   /* early‑return: auth pages                                            */
   /* ------------------------------------------------------------------ */

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
   const error = searchParams.get('error')
 
-  //console.log('[GOOGLE LOGIN] 받은 파라미터:', { 
+  // console.log('[GOOGLE LOGIN] 받은 파라미터:', { 
   //   code: code ? code.substring(0, 10) + '...' : null, 
   //   state, 
   //   error 
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    //console.log('[GOOGLE LOGIN] 찾은 사용자 정보:', {
+    // console.log('[GOOGLE LOGIN] 찾은 사용자 정보:', {
     //   _id: user._id,
     //   email: user.email,
     //   name: user.name,
