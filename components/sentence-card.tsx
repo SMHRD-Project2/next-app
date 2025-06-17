@@ -228,8 +228,8 @@ export function SentenceCard({
     console.log("Current Sentence:", localSentence);
     console.log("Voice URL from DB:", voiceUrl);
 
-    // 이동욱 아나운서 모델이고 voiceUrl이 있는 경우에만 DB의 voiceUrl 재생
-    if (modelDetails.name === '이동욱 아나운서' && voiceUrl) {
+    // 이동욱 아나운서 모델이고 voiceUrl이 있으며, custom 탭이 아닌 경우에만 DB의 voiceUrl 재생
+    if (modelDetails.name === '이동욱 아나운서' && voiceUrl && currentTab !== 'custom') {
       console.log("Playing voice from DB:", voiceUrl);
       
       // 현재 재생 중인 오디오가 있다면 중지
@@ -258,8 +258,8 @@ export function SentenceCard({
       return;
     }
 
-    // 다른 모델이거나 voiceUrl이 없는 경우 아무것도 하지 않음
-    console.log("Skipping playback - not 이동욱 아나운서 or no voiceUrl");
+    // 다른 모델이거나 voiceUrl이 없거나 custom 탭인 경우 아무것도 하지 않음
+    console.log("Skipping playback - not 이동욱 아나운서 or no voiceUrl or custom tab");
   };
 
   const handleTTSPlayback = async (modelDetails: typeof aiModels[0]) => {
