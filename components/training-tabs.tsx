@@ -15,8 +15,14 @@ interface TrainingTabsProps {
   initialTab?: string;
 }
 
+interface SentenceData {
+  text: string;
+  voiceUrl?: string;
+}
+
 export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabsProps) {
-  const [sentence, setSentence] = useState<string>(""); // 현재 문장 상태 // 250609 박남규
+  const [sentence, setSentence] = useState<string>("");
+  const [voiceUrl, setVoiceUrl] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab || "short");
   const [isRecording, setIsRecording] = useState(false);
@@ -36,19 +42,39 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     }
   }, [initialCustomSentence, initialTab]);
 
-  // 탭에 따라 API에서 무작위 문장을 가져오는 함수 // 250609 박남규
+  // 탭에 따라 API에서 무작위 문장을 가져오는 함수
   async function fetchRandomSentence(tab: string) {
     setLoading(true);
     try {
-      // short, long, news 탭의 경우 해당 type을 query로 전달하여 문장 요청 // 250609 박남규
       const res = await fetch(`/api/sentences?type=${tab}`);
       if (!res.ok) throw new Error("Failed to fetch sentence");
       const data = await res.json();
       if (!data) throw new Error("No sentence data received");
-      setSentence(data.text || "");
+      
+      console.log("=== API Response Details ===");
+      console.log("Full Response:", data);
+      console.log("Response Type:", typeof data);
+      console.log("Response Keys:", Object.keys(data));
+      console.log("Response Values:", Object.values(data));
+      console.log("=========================");
+      
+      // API 응답 구조에 따라 적절한 필드 사용
+      const sentenceText = data.sentence || data.text || "";
+      const voiceUrl = data.audioUrl;  // audioUrl을 voiceUrl로 사용
+      
+      console.log("Extracted sentence:", sentenceText);
+      console.log("Extracted voiceUrl:", voiceUrl);
+      
+      setSentence(sentenceText);
+      setVoiceUrl(voiceUrl);
+      
+      if (!voiceUrl) {
+        console.warn("No voiceUrl found in API response. Available fields:", Object.keys(data));
+      }
     } catch (error) {
       console.error("문장 불러오기 실패:", error);
       setSentence("");
+      setVoiceUrl(undefined);
     } finally {
       setLoading(false);
       setHasRecorded(false);
@@ -56,7 +82,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     }
   }
 
-  // 탭 변경 시 문장을 새로 불러오는 useEffect // 250609 박남규
+  // 탭 변경 시 문장을 새로 불러오는 useEffect
   useEffect(() => {
     if (activeTab === "custom") {
       setSentence(customSentence);
@@ -65,11 +91,11 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       return;
     }
     if (["short", "long", "news"].includes(activeTab)) {
-      fetchRandomSentence(activeTab); // 해당 type에 맞는 문장 불러오기 // 250609 박남규
+      fetchRandomSentence(activeTab);
     }
   }, [activeTab, customSentence]);
 
-  // 새로고침 버튼 클릭 시 문장 새로고침 // 250609 박남규
+  // 새로고침 버튼 클릭 시 문장 새로고침
   const handleRefreshSentence = () => {
     if (["short", "long", "news"].includes(activeTab)) {
       fetchRandomSentence(activeTab);
@@ -78,10 +104,10 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
   const handleRecord = () => {
     setIsRecording(prevIsRecording => {
-      if (prevIsRecording) { // 녹음 중이었다면 (이제 중지될 것이므로)
-        setHasRecorded(true); // 녹음이 완료되었음을 표시
+      if (prevIsRecording) {
+        setHasRecorded(true);
       }
-      return !prevIsRecording; // isRecording 상태 토글 (true -> false, false -> true)
+      return !prevIsRecording;
     });
   };
 
@@ -105,7 +131,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       sentence,
       scores: defaultAIResults,
       voiceUrl: myVoiceUrl,
-      email: userProfile?.email, // getAuthStatus에서 가져온 이메일 사용
+      email: userProfile?.email,
     }
     try {
       await fetch('/api/training-records', {
@@ -142,6 +168,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
             
             <SentenceCard
               sentence={sentence}
+              voiceUrl={voiceUrl}
               onRefresh={handleRefreshSentence}
               currentTab={activeTab}
               onSentenceChange={setSentence}
@@ -173,6 +200,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
           <SentenceCard
             sentence={customSentence}
+            voiceUrl={undefined}
             currentTab={activeTab}
             onSentenceChange={setCustomSentence}
             isRecording={isRecording}
@@ -203,7 +231,6 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
           }}
         />
 
-          {/* AI 분석 결과 및 음성 비교 분석 패널 배치 */}
           {hasRecorded && (
             <div className="space-y-6">
               <AIResultPanel />
