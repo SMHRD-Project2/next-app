@@ -397,6 +397,7 @@ export function SentenceCard({
 
       if (data.success) {
         console.log("업로드 성공:", data.url)
+        if (onRecordingComplete) onRecordingComplete(data.url)
         return data.url
       } else {
         const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."

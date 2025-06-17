@@ -8,6 +8,7 @@ import { VoiceComparisonPanel } from "@/components/voice-comparison-panel";
 import { CustomSentenceUpload } from "@/components/custom-sentence-upload";
 import { PronunciationChallenge } from "@/components/pronunciation-challenge";
 import { type WaveformPlayerHandle } from "@/components/waveform-player";
+import { getAuthStatus } from "@/lib/auth-utils";
 
 interface TrainingTabsProps {
   initialCustomSentence?: string;
@@ -90,6 +91,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     setMyVoiceUrl(null);
   };
   const handleSaveRecord = async () => {
+    const { userProfile } = getAuthStatus()
     const categories: { [key: string]: string } = {
       short: '짧은 문장',
       long: '긴 문장',
@@ -103,6 +105,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       sentence,
       scores: defaultAIResults,
       voiceUrl: myVoiceUrl,
+      email: userProfile?.email, // getAuthStatus에서 가져온 이메일 사용
     }
     try {
       await fetch('/api/training-records', {

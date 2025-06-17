@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import { useState, useEffect, useRef } from "react"
+import { getAuthStatus } from "@/lib/auth-utils"
 
 export default function HistoryPage() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
   const [trainingRecords, setTrainingRecords] = useState<any[]>([])
-  
+
   // 이전 버전의 상태 관리
   // const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
   // const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
@@ -46,7 +47,7 @@ export default function HistoryPage() {
       // 이 항목이 재생 중이 아니라면, 재생을 시작합니다.
       // Audio 객체가 아직 없다면 새로 생성합니다.
       if (!audioInstanceRef.current) {
-        audioInstanceRef.current = new Audio('/audio/female.wav')
+        audioInstanceRef.current = new Audio('https://tennyvoice.s3.ap-northeast-2.amazonaws.com/30%EB%8C%80%EB%B3%91%EB%AF%BC.wav')
         // console.log('새 Audio 객체 생성됨: /audio/female.wav')
 
         // Audio 객체의 이벤트 리스너를 한 번만 설정
@@ -76,21 +77,28 @@ export default function HistoryPage() {
   }
 
   // 이전 버전의 데이터 로딩 로직
-  // useEffect(() => {
-  //   if (isLoggedIn) {
-  //     const fetchRecords = async () => {
-  //       try {
-  //         const res = await fetch('/api/training-records')
-  //         if (res.ok) {
-  //           const data = await res.json()
-  //           setTrainingRecords(data)
-  //         }
-  //       } catch (err) {
-  //         console.error('Failed to load records', err)
-  //       }
-  //     }
-  //     fetchRecords()
-  // }, [isLoggedIn])
+  useEffect(() => {
+    if (isLoggedIn) {
+      const fetchRecords = async () => {
+        try {
+          const { userProfile } = getAuthStatus()
+          if (!userProfile?.email) {
+            console.error('User email not found')
+            return
+          }
+
+          const res = await fetch(`/api/training-records?email=${userProfile.email}`)
+          if (res.ok) {
+            const data = await res.json()
+            setTrainingRecords(data)
+          }
+        } catch (err) {
+          console.error('Failed to load records', err)
+        }
+      }
+      fetchRecords()
+    }
+  }, [isLoggedIn])
 
   // 컴포넌트 언마운트 시 오디오 정리
   useEffect(() => {
@@ -135,7 +143,7 @@ export default function HistoryPage() {
           <p className="text-onair-text-sub text-sm mb-4">
             훈련 기록을 확인하려면 로그인해주세요
           </p>
-          <Button 
+          <Button
             onClick={handleLoginRedirect}
             className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
           >
