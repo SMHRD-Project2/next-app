@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SentenceCard } from "@/components/sentence-card";
-import { AIResultPanel, defaultAIResults } from "@/components/ai-result-panel";
-import { VoiceComparisonPanel } from "@/components/voice-comparison-panel";
+import { AIResultPanel, defaultAIAnalysis } from "@/components/ai-result-panel";
 import { CustomSentenceUpload } from "@/components/custom-sentence-upload";
 import { PronunciationChallenge } from "@/components/pronunciation-challenge";
 import { type WaveformPlayerHandle } from "@/components/waveform-player";
@@ -21,6 +21,7 @@ interface SentenceData {
 }
 
 export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabsProps) {
+  const router = useRouter();
   const [sentence, setSentence] = useState<string>("");
   const [voiceUrl1, setVoiceUrl1] = useState<string | undefined>(undefined);
   const [voiceUrl2, setVoiceUrl2] = useState<string | undefined>(undefined);
@@ -31,6 +32,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
   const [hasRecorded, setHasRecorded] = useState(false);
   const [customSentence, setCustomSentence] = useState(initialCustomSentence || "");
   const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null);
+  const [audioURL, setAudioURL] = useState<string | null>(null);
   const waveformRef = useRef<WaveformPlayerHandle>(null!);
 
   // Set initial custom sentence and tab when component mounts
@@ -137,7 +139,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       date: new Date().toISOString().slice(0, 10),
       category: categories[activeTab],
       sentence,
-      scores: defaultAIResults,
+      scores: defaultAIAnalysis,
       voiceUrl: myVoiceUrl,
       email: userProfile?.email,
     }
@@ -148,6 +150,12 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
         body: JSON.stringify(record),
       })
       alert('기록이 저장되었습니다.')
+      
+      // 기록 저장 후 훈련 기록 페이지로 이동할지 묻는 팝업창
+      const goToHistory = confirm('훈련 기록으로 이동하시겠습니까?')
+      if (goToHistory) {
+        router.push('/history')
+      }
     } catch (err) {
       console.error('Failed to save record', err)
     }
@@ -193,8 +201,8 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
           
              {hasRecorded && (
               <div className="space-y-6">
-                <AIResultPanel />
-                <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+                {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
+                <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
               </div>
             )}
           </TabsContent>
@@ -226,8 +234,8 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
           {hasRecorded && (
             <div className="space-y-6">
-              <AIResultPanel />
-              <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+              {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
+              <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
             </div>
           )}
         </TabsContent>
@@ -245,8 +253,8 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
           {hasRecorded && (
             <div className="space-y-6">
-              <AIResultPanel />
-              <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+              {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
+              <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
             </div>
           )}
         </TabsContent>

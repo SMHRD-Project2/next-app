@@ -15,7 +15,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAIModels } from "@/lib/ai-model-context"
 import { LoadingMessage } from "@/components/loading-message"
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/waveform-player"
-import { VoiceComparisonPanel } from "@/components/voice-comparison-panel"
 
 interface Challenge {
   id: number;
@@ -148,6 +147,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const waveformRef = useRef<WaveformPlayerHandle>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const exampleAudioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     if (!isLoading && aiModels.length > 0) {
@@ -179,26 +179,30 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const handlePlayExample = async () => {
     try {
       if (playingModel === selectedModel) {
-        if (audioRef.current) {
-          audioRef.current.pause();
+        if (exampleAudioRef.current) {
+          exampleAudioRef.current.pause();
           setPlayingModel(null);
         }
         return;
       }
-  
-      if (audioRef.current) {
-        audioRef.current.pause();
-        URL.revokeObjectURL(audioRef.current.src);
+
+      if (isPlaying) {
+        waveformRef.current?.pause()
+        setIsPlaying(false)
       }
-  
+
+      if (exampleAudioRef.current) {
+        exampleAudioRef.current.pause();
+        URL.revokeObjectURL(exampleAudioRef.current.src);
+      }
+
       const model = aiModels.find(m => m.id === selectedModel);
       const challengeText = selectedChallenge?.text || '';
       const modelName = model?.name || '';
       const modelUrl = model?.url || '';
       
       let audioUrl: string | null = null;
-  
-      // ✅ 1. 우선 하드코딩된 URL 방식 시도
+
       if (modelName.includes('김주하')) {
         audioUrl = `https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(${selectedChallenge.id}).wav`;
       } else if (modelName.includes('이동욱')) {
@@ -206,47 +210,45 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
       } else if (modelName.includes('박소현')) {
         audioUrl = `https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(${selectedChallenge.id}).wav`;
       }
-  
-      // ✅ 2. 조건: audioUrl이 없거나, currentTab이 'custom'이면 → TTS 사용
+
       if (!audioUrl || currentTab === 'custom') {
         console.log("하드코딩된 URL 없음 또는 custom 탭이므로 TTS 사용");
-  
+
         const voiceResponse = await fetch(modelUrl);
         const voiceBlob = await voiceResponse.blob();
-  
+
         const silenceResponse = await fetch('/audio/silence_100ms.wav');
         const silenceBlob = await silenceResponse.blob();
-  
+
         const formData = new FormData();
         formData.append('voice_file', voiceBlob, modelUrl.split('/').pop() || 'voice.wav');
         formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
-  
+
         const response = await fetch(`/api/tts?text=${encodeURIComponent(challengeText)}`, {
           method: 'POST',
           body: formData,
         });
-  
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`TTS 변환 실패: ${errorText}`);
         }
-  
+
         const audioBlob = await response.blob();
         audioUrl = URL.createObjectURL(audioBlob);
       }
-  
-      // ✅ 공통: 재생 로직
+
       const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-  
+      exampleAudioRef.current = audio;
+
       audio.onended = () => {
         setPlayingModel(null);
         if (audioUrl?.startsWith('blob:')) URL.revokeObjectURL(audioUrl);
       };
-  
+
       await audio.play();
       setPlayingModel(selectedModel);
-  
+
     } catch (error) {
       console.error('Error playing example or TTS fallback:', error);
       setPlayingModel(null);
@@ -254,18 +256,14 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   };
   
 
-  // 녹음 시작/중지 처리
   const handleRecord = async () => {
     if (!isRecording) {
       try {
         let audioStream: MediaStream;
         
         try {
-          // 먼저 실제 마이크로 시도
           audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
-          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
-          // 마이크 접근 실패 시 가상 오디오 스트림 생성
           const audioContext = new AudioContext();
           const oscillator = audioContext.createOscillator();
           const destination = audioContext.createMediaStreamDestination();
@@ -280,7 +278,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
           if (!MediaRecorder.isTypeSupported(mimeType)) {
             mimeType = 'audio/mp4'
             if (!MediaRecorder.isTypeSupported(mimeType)) {
-              mimeType = '' // 브라우저 기본값 사용
+              mimeType = ''
             }
           }
         }
@@ -336,15 +334,28 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
     }
   }
 
-  // 녹음된 오디오 재생
   const handlePlay = async () => {
     if (audioURL) {
       try {
         if (isPlaying) {
-          waveformRef.current?.pause()
+          if (audioRef.current) {
+            audioRef.current.pause()
+          }
           setIsPlaying(false)
         } else {
-          waveformRef.current?.play()
+          if (exampleAudioRef.current) {
+            exampleAudioRef.current.pause()
+            setPlayingModel(null)
+          }
+          
+          if (!audioRef.current) {
+            audioRef.current = new Audio(audioURL)
+            audioRef.current.onended = () => {
+              setIsPlaying(false)
+            }
+          }
+          
+          audioRef.current.play()
           setIsPlaying(true)
         }
       } catch (err) {
@@ -354,7 +365,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
     }
   }
 
-  // 녹음 파일 다운로드
   const handleDownload = () => {
     if (audioURL) {
       const a = document.createElement('a')
@@ -389,7 +399,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
 
   return (
     <div className="space-y-6">
-      {/* 난이도 필터 버튼 */}
       <div className="flex gap-2 mb-4">
         <Button
           variant={selectedDifficulty === null ? "default" : "outline"}
@@ -421,7 +430,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         </Button>
       </div>
 
-      {/* 챌린지 선택 */}
       <Card className="bg-onair-bg-sub border-onair-text-sub/20">
         <CardHeader>
           <CardTitle className="text-onair-text flex items-center gap-2">
@@ -457,7 +465,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         </CardContent>
       </Card>
 
-      {/* 선택된 챌린지 */}
       <Card ref={currentChallengeRef} className="bg-onair-bg-sub border-onair-text-sub/220">
         <CardHeader>
           <CardTitle className="text-onair-text flex items-center justify-between">
@@ -532,7 +539,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
             <p className="text-sm text-onair-text-sub">💡 팁: {selectedChallenge.tips}</p>
           </div>
 
-          {/* 녹음 컨트롤 */}
           <div className="text-center space-y-4">
             <h3 className="text-lg font-semibold text-onair-text">
               {isRecording ? "녹음 중..." : hasRecorded ? "녹음 완료!" : "음성 녹음"}
@@ -581,42 +587,30 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                   </>
                 )}
               </Button>
+            </div>
 
-              {hasRecorded && !isRecording && audioURL && (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handlePlay}
-                    size="lg"
-                    variant="outline"
-                    className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
-                  >
-                    {isPlaying ? <Pause className="w-5 h-5 mr-2" /> : <Play className="w-5 h-5 mr-2" />}
-                    {isPlaying ? "일시정지" : "재생"}
-                  </Button>
-                  <Button
-                    onClick={handleDownload}
-                    size="lg"
-                    variant="outline"
-                    className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
-                  >
-                    <Download className="w-5 h-5 mr-2" />
-                    다운로드
-                  </Button>
-                </div>
-              )}
-
-              {hasRecorded && (
+            {hasRecorded && !isRecording && (
+              <div className="flex justify-center gap-4">
                 <Button
-                  onClick={onReset}
+                  onClick={handlePlay}
                   size="lg"
                   variant="outline"
                   className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
                 >
-                  <RotateCcw className="w-5 h-5 mr-2" />
-                  다시 도전
+                  {isPlaying ? <Pause className="w-5 h-5 mr-2" /> : <Play className="w-5 h-5 mr-2" />}
+                  {isPlaying ? "일시정지" : "재생"}
                 </Button>
-              )}
-            </div>
+                <Button
+                  onClick={handleDownload}
+                  size="lg"
+                  variant="outline"
+                  className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  다운로드
+                </Button>
+              </div>
+            )}
 
             {hasRecorded && !isRecording && <LoadingMessage />}
           </div>

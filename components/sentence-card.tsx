@@ -454,27 +454,9 @@ export function SentenceCard({
 
   // 녹음 관련 함수들 추가
   const handleRecord = async () => {
-    // console.log("handleRecord called. isRecording:", isRecording);
     if (!isRecording) {
       try {
-        // console.log("Attempting to get media stream...");
-        let stream;
-
-        try {
-          // 먼저 실제 마이크로 시도
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch (err) {
-          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
-          // 마이크 접근 실패 시 가상 오디오 스트림 생성
-          const audioContext = new AudioContext();
-          const oscillator = audioContext.createOscillator();
-          const destination = audioContext.createMediaStreamDestination();
-          oscillator.connect(destination);
-          oscillator.start();
-          stream = destination.stream;
-        }
-
-
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
         let mimeType = 'audio/webm;codecs=opus'
         if (!MediaRecorder.isTypeSupported(mimeType)) {
           mimeType = 'audio/webm'
@@ -486,8 +468,8 @@ export function SentenceCard({
           }
         }
 
-        const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
-
+        const mediaRecorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : undefined)
+        
         mediaRecorderRef.current = mediaRecorder
         audioChunksRef.current = []
 
@@ -497,24 +479,18 @@ export function SentenceCard({
           }
         }
 
-        mediaRecorder.onstop = () => {
+        mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunksRef.current, {
             type: mimeType || 'audio/webm'
           })
-
+          
           if (audioURL) {
             URL.revokeObjectURL(audioURL)
           }
-
+          
           const url = URL.createObjectURL(audioBlob)
           setAudioURL(url)
-          if (onRecordingComplete) onRecordingComplete(url)
           audioChunksRef.current = []
-
-          // 250611 박남규 업로드
-          uploadToS3(audioBlob)
-          audioChunksRef.current = []
-
 
           if (timerRef.current) {
             clearInterval(timerRef.current)
@@ -522,11 +498,21 @@ export function SentenceCard({
           }
           setRecordingTime(0)
 
+          // S3에 업로드하고 URL 받아오기
+          try {
+            const s3Url = await uploadToS3(audioBlob)
+            if (onRecordingComplete) {
+              onRecordingComplete(s3Url)
+            }
+          } catch (error) {
+            console.error('S3 업로드 실패:', error)
+            alert('녹음 파일 업로드에 실패했습니다.')
+          }
         }
-        if (onRecordingComplete) onRecordingComplete(null)
+
         mediaRecorder.start()
         onRecord()
-
+        
         setRecordingTime(0)
         timerRef.current = setInterval(() => {
           setRecordingTime(prev => prev + 1)
@@ -534,8 +520,6 @@ export function SentenceCard({
       } catch (err) {
         console.error('녹음 권한을 얻을 수 없습니다:', err)
         alert('마이크 접근 권한이 필요합니다. 브라우저 설정에서 마이크 권한을 확인해주세요.')
-        // 여기에서 err 객체를 자세히 로깅하여 어떤 종류의 오류인지 확인
-        console.error("Error details:", err)
       }
     } else {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -546,30 +530,28 @@ export function SentenceCard({
     }
   }
 
-  // const handlePlay = async () => {
-  //   if (audioRef.current && audioURL) {
-  //     try {
-  //       if (isPlaying) {
-  //         audioRef.current.pause()
-  //         setIsPlaying(false)
-  //       } else {
-  //         audioRef.current.src = audioURL
-  //         await audioRef.current.play()
-  //         setIsPlaying(true)
-  //       }
-  //     } catch (err) {
-  //       console.error('재생 오류:', err)
-  //       setIsPlaying(false)
-  //     }
-  //   }
-  // }
   const handlePlay = () => {
-    //    if (!audioURL) return               // 녹음이 아직 없으면 무시
+    if (!audioURL) return
+
     if (isPlaying) {
-      waveformRef.current?.pause()
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+      }
       setIsPlaying(false)
     } else {
-      waveformRef.current?.play()
+      if (aiExampleAudioRef.current) {
+        aiExampleAudioRef.current.pause()
+        setIsPlayingAIExample(false)
+      }
+      
+      if (!currentAudioRef.current) {
+        currentAudioRef.current = new Audio(audioURL)
+        currentAudioRef.current.onended = () => {
+          setIsPlaying(false)
+        }
+      }
+      
+      currentAudioRef.current.play()
       setIsPlaying(true)
     }
   }
@@ -797,7 +779,7 @@ export function SentenceCard({
                     {isPlaying ? <Pause className="w-5 h-5 mr-2" /> : <Play className="w-5 h-5 mr-2" />}
                     {isPlaying ? "일시정지" : "재생"}
                   </Button>
-                  <Button
+                  {/* <Button
                     onClick={handleDownload}
                     size="lg"
                     variant="outline"
@@ -805,7 +787,7 @@ export function SentenceCard({
                   >
                     <Download className="w-5 h-5 mr-2" />
                     다운로드
-                  </Button>
+                  </Button> */}
                 </div>
               )}
             </div>

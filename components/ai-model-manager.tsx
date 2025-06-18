@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +25,7 @@ interface AIModel {
 
 export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
   const { models, isLoading, error, refreshModels, defaultModelId } = useAIModels()
 
   const handlePlay = async (modelId: number) => {
@@ -35,21 +36,29 @@ export function AIModelManager() {
         return;
       }
 
-      console.log("=== 음성 재생 정보 ===");
-      console.log("원본 URL:", selectedModel.url);
-      console.log("모델명:", selectedModel.name);
-      console.log("===================");
-
+      // 이미 재생 중인 모델을 다시 클릭한 경우
       if (playingModel === modelId) {
-        // 이미 재생 중인 모델이면 중지
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+          URL.revokeObjectURL(currentAudio.src);
+        }
         setPlayingModel(null);
+        setCurrentAudio(null);
         return;
       }
 
       // 이전에 재생 중이던 모델이 있다면 중지
-      if (playingModel) {
-        setPlayingModel(null);
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        URL.revokeObjectURL(currentAudio.src);
       }
+
+      console.log("=== 음성 재생 정보 ===");
+      console.log("원본 URL:", selectedModel.url);
+      console.log("모델명:", selectedModel.name);
+      console.log("===================");
 
       // 음성 파일 가져오기
       const response = await fetch(selectedModel.url);
@@ -57,16 +66,27 @@ export function AIModelManager() {
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
+      
       audio.onended = () => {
         setPlayingModel(null);
+        setCurrentAudio(null);
         URL.revokeObjectURL(audioUrl);
       };
 
-      audio.play();
+      audio.onerror = () => {
+        console.error("오디오 재생 중 오류 발생");
+        setPlayingModel(null);
+        setCurrentAudio(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
       setPlayingModel(modelId);
+      setCurrentAudio(audio);
     } catch (error) {
       console.error("음성 재생 중 오류 발생:", error);
       setPlayingModel(null);
+      setCurrentAudio(null);
     }
   }
 
@@ -243,6 +263,24 @@ export function AIModelManager() {
                 </div>
 
                 <div className="flex items-center space-x-2">
+                {model.quality !== "프리미엄" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+                      onClick={() => handleDelete(model.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`${defaultModelId === model._id ? 'border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-white' : 'border-onair-text-sub/20 text-onair-text-sub hover:bg-onair-text-sub hover:text-onair-bg'}`}
+                    onClick={() => handleSetDefault(model.id)}
+                  >
+                    <Star className={`w-4 h-4 ${defaultModelId === model._id ? 'fill-current' : ''}`} />
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -255,24 +293,7 @@ export function AIModelManager() {
                       <Play className="w-4 h-4" />
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`${defaultModelId === model._id ? 'border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-white' : 'border-onair-text-sub/20 text-onair-text-sub hover:bg-onair-text-sub hover:text-onair-bg'}`}
-                    onClick={() => handleSetDefault(model.id)}
-                  >
-                    <Star className={`w-4 h-4 ${defaultModelId === model._id ? 'fill-current' : ''}`} />
-                  </Button>
-                  {model.quality !== "프리미엄" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
-                      onClick={() => handleDelete(model.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+            
                 </div>
               </div>
             </CardContent>
