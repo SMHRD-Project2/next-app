@@ -17,20 +17,6 @@ import { LoadingMessage } from "@/components/loading-message"
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/waveform-player"
 import { VoiceComparisonPanel } from "@/components/voice-comparison-panel"
 
-interface Challenge {
-  id: number;
-  text: string;
-  difficulty: string;
-  description: string;
-  tips: string;
-  color: string;
-  challengeAudioUrls: {
-    [key: string]: {
-      [key: string]: string;
-    };
-  };
-}
-
 interface PronunciationChallengeProps {
   isRecording: boolean
   onRecord: () => void
@@ -46,13 +32,6 @@ const challenges = [
     description: "ㄱ과 ㅇ 발음의 정확한 구분",
     tips: "각 글자를 천천히 구분하여 발음하세요",
     color: "bg-green-500/10 text-green-400 border-green-500/20",
-    challengeAudioUrls: {
-      "간장공장공장장": {
-        "김주하": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(1).wav",
-        "이동욱": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO2/audio+(1).wav",
-        "박소현": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(1).wav"
-      }
-    }
   },
   {
     id: 2,
@@ -61,13 +40,6 @@ const challenges = [
     description: "ㅊ과 ㅅ 발음의 명확한 차이",
     tips: "혀의 위치를 정확히 조절하여 발음하세요",
     color: "bg-green-500/10 text-green-400 border-green-500/20",
-    challengeAudioUrls: {
-      "경찰청철창살": {
-        "김주하": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(2).wav",
-        "이동욱": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO2/audio+(2).wav",
-        "박소현": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(2).wav"
-      }
-    }
   },
   {
     id: 3,
@@ -76,13 +48,6 @@ const challenges = [
     description: "받침과 연음의 정확한 처리",
     tips: "받침을 명확히 하고 자연스러운 연음을 만드세요",
     color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    challengeAudioUrls: {
-      "저기 계신 저 분이 박 법무부 장관이시다": {
-        "김주하": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(3).wav",
-        "이동욱": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO2/audio+(3).wav",
-        "박소현": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(3).wav"
-      }
-    }
   },
   {
     id: 4,
@@ -91,13 +56,6 @@ const challenges = [
     description: "ㄴ과 ㄹ 발음의 정확한 구분",
     tips: "혀끝의 움직임에 집중하여 발음하세요",
     color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    challengeAudioUrls: {
-      "신라면 라면신라 신라라면 라면라신": {
-        "김주하": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(4).wav",
-        "이동욱": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO2/audio+(4).wav",
-        "박소현": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(4).wav"
-      }
-    }
   },
   {
     id: 5,
@@ -106,13 +64,6 @@ const challenges = [
     description: "복잡한 받침과 연음의 종합 처리",
     tips: "문장의 리듬감을 살려 자연스럽게 발음하세요",
     color: "bg-red-500/10 text-red-400 border-red-500/20",
-    challengeAudioUrls: {
-      "앞집 팥죽은 붉은 팥 팥죽이고 뒷집 콩죽은 검은 콩 콩죽이다": {
-        "김주하": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(5).wav",
-        "이동욱": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO2/audio+(5).wav",
-        "박소현": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(5).wav"
-      }
-    }
   },
   {
     id: 6,
@@ -121,13 +72,6 @@ const challenges = [
     description: "긴 문장에서의 발음 일관성 유지",
     tips: "호흡을 조절하며 끝까지 명확하게 발음하세요",
     color: "bg-red-500/10 text-red-400 border-red-500/20",
-    challengeAudioUrls: {
-      "내가 그린 기린 그림은 목이 긴 기린 그림이고 네가 그린 기린 그림은 목이 짧은 기린 그림이다": {
-        "김주하": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(6).wav",
-        "이동욱": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO2/audio+(6).wav",
-        "박소현": "https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(6).wav"
-      }
-    }
   },
 ]
 
@@ -146,7 +90,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const waveformRef = useRef<WaveformPlayerHandle>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     if (!isLoading && aiModels.length > 0) {
@@ -175,61 +118,35 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
     onReset()
   }
 
-  const handlePlayExample = async () => {
-    try {
+  const handlePlayExample = () => {
+    if (selectedModel) {
       if (playingModel === selectedModel) {
-        // 현재 재생 중인 모델의 음성을 일시정지
-        if (audioRef.current) {
-          audioRef.current.pause();
-          setPlayingModel(null);
-        }
-        return;
-      }
-
-      // 이전에 재생 중이던 음성이 있다면 정지
-      if (audioRef.current) {
-        audioRef.current.pause();
-        URL.revokeObjectURL(audioRef.current.src);
-      }
-
-      // 새로운 Audio 객체 생성
-      audioRef.current = new Audio();
-
-      // 선택된 모델에 따라 적절한 URL 선택
-      const modelName = aiModels.find(model => model.id === selectedModel)?.name;
-      console.log('Selected Model:', modelName); // 디버깅용 로그
-      console.log('Available Models:', aiModels); // 디버깅용 로그
-      
-      let audioUrl = '';
-
-      // 모델과 챌린지에 따라 URL 매핑
-      if (modelName?.includes('김주하')) {
-        audioUrl = `https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(${selectedChallenge.id}).wav`;
-      } else if (modelName?.includes('이동욱')) {
-        audioUrl = `https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO2/audio+(${selectedChallenge.id}).wav`;
-      } else if (modelName?.includes('박소현')) {
-        audioUrl = `https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(${selectedChallenge.id}).wav`;
-      }
-
-      console.log('Generated Audio URL:', audioUrl); // 디버깅용 로그
-
-      if (!audioUrl) {
-        console.error('No audio URL found for the selected model and challenge');
-        return;
-      }
-
-      audioRef.current.src = audioUrl;
-      audioRef.current.onended = () => {
+        // 일시정지
+        audio?.pause();
         setPlayingModel(null);
-      };
-
-      await audioRef.current.play();
-      setPlayingModel(selectedModel);
-    } catch (error) {
-      console.error('Error playing example:', error);
-      setPlayingModel(null);
+      } else {
+        // 재생
+        // console.log(selectedChallenge)
+        if (audio) {
+          // 이전에 재생하던 오디오가 있다면 그 지점부터 재생
+          audio.play();
+          setPlayingModel(selectedModel);
+        } else {
+          // 국태은 추가 아나운서 녹음 파일 재생
+          const newAudio = new Audio(`/audio/female.wav`);
+          newAudio.play();
+          setAudio(newAudio);
+          setPlayingModel(selectedModel);
+          
+          // 재생이 끝나면 상태 초기화
+          newAudio.onended = () => {
+            setPlayingModel(null);
+            setAudio(null);
+          };
+        }
+      }
     }
-  };
+  }
 
   // 녹음 시작/중지 처리
   const handleRecord = async () => {

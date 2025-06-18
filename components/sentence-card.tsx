@@ -315,6 +315,11 @@ export function SentenceCard({
       // 오디오 데이터를 Blob으로 변환
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
+      
+      
+      console.log("audioUrl", audioUrl)
+      // audioUrl을 S3에 넣은 뒤 selectedVoiceUrl으로 받은 URL을 사용
+
 
       const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
