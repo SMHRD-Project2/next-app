@@ -149,11 +149,53 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     setAnalysisResult(null);  // 분석 결과 초기화
   };
 
-  const handleAnalysisComplete = (result: any, refUrl?: string, userUrl?: string) => {
+  const handleAnalysisComplete = async (result: any, refUrl?: string, userUrl?: string) => {
     console.log("TrainingTabs에서 분석 결과 받음:", result);
     setAnalysisResult(result);
     if (refUrl) setReferenceUrl(refUrl);
     if (userUrl) setUserRecordingUrl(userUrl);
+
+    // AI 분석 결과가 나오면 자동으로 저장
+    try {
+      const { userProfile } = getAuthStatus()
+      if (!userProfile?.email) {
+        console.log("사용자가 로그인하지 않았습니다. 자동 저장을 건너뜁니다.");
+        return;
+      }
+
+      const categories: { [key: string]: string } = {
+        short: '짧은 문장',
+        long: '긴 문장',
+        news: '뉴스 읽기',
+        custom: '내문장 업로드',
+        challenge: '발음 챌린지',
+      }
+
+      const record = {
+        date: new Date().toISOString().slice(0, 10),
+        category: categories[activeTab],
+        sentence: activeTab === "custom" ? customSentence : sentence,
+        analysisResult: result,
+        referenceUrl: refUrl,
+        userRecordingUrl: userUrl,
+        voiceUrl: myVoiceUrl,
+        email: userProfile.email,
+      }
+
+      const response = await fetch('/api/training-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record),
+      })
+
+      if (response.ok) {
+        console.log('AI 분석 결과가 자동으로 저장되었습니다.');
+      } else {
+        console.error('자동 저장 실패:', await response.text());
+      }
+    } catch (err) {
+      console.error('자동 저장 중 오류 발생:', err);
+    }
   };
 
   const handleSaveRecord = async () => {
@@ -168,8 +210,10 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     const record = {
       date: new Date().toISOString().slice(0, 10),
       category: categories[activeTab],
-      sentence,
-      scores: analysisResult || defaultAIAnalysis,
+      sentence: activeTab === "custom" ? customSentence : sentence,
+      analysisResult: analysisResult,
+      referenceUrl: referenceUrl,
+      userRecordingUrl: userRecordingUrl,
       voiceUrl: myVoiceUrl,
       email: userProfile?.email,
     }
@@ -294,6 +338,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
             setMyVoiceUrl(null);
             setAnalysisResult(null);  // 분석 결과 초기화
           }}
+          onAnalysisComplete={handleAnalysisComplete}
         />
 
           {hasRecorded && analysisResult && (
@@ -310,16 +355,6 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
           )}
         </TabsContent>
       </Tabs>
-      {hasRecorded && analysisResult && (
-        <div className="text-center mt-6">
-          <button
-            onClick={handleSaveRecord}
-            className="px-4 py-2 bg-onair-mint text-onair-bg rounded hover:bg-onair-mint/90"
-          >
-            기록 저장
-          </button>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,21 +1,21 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2, Play, Pause } from "lucide-react"
+import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2, Play, Pause, Eye } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import { useState, useEffect, useRef } from "react"
 import { getAuthStatus } from "@/lib/auth-utils"
+import { AIResultPanel } from "@/components/ai-result-panel"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function HistoryPage() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
   const [trainingRecords, setTrainingRecords] = useState<any[]>([])
-
-  // 이전 버전의 상태 관리
-  // const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
-  // const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
+  const [selectedRecord, setSelectedRecord] = useState<any>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
   // 현재 재생 중인 항목의 ID를 추적 (null이면 재생 중인 항목 없음)
   const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
@@ -116,13 +116,25 @@ export default function HistoryPage() {
     }
 
     let totalScoreSum = 0
+    let validRecords = 0
+
     trainingRecords.forEach(record => {
-      const { pronunciation, intonation, tone } = record.scores
-      const itemAverage = (pronunciation + intonation + tone) / 3
-      totalScoreSum += itemAverage
+      if (record.analysisResult && record.analysisResult.overallScore) {
+        // 새로운 AI 분석 결과 구조
+        totalScoreSum += record.analysisResult.overallScore
+        validRecords++
+      } else if (record.scores) {
+        // 기존 점수 구조 (하위 호환성)
+        const { pronunciation, intonation, tone } = record.scores
+        if (pronunciation && intonation && tone) {
+          const itemAverage = (pronunciation + intonation + tone) / 3
+          totalScoreSum += itemAverage
+          validRecords++
+        }
+      }
     })
 
-    return Math.round(totalScoreSum / trainingRecords.length)
+    return validRecords > 0 ? Math.round(totalScoreSum / validRecords) : 0
   }
 
   const averageAccuracy = calculateAverageAccuracy()
@@ -170,6 +182,12 @@ export default function HistoryPage() {
         console.error('Failed to delete record', err)
       }
     }
+  }
+
+  // 더보기 버튼 핸들러 추가
+  const handleViewDetails = (record: any) => {
+    setSelectedRecord(record)
+    setIsDetailModalOpen(true)
   }
 
   // 이전 버전의 오디오 재생 토글 함수
@@ -276,22 +294,51 @@ export default function HistoryPage() {
 
                   {/* 점수 */}
                   <div className="flex items-center gap-6">
-                    <div className="text-center">
-                      <p className="text-onair-text-sub text-xs">발음</p>
-                      <p className={`font-semibold ${getScoreColor(item.scores.pronunciation)}`}>
-                        {item.scores.pronunciation}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-onair-text-sub text-xs">억양</p>
-                      <p className={`font-semibold ${getScoreColor(item.scores.intonation)}`}>
-                        {item.scores.intonation}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-onair-text-sub text-xs">톤</p>
-                      <p className={`font-semibold ${getScoreColor(item.scores.tone)}`}>{item.scores.tone}</p>
-                    </div>
+                    {item.analysisResult ? (
+                      // 새로운 AI 분석 결과 구조
+                      <>
+                        <div className="text-center">
+                          <p className="text-onair-text-sub text-xs">전체 점수</p>
+                          <p className={`font-semibold ${getScoreColor(item.analysisResult.overallScore)}`}>
+                            {item.analysisResult.overallScore?.toFixed(1) || 'N/A'}
+                          </p>
+                        </div>
+                        {item.analysisResult.items && item.analysisResult.items.slice(0, 3).map((item: any, index: number) => (
+                          <div key={index} className="text-center">
+                            <p className="text-onair-text-sub text-xs">
+                              {item.metric === 'pronunciation' ? '발음' : 
+                               item.metric === 'intonation' ? '억양' : 
+                               item.metric === 'rhythm' ? '리듬' : item.metric}
+                            </p>
+                            <p className={`font-semibold ${getScoreColor(item.score)}`}>
+                              {item.score?.toFixed(1) || 'N/A'}
+                            </p>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      // 기존 점수 구조 (하위 호환성)
+                      <>
+                        <div className="text-center">
+                          <p className="text-onair-text-sub text-xs">발음</p>
+                          <p className={`font-semibold ${getScoreColor(item.scores?.pronunciation || 0)}`}>
+                            {item.scores?.pronunciation || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-onair-text-sub text-xs">억양</p>
+                          <p className={`font-semibold ${getScoreColor(item.scores?.intonation || 0)}`}>
+                            {item.scores?.intonation || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-onair-text-sub text-xs">톤</p>
+                          <p className={`font-semibold ${getScoreColor(item.scores?.tone || 0)}`}>
+                            {item.scores?.tone || 'N/A'}
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* 액션 버튼 */}
@@ -305,6 +352,14 @@ export default function HistoryPage() {
                       >
                         {isThisItemPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                         {isThisItemPlaying ? "일시정지" : "음성 재생"}
+                      </button>
+                      {/* 더보기 버튼 */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleViewDetails(item) }}
+                        className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-mint hover:bg-onair-bg-sub rounded flex items-center gap-1"
+                      >
+                        <Eye className="w-4 h-4" />
+                        더보기
                       </button>
                       {/* 다시 훈련 버튼 */}
                       <button
@@ -377,6 +432,25 @@ export default function HistoryPage() {
           </svg>
         </button>
       </div>
+
+      {/* AI 분석 결과 모달 */}
+      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-onair-text">
+              AI 분석 결과 - {selectedRecord?.category} ({selectedRecord?.date})
+            </DialogTitle>
+          </DialogHeader>
+          {selectedRecord && (
+            <AIResultPanel
+              myVoiceUrl={selectedRecord.voiceUrl}
+              referenceUrl={selectedRecord.referenceUrl}
+              userRecordingUrl={selectedRecord.userRecordingUrl}
+              analysisResult={selectedRecord.analysisResult || selectedRecord.scores}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

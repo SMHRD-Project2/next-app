@@ -16,6 +16,7 @@ import { useAIModels } from "@/lib/ai-model-context"
 import { LoadingMessage } from "@/components/loading-message"
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/waveform-player"
 import { VoiceComparisonPanel } from "@/components/voice-comparison-panel"
+import { getAuthStatus } from "@/lib/auth-utils"
 
 interface Challenge {
   id: number;
@@ -36,6 +37,7 @@ interface PronunciationChallengeProps {
   onRecord: () => void
   hasRecorded: boolean
   onReset: () => void
+  onAnalysisComplete?: (analysisResult: any, referenceUrl?: string, userRecordingUrl?: string) => void
 }
 
 const challenges = [
@@ -131,7 +133,7 @@ const challenges = [
   },
 ]
 
-export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onReset }: PronunciationChallengeProps) {
+export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onReset, onAnalysisComplete }: PronunciationChallengeProps) {
   const { models: aiModels, isLoading, defaultModelId } = useAIModels()
   const [selectedChallenge, setSelectedChallenge] = useState(challenges[0])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
@@ -147,6 +149,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const waveformRef = useRef<WaveformPlayerHandle>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
 
   useEffect(() => {
     if (!isLoading && aiModels.length > 0) {
@@ -273,7 +276,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
           }
         }
 
-        mediaRecorder.onstop = () => {
+        mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunksRef.current, {
             type: mimeType || 'audio/webm'
           })
@@ -291,6 +294,15 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
             timerRef.current = null
           }
           setRecordingTime(0)
+
+          // 녹음이 완료되면 음성 분석 수행
+          if (onAnalysisComplete) {
+            try {
+              await performVoiceAnalysis(url)
+            } catch (error) {
+              console.error('음성 분석 중 오류 발생:', error)
+            }
+          }
         }
 
         mediaRecorder.start()
@@ -340,6 +352,77 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
+    }
+  }
+
+  // 음성 분석 함수
+  const performVoiceAnalysis = async (userRecordingUrl: string) => {
+    try {
+      setIsAnalyzing(true)
+      
+      // AI 아나운서 모델 정보 가져오기
+      const modelDetails = aiModels.find(model => model.id === selectedModel)
+      if (!modelDetails) {
+        console.error("선택된 AI 모델을 찾을 수 없습니다.")
+        setIsAnalyzing(false)
+        return
+      }
+
+      // 챌린지에 맞는 레퍼런스 음성 URL 결정
+      const modelName = modelDetails.name
+      const challengeText = selectedChallenge.text
+      const referenceUrl = (selectedChallenge.challengeAudioUrls as any)[challengeText]?.[modelName]
+
+      if (!referenceUrl) {
+        console.error("챌린지에 맞는 레퍼런스 음성을 찾을 수 없습니다.")
+        setIsAnalyzing(false)
+        return
+      }
+
+      console.log("음성 분석 시작", {
+        referenceUrl,
+        userRecordingUrl,
+        selectedModel: modelDetails.name,
+        challengeText
+      })
+
+      // 음성 분석 API 호출
+      const analysisResponse = await fetch("http://localhost:8000/analyze-voice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reference_url: referenceUrl,
+          user_url: userRecordingUrl
+        })
+      })
+
+      if (!analysisResponse.ok) {
+        const errorText = await analysisResponse.text()
+        throw new Error(`음성 분석 API 호출 실패: ${analysisResponse.status} - ${errorText}`)
+      }
+
+      const analysisResult = await analysisResponse.json()
+      
+      console.log("🎯 음성 분석 결과:", analysisResult)
+      
+      if (analysisResult.success && analysisResult.ai_feedback) {
+        console.log("📊 상세 분석 점수:", analysisResult.analysis_result)
+        console.log("🤖 AI 피드백:", analysisResult.ai_feedback)
+        
+        // 분석 결과를 부모 컴포넌트로 전달
+        if (onAnalysisComplete) {
+          onAnalysisComplete(analysisResult.ai_feedback, referenceUrl, userRecordingUrl)
+        }
+      } else {
+        console.error("음성 분석 실패:", analysisResult.error)
+      }
+
+    } catch (error) {
+      console.error("음성 분석 중 오류 발생:", error)
+    } finally {
+      setIsAnalyzing(false)
     }
   }
 
@@ -596,6 +679,11 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
             </div>
 
             {hasRecorded && !isRecording && <LoadingMessage />}
+            {isAnalyzing && (
+              <div className="text-center mt-4">
+                <div className="text-onair-mint text-sm">AI 분석 중...</div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -70,8 +70,8 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
       // 배경 파형 (female.wav) - 뒤에 표시
       wavesurfer1.current = WaveSurfer.create({
         container: waveformRef1.current,
-        waveColor: 'rgba(224, 224, 224, 0.5)',
-        progressColor: 'rgba(208, 208, 208, 0.5)',
+        waveColor: 'rgba(224, 224, 224, 1)',
+        progressColor: 'rgba(208, 208, 208, 1)',
         height: 150,
         normalize: true,
         interact: true,
