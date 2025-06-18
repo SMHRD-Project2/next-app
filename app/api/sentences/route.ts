@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     // 문장 데이터와 음성 URL을 매핑
     const response = {
       ...randomSentence,
-      voiceUrl1: randomSentence.audioUrl1,
+      voiceUrl1: randomSentence.audioUrl,
       voiceUrl2: randomSentence.audioUrl2,
       voiceUrl3: randomSentence.audioUrl3
     }

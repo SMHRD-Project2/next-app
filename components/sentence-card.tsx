@@ -439,6 +439,10 @@ export function SentenceCard({
       if (data.success) {
         console.log("업로드 성공:", data.url)
         if (onRecordingComplete) onRecordingComplete(data.url)
+        
+        // 음성 분석 시작
+        await performVoiceAnalysis(data.url)
+        
         return data.url
       } else {
         const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."
@@ -448,6 +452,87 @@ export function SentenceCard({
     } catch (error) {
       console.error("[ERROR] 업로드 중 예외 발생:", error)
       throw error
+    }
+  }
+
+  // 음성 분석 함수 추가
+  const performVoiceAnalysis = async (userRecordingUrl: string) => {
+    try {
+      // AI 아나운서 모델 정보 가져오기
+      const modelDetails = aiModels.find(model => model.id === selectedModel);
+      if (!modelDetails) {
+        console.error("선택된 AI 모델을 찾을 수 없습니다.");
+        return;
+      }
+
+      // 레퍼런스 음성 URL 결정
+      let referenceUrl = null;
+      
+      // 아나운서 모델이고 voiceUrl이 있으며, custom 탭이 아닌 경우에만 DB의 voiceUrl 사용
+      if (currentTab !== 'custom') {
+        if (modelDetails.name === '김주하 아나운서' && voiceUrl1) {
+          referenceUrl = voiceUrl1;
+        } else if (modelDetails.name === '이동욱 아나운서' && voiceUrl2) {
+          referenceUrl = voiceUrl2;
+        } else if (modelDetails.name === '박소현 아나운서' && voiceUrl3) {
+          referenceUrl = voiceUrl3;
+        }
+      }
+
+      // DB에 음성이 없거나 custom 탭인 경우 모델 URL 사용
+      if (!referenceUrl) {
+        referenceUrl = modelDetails.url;
+      }
+
+      if (!referenceUrl) {
+        console.error("레퍼런스 음성 URL을 찾을 수 없습니다.");
+        return;
+      }
+
+      console.log("음성 분석 시작", {
+        referenceUrl,
+        userRecordingUrl,
+        selectedModel: modelDetails.name,
+        currentTab
+      });
+
+      // 음성 분석 API 호출
+      const analysisResponse = await fetch("http://localhost:8000/analyze-voice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reference_url: referenceUrl,
+          user_url: userRecordingUrl
+        })
+      });
+
+      if (!analysisResponse.ok) {
+        throw new Error(`음성 분석 API 호출 실패: ${analysisResponse.status}`);
+      }
+
+      const analysisResult = await analysisResponse.json();
+      
+      console.log("🎯 음성 분석 결과:", analysisResult);
+      
+      if (analysisResult.success) {
+        console.log("📊 상세 분석 점수:");
+        console.log("- 발음특성(MFCC) 점수:", analysisResult.analysis_result.mfcc);
+        console.log("- 음정(Pitch) 점수:", analysisResult.analysis_result.pitch);
+        console.log("- 음량(Energy) 점수:", analysisResult.analysis_result.energy);
+        console.log("- 발음속도(Speech-rate) 점수:", analysisResult.analysis_result.speed);
+        console.log("- 음색(Formant) 점수:", analysisResult.analysis_result.formant);
+        console.log("- 음정(Intonation) 점수:", analysisResult.analysis_result.intonation);
+        console.log("- 리듬(Rhythm) 점수:", analysisResult.analysis_result.rhythm);
+        console.log("- 문장간 쉼(Pause) 점수:", analysisResult.analysis_result.pause);
+        console.log("🏆 종합 점수:", analysisResult.analysis_result.total);
+      } else {
+        console.error("음성 분석 실패:", analysisResult.error);
+      }
+
+    } catch (error) {
+      console.error("음성 분석 중 오류 발생:", error);
     }
   }
 

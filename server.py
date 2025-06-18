@@ -5,6 +5,7 @@ from fastapi import FastAPI, UploadFile, File, Query, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from ZonosTTS import upload_file, call_api, wait_for_result, download_audio, set_server_url
+from VoiceAnalyzer import Analyzer
 import requests as req
 from bs4 import BeautifulSoup as bs
 from pydantic import BaseModel
@@ -37,8 +38,6 @@ handler = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
-
 
 load_dotenv(".env.local")
 
@@ -79,7 +78,86 @@ s3_client = boto3.client(
    aws_access_key_id=AWS_ACCESS_KEY_ID,
    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
+
+
+
+# 음성 분석 요청 모델
+class VoiceAnalysisRequest(BaseModel):
+    reference_url: str  # AI 아나운서 음성 파일 URL
+    user_url: str       # 사용자 녹음 파일 URL
+
+# 음성 분석 API 엔드포인트
+@app.post("/analyze-voice")
+async def analyze_voice(request: VoiceAnalysisRequest):
+    """음성 분석 API - 레퍼런스 음성과 사용자 음성을 비교 분석"""
+    temp_ref_path = None
+    temp_user_path = None
+    
+    try:
+        logger.info(f"음성 분석 시작 - 레퍼런스: {request.reference_url}, 사용자: {request.user_url}")
         
+        # 임시 디렉토리 생성
+        temp_dir = "temp"
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # 레퍼런스 음성 파일 다운로드
+        ref_response = req.get(request.reference_url)
+        if ref_response.status_code != 200:
+            raise HTTPException(status_code=400, detail="레퍼런스 음성 파일을 다운로드할 수 없습니다.")
+        
+        temp_ref_path = os.path.join(temp_dir, f"ref_{uuid.uuid4()}.wav")
+        with open(temp_ref_path, "wb") as f:
+            f.write(ref_response.content)
+        
+        # 사용자 음성 파일 다운로드
+        user_response = req.get(request.user_url)
+        if user_response.status_code != 200:
+            raise HTTPException(status_code=400, detail="사용자 음성 파일을 다운로드할 수 없습니다.")
+        
+        temp_user_path = os.path.join(temp_dir, f"user_{uuid.uuid4()}.wav")
+        with open(temp_user_path, "wb") as f:
+            f.write(user_response.content)
+        
+        logger.info(f"음성 파일 다운로드 완료 - 레퍼런스: {temp_ref_path}, 사용자: {temp_user_path}")
+        
+        # 음성 분석 실행
+        analyzer = Analyzer(temp_ref_path, temp_user_path)
+        result = analyzer.run()
+        
+        logger.info("음성 분석 완료")
+        logger.info(f"분석 결과: {result}")
+        
+        return {
+            "success": True,
+            "analysis_result": result,
+            "timestamp": datetime.now().isoformat(),
+            "files": {
+                "reference_url": request.reference_url,
+                "user_url": request.user_url
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"음성 분석 중 오류 발생: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+    
+    finally:
+        # 임시 파일 정리
+        for path in [temp_ref_path, temp_user_path]:
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                    logger.info(f"임시 파일 삭제: {path}")
+                except Exception as e:
+                    logger.error(f"임시 파일 삭제 실패: {path}, 에러: {e}")
+
+
+
+
 @app.post("/upload_record")
 async def upload_recording(file: UploadFile = File(...)):
     tmp_in_path = None
