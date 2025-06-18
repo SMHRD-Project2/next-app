@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { aiModels } from "@/components/ai-model-manager"
+import { useAIModels } from "@/lib/ai-model-context"
 import { LoadingMessage } from "@/components/loading-message"
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/waveform-player"
 import { VoiceComparisonPanel } from "@/components/voice-comparison-panel"
@@ -76,10 +76,11 @@ const challenges = [
 ]
 
 export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onReset }: PronunciationChallengeProps) {
+  const { models: aiModels, isLoading, defaultModelId } = useAIModels()
   const [selectedChallenge, setSelectedChallenge] = useState(challenges[0])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const currentChallengeRef = useRef<HTMLDivElement>(null)
-  const [selectedModel, setSelectedModel] = useState<number | null>(aiModels[0]?.id || null)
+  const [selectedModel, setSelectedModel] = useState<number | null>(null)
   const [playingModel, setPlayingModel] = useState<number | null>(null)
   const [audioURL, setAudioURL] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -89,6 +90,13 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const waveformRef = useRef<WaveformPlayerHandle>(null)
+
+  useEffect(() => {
+    if (!isLoading && aiModels.length > 0) {
+      const defaultModel = aiModels.find(model => model._id === defaultModelId) || aiModels[0]
+      setSelectedModel(defaultModel.id)
+    }
+  }, [aiModels, isLoading, defaultModelId])
 
   const handleChallengeSelect = (challenge: (typeof challenges)[0]) => {
     setSelectedChallenge(challenge)
@@ -118,7 +126,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         setPlayingModel(null);
       } else {
         // 재생
-        console.log(selectedChallenge)
+        // console.log(selectedChallenge)
         if (audio) {
           // 이전에 재생하던 오디오가 있다면 그 지점부터 재생
           audio.play();
@@ -150,7 +158,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
           // 먼저 실제 마이크로 시도
           audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
-          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
           // 마이크 접근 실패 시 가상 오디오 스트림 생성
           const audioContext = new AudioContext();
           const oscillator = audioContext.createOscillator();
@@ -397,9 +405,10 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                       {selectedModel === model.id && (
                         <span className="ml-auto text-onair-mint">✓</span>
                       )}
-                      {model.isDefault && selectedModel !== model.id && (
+                      {model.id && selectedModel == model.id && (
                         <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
                       )}
+
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -508,8 +517,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         </CardContent>
       </Card>
 
-      {/* 음성 비교 분석 패널 */}
-      <VoiceComparisonPanel myVoiceUrl={audioURL} waveformRef={waveformRef} />
     </div>
   )
 }

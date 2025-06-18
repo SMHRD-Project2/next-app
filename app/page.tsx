@@ -5,7 +5,6 @@ import Link from "next/link"
 import { Button, type ButtonProps } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowRight, Play, Quote, Star } from "lucide-react"
-import { AccuracyTrendChart } from "@/components/accuracy-trend-chart"
 import { WaveformVisualizer } from "@/components/waveform-visualizer"
 import { useRouter } from "next/navigation"
 import { AIVoiceShowcase } from "@/components/ai-voice-showcase"
@@ -68,7 +67,6 @@ export default function HomePage() {
               </span>
             </Button>
           </div>
-          {/* TTS 불러오는 버튼 */}
         </div>
       </section>
 

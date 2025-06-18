@@ -7,137 +7,161 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Play, Pause, Star, Volume2 } from "lucide-react"
 import { Trash2 } from "lucide-react"
+import { getAuthStatus } from "@/lib/auth-utils"
+import { useAIModels } from "@/lib/ai-model-context"
 
-// localStorage에서 기본 모델 ID를 가져오는 함수
-const getDefaultModelId = (): number | null => {
-  if (typeof window !== 'undefined') {
-    const savedDefaultId = localStorage.getItem('defaultModelId');
-    return savedDefaultId ? parseInt(savedDefaultId) : null;
-  }
-  return null;
-}
-
-// 초기 aiModels 설정 시 localStorage의 기본 모델 ID를 반영
-export const aiModels = [
-  {
-    id: 1,
-    name: "김주하 아나운서",
-    type: "뉴스 앵커",
-    quality: "프리미엄",
-    description: "정확하고 신뢰감 있는 뉴스 전달 스타일",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: getDefaultModelId() === 1,
-    createdAt: "2024-01-01",
-    usageCount: 156,
-    url: "/audio/SPK005.wav"
-  },
-  {
-    id: 2,
-    name: "이동욱 아나운서",
-    type: "스포츠 캐스터",
-    quality: "프리미엄",
-    description: "역동적이고 열정적인 스포츠 중계 스타일",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: getDefaultModelId() === 2,
-    createdAt: "2024-01-01",
-    usageCount: 89,
-  },
-  {
-    id: 3,
-    name: "박소현 아나운서",
-    type: "교양 프로그램",
-    quality: "프리미엄",
-    description: "부드럽고 친근한 교양 프로그램 진행 스타일",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isDefault: getDefaultModelId() === 3,
-    createdAt: "2024-01-01",
-    usageCount: 134,
-  }
-]
-
-// Add event emitter for model changes
-const modelChangeEvent = new Event('aiModelChange')
-
-export const addNewModel = (newModel: {
+interface AIModel {
   id: number;
+  _id?: string;
   name: string;
   type: string;
   quality: string;
   description: string;
   avatar: string;
-  isDefault: boolean;
   createdAt: string;
   usageCount: number;
-}) => {
-  aiModels.push(newModel);
-  window.dispatchEvent(modelChangeEvent);
-  return newModel;
+  url: string;
 }
 
 export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)
-  const [models, setModels] = useState(aiModels)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
+  const { models, isLoading, error, refreshModels, defaultModelId } = useAIModels()
 
-  const handlePlay = (modelId: number) => {
-    if (playingModel === modelId) {
-      // 같은 모델이 클릭된 경우, 재생 중지
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.currentTime = 0
+  const handlePlay = async (modelId: number) => {
+    try {
+      const selectedModel = models.find(model => model.id === modelId);
+      if (!selectedModel) {
+        console.error("선택한 모델을 찾을 수 없습니다.");
+        return;
       }
-      setPlayingModel(null)
-    } else {
-      // 다른 모델이 클릭된 경우, 현재 재생 중지하고 새로운 재생 시작
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.currentTime = 0
+
+      // 이미 재생 중인 모델을 다시 클릭한 경우
+      if (playingModel === modelId) {
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+          URL.revokeObjectURL(currentAudio.src);
+        }
+        setPlayingModel(null);
+        setCurrentAudio(null);
+        return;
       }
+
+      // 이전에 재생 중이던 모델이 있다면 중지
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        URL.revokeObjectURL(currentAudio.src);
+      }
+
+      console.log("=== 음성 재생 정보 ===");
+      console.log("원본 URL:", selectedModel.url);
+      console.log("모델명:", selectedModel.name);
+      console.log("===================");
+
+      // 음성 파일 가져오기
+      const response = await fetch(selectedModel.url);
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
       
-      // 새로운 오디오 요소 생성
-      const audio = new Audio('/audio/female.wav')
-      audioRef.current = audio
+      const audio = new Audio(audioUrl);
       
-      audio.play()
-      setPlayingModel(modelId)
-      
-      // 오디오가 끝나면 상태 초기화
       audio.onended = () => {
-        setPlayingModel(null)
-        audioRef.current = null
-      }
+        setPlayingModel(null);
+        setCurrentAudio(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        console.error("오디오 재생 중 오류 발생");
+        setPlayingModel(null);
+        setCurrentAudio(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+      setPlayingModel(modelId);
+      setCurrentAudio(audio);
+    } catch (error) {
+      console.error("음성 재생 중 오류 발생:", error);
+      setPlayingModel(null);
+      setCurrentAudio(null);
     }
   }
 
-  const handleSetDefault = (modelId: number) => {
-    // Update local state
-    setModels(currentModels =>
-      currentModels.map(model => ({
-        ...model,
-        isDefault: model.id === modelId,
-      }))
-    )
-    
-    // Update global aiModels array
-    aiModels.forEach(model => {
-      model.isDefault = model.id === modelId;
-    });
-    
-    // Save to localStorage
-    localStorage.setItem('defaultModelId', modelId.toString());
-    
-    // Dispatch event to notify other components
-    window.dispatchEvent(modelChangeEvent);
-    
-    console.log("기본 모델로 설정 (API 호출 필요):", modelId);
-  }
+  const handleSetDefault = async (modelId: number) => {
+    try {
+      const { userProfile } = getAuthStatus();
+      if (!userProfile?.email) {
+        console.error("사용자 이메일을 찾을 수 없습니다.");
+        return;
+      }
 
-  const handleDelete = (modelId: number) => {
+      const selectedModel = models.find(model => model.id === modelId);
+      if (!selectedModel) {
+        console.error("선택한 모델을 찾을 수 없습니다.");
+        return;
+      }
+
+      const response = await fetch("/api/users/default-model", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: userProfile.email,
+          modelId: selectedModel._id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("기본 모델 설정에 실패했습니다.");
+      }
+
+      const result = await response.json();
+      console.log("기본 모델 설정 결과:", result);
+      
+      await refreshModels();
+    } catch (error) {
+      console.error("기본 모델 설정 중 오류 발생:", error);
+    }
+  };
+
+  const handleDelete = async (modelId: number) => {
     if (window.confirm("이 모델을 정말 삭제하시겠습니까?")) {
-      setModels(currentModels => currentModels.filter(model => model.id !== modelId));
-      console.log("모델 삭제 (API 호출 필요):", modelId);
-      /* 모델 삭제  */
-      alert("모델이 삭제되었습니다.");
+      try {
+        const { userProfile } = getAuthStatus();
+        if (!userProfile?.email) {
+          console.error("사용자 이메일을 찾을 수 없습니다.");
+          return;
+        }
+
+        const selectedModel = models.find(model => model.id === modelId);
+        if (!selectedModel) {
+          console.error("선택한 모델을 찾을 수 없습니다.");
+          return;
+        }
+
+        console.log("삭제할 모델 정보:", {
+          id: selectedModel._id,
+          name: selectedModel.name
+        });
+
+        const response = await fetch(`/api/models?id=${selectedModel._id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("모델 삭제에 실패했습니다.");
+        }
+
+        await refreshModels();
+        alert("모델이 삭제되었습니다.");
+      } catch (error) {
+        console.error("모델 삭제 중 오류 발생:", error);
+        alert("모델 삭제에 실패했습니다.");
+      }
     }
   }
 
@@ -149,14 +173,11 @@ export function AIModelManager() {
         return "bg-onair-orange/10 text-onair-orange border-onair-orange/20"
       case "교육용":
         return "border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
-      case "교육용":
-        return "border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
       default:
         return "bg-onair-text-sub/10 text-onair-text-sub border-onair-text-sub/20"
     }
   }
 
-  // 재생 버튼의 클래스를 모델 타입에 따라 반환하는 헬퍼 함수
   const getPlayButtonClasses = (type: string) => {
     switch (type) {
       case "뉴스 앵커":
@@ -172,16 +193,23 @@ export function AIModelManager() {
     }
   }
 
-  // 음성 파형 막대 색상을 모델 타입에 따라 반환하는 헬퍼 함수
   const getWaveformBarColor = (type: string) => {
     switch (type) {
       case "개인 맞춤":
-        return "bg-onair-orange/60" // 개인 맞춤 모델은 주황색 계열
+        return "bg-onair-orange/60"
       case "교육용":
-        return "bg-onair-orange/60" // 교육용 모델은 주황색 계열로 변경
+        return "bg-onair-orange/60"
       default:
-        return "bg-onair-mint/60" // 기본값은 민트색 계열 (프리미엄 모델 등)
+        return "bg-onair-mint/60"
     }
+  }
+
+  if (isLoading) {
+    return <div>로딩 중...</div>
+  }
+
+  if (error) {
+    return <div>에러: {error}</div>
   }
 
   return (
@@ -194,7 +222,7 @@ export function AIModelManager() {
       </div>
 
       <div className="grid gap-4">
-        {models.map((model) => ( // aiModels 대신 models 상태 변수를 사용
+        {models.map((model) => (
           <Card key={model.id} className="bg-onair-bg-sub border-onair-text-sub/20">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -207,8 +235,7 @@ export function AIModelManager() {
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center space-x-2">
                       <h3 className="font-semibold text-onair-text">{model.name}</h3>
-                      {/* 모델이 기본 모델일 경우 별 아이콘 표시 */}
-                      {model.isDefault && <Star className="w-4 h-4 text-onair-orange fill-current" />}
+                      {defaultModelId === model._id && <Star className="w-4 h-4 text-yellow-400 fill-current" />}
                       <Badge className={getQualityColor(model.quality)}>{model.quality}</Badge>
                     </div>
 
@@ -216,11 +243,9 @@ export function AIModelManager() {
 
                     <div className="flex items-center space-x-4 text-xs text-onair-text-sub">
                       <span>유형: {model.type}</span>
-                      <span>사용 횟수: {model.usageCount}회</span>
                       <span>생성일: {model.createdAt}</span>
                     </div>
 
-                    {/* 음성 파형 시각화 */}
                     <div className="flex items-center space-x-1 h-6 bg-onair-bg rounded p-1">
                       {Array.from({ length: 30 }).map((_, i) => (
                         <div
@@ -238,42 +263,38 @@ export function AIModelManager() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  {model.quality === "사용자 생성" && (
+                {model.quality !== "프리미엄" && (
                     <Button
-                      size="sm"
                       variant="outline"
+                      size="sm"
+                      className="border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
                       onClick={() => handleDelete(model.id)}
-                      className="border-onair-red text-onair-red hover:bg-onair-red/80"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
                   <Button
-                    size="sm"
                     variant="outline"
-                    onClick={() => handlePlay(model.id)}
-                    className={getPlayButtonClasses(model.type)}
+                    size="sm"
+                    className={`${defaultModelId === model._id ? 'border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-white' : 'border-onair-text-sub/20 text-onair-text-sub hover:bg-onair-text-sub hover:text-onair-bg'}`}
+                    onClick={() => handleSetDefault(model.id)}
                   >
-                    {playingModel === model.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    <Star className={`w-4 h-4 ${defaultModelId === model._id ? 'fill-current' : ''}`} />
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={getPlayButtonClasses(model.type)}
+                    onClick={() => handlePlay(model.id)}
+                  >
+                    {playingModel === model.id ? (
+                      <Pause className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
+                  </Button>
+            
                 </div>
-              </div>
-
-              {/* 기본 모델 설정 버튼 항상 표시, isDefault 값에 따라 스타일 변경 */}
-              <div className="mt-4 pt-4 border-t border-onair-text-sub/10">
-                <Button
-                  size="sm"
-                  onClick={() => handleSetDefault(model.id)}
-                  // isDefault 값에 따라 클래스 변경
-                  className={`${
-                    model.isDefault
-                      ? "bg-onair-orange text-onair-bg hover:bg-onair-orange-dark" // 선택되었을 때 진한 오렌지
-                      : "border border-onair-orange text-onair-orange bg-transparent hover:bg-onair-orange/10" // 선택되지 않았을 때 기존 스타일
-                  }`}
-                >
-                  <Star className="w-4 h-4 mr-2" />
-                  {model.isDefault ? "현재 선택된 모델" : "기본 모델로 설정"}
-                </Button>
               </div>
             </CardContent>
           </Card>

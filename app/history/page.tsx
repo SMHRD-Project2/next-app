@@ -1,131 +1,115 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2 } from "lucide-react"
+import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2, Play, Pause } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
-import { useState, useRef } from "react"
-import { Play, Pause } from "lucide-react";
-
-// 랜덤 날짜 생성 함수 추가
-const getRandomRecentDate = () => {
-  const today = new Date();
-  const randomDaysAgo = Math.floor(Math.random() * 30); // 0일 ~ 29일 전
-  today.setDate(today.getDate() - randomDaysAgo);
-
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
-  const day = String(today.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
-
-const initialTrainingRecords = [
-  {
-    id: 1,
-    date: getRandomRecentDate(), // 랜덤 날짜 적용
-    category: "뉴스 읽기",
-    sentence: "오늘 서울 지역에 첫눈이 내렸습니다.",
-    scores: { pronunciation: 91, intonation: 88, tone: 92 },
-    // status: "완료",
-  },
-  {
-    id: 2,
-    date: getRandomRecentDate(), // 랜덤 날짜 적용
-    category: "긴 문장",
-    sentence: "정부는 새로운 경제 정책을 발표하며... 인플레이션 억제와 고용 증대를 목표로 한다고 밝혔습니다.",
-    scores: { pronunciation: 85, intonation: 82, tone: 89 },
-    // status: "완료",
-  },
-  {
-    id: 3,
-    date: getRandomRecentDate(), // 랜덤 날짜 적용
-    category: "짧은 문장",
-    sentence: "안녕하세요, 시청자 여러분.",
-    scores: { pronunciation: 88, intonation: 85, tone: 86 },
-    // status: "완료",
-  },
-  {
-    id: 4, // 새 항목 추가 (옵션)
-    date: getRandomRecentDate(),
-    category: "뉴스 읽기",
-    sentence: "기상청은 내일 전국적으로 맑은 날씨가 이어질 것으로 예보했습니다.",
-    scores: { pronunciation: 90, intonation: 87, tone: 91 },
-  },
-  {
-    id: 5, // 새 항목 추가 (옵션)
-    date: getRandomRecentDate(),
-    category: "짧은 문장",
-    sentence: "반갑습니다.",
-    scores: { pronunciation: 95, intonation: 92, tone: 94 },
-  },
-];
+import { useState, useEffect, useRef } from "react"
+import { getAuthStatus } from "@/lib/auth-utils"
 
 export default function HistoryPage() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
-  const [trainingRecords, setTrainingRecords] = useState(initialTrainingRecords);
+  const [trainingRecords, setTrainingRecords] = useState<any[]>([])
+
+  // 이전 버전의 상태 관리
+  // const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
+  // const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
 
   // 현재 재생 중인 항목의 ID를 추적 (null이면 재생 중인 항목 없음)
-  const [currentPlayingId, setCurrentPlayingId] = useState<number | null>(null);
+  const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
   // Audio 객체를 저장할 useRef. 컴포넌트 리렌더링 시에도 객체 유지.
-  const audioInstanceRef = useRef<HTMLAudioElement | null>(null);
+  const audioInstanceRef = useRef<HTMLAudioElement | null>(null)
 
-  // 음성 재생/정지 토글 함수 (public/audio/female.wav 파일 재생)
-  const toggleAudioPlayback = (id: number) => {
-    console.log(`[${id}] 버튼 클릭됨. 현재 currentPlayingId: ${currentPlayingId}`);
-
+  // 오디오 재생 토글 함수
+  const toggleAudioPlayback = (id: string, item: any) => {
     // 만약 현재 재생 중인 항목이 있고, 그 항목이 방금 클릭한 항목이 아니라면, 기존 재생을 중지합니다.
     if (audioInstanceRef.current && currentPlayingId !== null && currentPlayingId !== id) {
-      audioInstanceRef.current.pause();
-      audioInstanceRef.current.currentTime = 0; // 처음으로 되감기
-      console.log(`[${currentPlayingId}] 이전 오디오 중지됨.`);
-      setCurrentPlayingId(null); // 이전 재생 상태 초기화
+      audioInstanceRef.current.pause()
+      audioInstanceRef.current.currentTime = 0 // 처음으로 되감기
+      // console.log(`[${currentPlayingId}] 이전 오디오 중지됨.`)
+      setCurrentPlayingId(null) // 이전 재생 상태 초기화
     }
 
     // 클릭된 항목의 재생 상태를 토글합니다.
     if (currentPlayingId === id) {
       // 이 항목이 현재 재생 중이라면, 정지합니다.
       if (audioInstanceRef.current) {
-        audioInstanceRef.current.pause();
-        audioInstanceRef.current.currentTime = 0;
-        console.log(`[${id}] 오디오 정지됨.`);
+        audioInstanceRef.current.pause()
+        audioInstanceRef.current.currentTime = 0
+        // console.log(`[${id}] 오디오 정지됨.`)
       }
-      setCurrentPlayingId(null); // 재생 상태를 null로 설정
+      setCurrentPlayingId(null) // 재생 상태를 null로 설정
     } else {
       // 이 항목이 재생 중이 아니라면, 재생을 시작합니다.
       // Audio 객체가 아직 없다면 새로 생성합니다.
       if (!audioInstanceRef.current) {
-        audioInstanceRef.current = new Audio('/audio/female.wav');
-        console.log('새 Audio 객체 생성됨: /audio/female.wav');
+        audioInstanceRef.current = new Audio(item.voiceUrl)
+        // console.log('새 Audio 객체 생성됨: /audio/female.wav')
 
         // Audio 객체의 이벤트 리스너를 한 번만 설정
         audioInstanceRef.current.onended = () => {
-          console.log(`[${currentPlayingId}] 오디오 재생 완료됨.`);
-          setCurrentPlayingId(null); // 재생 완료 시 상태 초기화
-        };
+          // console.log(`[${currentPlayingId}] 오디오 재생 완료됨.`)
+          setCurrentPlayingId(null) // 재생 완료 시 상태 초기화
+        }
         audioInstanceRef.current.onerror = (e) => {
-          console.error(`[${currentPlayingId}] 오디오 로드 또는 재생 중 에러 발생:`, e);
-          setCurrentPlayingId(null); // 에러 발생 시 상태 초기화
-        };
+          console.error(`[${currentPlayingId}] 오디오 로드 또는 재생 중 에러 발생:`, e)
+          setCurrentPlayingId(null) // 에러 발생 시 상태 초기화
+        }
       } else {
         // 기존 Audio 객체가 있다면, 재생 위치를 처음으로 되감습니다.
-        audioInstanceRef.current.currentTime = 0;
-        console.log('기존 Audio 객체 재사용.');
+        audioInstanceRef.current.currentTime = 0
+        audioInstanceRef.current.src = item.voiceUrl // 새로운 URL로 업데이트
+        // console.log('기존 Audio 객체 재사용.')
       }
 
       // 오디오 재생 시도
       audioInstanceRef.current.play().then(() => {
-        console.log(`[${id}] 오디오 재생 시작됨.`);
-        setCurrentPlayingId(id); // 재생 시작 시 현재 ID로 업데이트
+        // console.log(`[${id}] 오디오 재생 시작됨.`)
+        setCurrentPlayingId(id) // 재생 시작 시 현재 ID로 업데이트
       }).catch(error => {
-        console.error(`[${id}] audio.play() Promise 에러:`, error);
-        setCurrentPlayingId(null); // Promise 에러 시 상태 초기화
-      });
+        console.error(`[${id}] audio.play() Promise 에러:`, error)
+        setCurrentPlayingId(null) // Promise 에러 시 상태 초기화
+      })
     }
-  };
+  }
 
+  // 이전 버전의 데이터 로딩 로직
+  useEffect(() => {
+    if (isLoggedIn) {
+      const fetchRecords = async () => {
+        try {
+          const { userProfile } = getAuthStatus()
+          if (!userProfile?.email) {
+            console.error('User email not found')
+            return
+          }
+
+          const res = await fetch(`/api/training-records?email=${userProfile.email}`)
+          if (res.ok) {
+            const data = await res.json()
+            setTrainingRecords(data)
+          }
+        } catch (err) {
+          console.error('Failed to load records', err)
+        }
+      }
+      fetchRecords()
+    }
+  }, [isLoggedIn])
+
+  // 컴포넌트 언마운트 시 오디오 정리
+  useEffect(() => {
+    return () => {
+      if (audioInstanceRef.current) {
+        audioInstanceRef.current.pause()
+        audioInstanceRef.current.currentTime = 0
+      }
+    }
+  }, [])
+
+  // 평균 정확도 계산
   const calculateAverageAccuracy = () => {
     if (trainingRecords.length === 0) {
       return 0
@@ -158,7 +142,7 @@ export default function HistoryPage() {
           <p className="text-onair-text-sub text-sm mb-4">
             훈련 기록을 확인하려면 로그인해주세요
           </p>
-          <Button 
+          <Button
             onClick={handleLoginRedirect}
             className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
           >
@@ -176,18 +160,38 @@ export default function HistoryPage() {
   }
 
   // 삭제 핸들러 추가
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     if (confirm("정말로 이 기록을 삭제하시겠습니까?")) {
-      setTrainingRecords(prevRecords => prevRecords.filter(record => record.id !== id));
-      // 만약 삭제된 항목이 현재 재생 중인 항목이라면 음성 중지
-      if (currentPlayingId === id && audioInstanceRef.current) {
-        audioInstanceRef.current.pause();
-        audioInstanceRef.current.currentTime = 0;
-        setCurrentPlayingId(null);
+      try {
+        await fetch(`/api/training-records?id=${id}`, { method: 'DELETE' })
+        setTrainingRecords(prev => prev.filter(record => record._id !== id))
+        alert("기록이 삭제되었습니다.")
+      } catch (err) {
+        console.error('Failed to delete record', err)
       }
-      alert("기록이 삭제되었습니다.");
     }
-  };
+  }
+
+  // 이전 버전의 오디오 재생 토글 함수
+  // const toggleAudioPlayback = (id: string) => {    
+  //   if (currentPlayingId === id) {
+  //     // 현재 재생 중인 오디오 정지
+  //     if (audioElement) {
+  //       audioElement.pause()
+  //       audioElement.currentTime = 0
+  //     }
+  //     setCurrentPlayingId(null)
+  //   } else {
+  //     // 새로운 오디오 재생
+  //     if (audioElement) {
+  //       audioElement.pause()
+  //     }
+  //     const newAudio = new Audio(`/api/audio/${id}`)
+  //     newAudio.play()
+  //     setAudioElement(newAudio)
+  //     setCurrentPlayingId(id)
+  //   }
+  // }
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -254,11 +258,10 @@ export default function HistoryPage() {
               }
 
               // 현재 항목이 재생 중인지 확인
-              const isThisItemPlaying = currentPlayingId === item.id;
+              const isThisItemPlaying = currentPlayingId === item._id;
 
               return (
-                <div key={item.id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
-                  {/* 헤더 */}
+                <div key={item._id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(item.category)}`}>
@@ -297,19 +300,15 @@ export default function HistoryPage() {
                     <div className="flex gap-2">
                       {/* 음성 재생 버튼 */}
                       <button
-                        onClick={() => toggleAudioPlayback(item.id)} // ID만 전달
+                        onClick={(e) => { e.stopPropagation(); toggleAudioPlayback(item._id, item) }}
                         className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1"
                       >
-                        {isThisItemPlaying ? ( // 재생 상태에 따라 아이콘 변경
-                          <Pause className="w-4 h-4 mr-2" />
-                        ) : (
-                          <Play className="w-4 h-4 mr-2" />
-                        )}
-                        {isThisItemPlaying ? '음성 정지' : '음성 재생'} {/* 텍스트도 변경 */}
+                        {isThisItemPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        {isThisItemPlaying ? "일시정지" : "음성 재생"}
                       </button>
                       {/* 다시 훈련 버튼 */}
                       <button
-                        onClick={() => handleRetrain(item.sentence)}
+                        onClick={(e) => { e.stopPropagation(); handleRetrain(item.sentence) }}
                         className="px-3 py-1 text-sm bg-onair-mint text-onair-bg hover:bg-onair-mint/90 rounded flex items-center gap-1"
                       >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -324,7 +323,7 @@ export default function HistoryPage() {
                     </div>
                     {/* 삭제 버튼 */}
                     <button
-                      onClick={() => handleDelete(item.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(item._id) }}
                       className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-red-400 hover:bg-onair-bg-sub rounded flex items-center gap-1"
                     >
                       <Trash2 className="w-4 h-4" />

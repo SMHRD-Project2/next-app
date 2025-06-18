@@ -19,7 +19,7 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
   const [isLoading, setIsLoading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
-  const MAX_LENGTH = 500;
+  const MAX_LENGTH = 300;
 
   const handleUrlSubmit = async () => {
     if (!urlInput.trim()) return

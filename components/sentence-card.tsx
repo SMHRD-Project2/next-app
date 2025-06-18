@@ -12,8 +12,9 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { aiModels } from "./ai-model-manager"
+import { useAIModels } from "@/lib/ai-model-context"
 import { LoadingMessage } from "@/components/loading-message"
+import { Progress } from "@/components/ui/progress"
 import {
   WaveformPlayer,
   type WaveformPlayerHandle,
@@ -33,10 +34,10 @@ interface SentenceCardProps {
   onRecordingComplete?: (url: string | null) => void
 }
 
-export function SentenceCard({ 
-  sentence, 
-  onSentenceChange, 
-  onRefresh, 
+export function SentenceCard({
+  sentence,
+  onSentenceChange,
+  onRefresh,
   currentTab,
   isRecording,
   onRecord,
@@ -46,12 +47,25 @@ export function SentenceCard({
   waveformRef,
   onRecordingComplete
 }: SentenceCardProps) {
+  const { models: aiModels, isLoading, defaultModelId } = useAIModels()
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
-  
 
+  // TTS progress state (for AI announcer playback)
+  const [ttsProgress, setTtsProgress] = useState<number | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
+  const pendingAudioRef = useRef<HTMLAudioElement | null>(null)
 
-  const MAX_LENGTH = 500;
+  const maybePlayPendingAudio = () => {
+    if (ttsProgress !== null && ttsProgress >= 100 && pendingAudioRef.current) {
+      const audio = pendingAudioRef.current
+      aiExampleAudioRef.current = audio
+      audio.play()
+      pendingAudioRef.current = null
+    }
+  }
+
+  const MAX_LENGTH = 300;
 
   // 250609 박남규 - 내부 문장 상태를 따로 관리하도록 수정
   const [localSentence, setLocalSentence] = useState(sentence);
@@ -81,6 +95,15 @@ export function SentenceCard({
     setWaveformHeights(heights)
   }, [])
 
+  // // Cleanup SSE when unmounting
+  // useEffect(() => {
+  //   return () => {
+  //     if (eventSourceRef.current) {
+  //       eventSourceRef.current.close()
+  //     }
+  //   }
+  // }, [])
+
   // 250609 박남규 - textarea onChange 핸들러에서 내부 상태 및 부모 콜백 호출
   const handleSentenceChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const inputText = e.target.value;
@@ -101,15 +124,17 @@ export function SentenceCard({
   });
   
   useEffect(() => {
+    if (isLoading) return;
+    
     // Find the default model and set it as selected
-    const defaultModel = aiModels.find(model => model.isDefault);
+    const defaultModel = aiModels.find(model => model._id === defaultModelId);
     if (defaultModel) {
       setSelectedModel(defaultModel.id);
     }
     
     // Listen for model changes
     const handleModelChange = () => {
-      const defaultModel = aiModels.find(model => model.isDefault);
+      const defaultModel = aiModels.find(model => model._id === defaultModelId);
       if (defaultModel) {
         setSelectedModel(defaultModel.id);
       }
@@ -117,7 +142,7 @@ export function SentenceCard({
     
     window.addEventListener('aiModelChange', handleModelChange);
     return () => window.removeEventListener('aiModelChange', handleModelChange);
-  }, []);
+  }, [aiModels, isLoading, defaultModelId]);
 
   const [playingModel, setPlayingModel] = useState<number | null>(null)
   const selectedModelAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -155,22 +180,29 @@ export function SentenceCard({
     try {
       setIsPlayingSelectedModel(true);
 
-      // --- 여기에 수정된 부분 시작 ---
-      // 사용자 요청에 따라 audio/female.wav 파일을 직접 재생
-      const audioUrl = "/audio/female.wav"; // 재생할 오디오 파일 경로 고정
-      const audio = new Audio(audioUrl);
-      selectedModelAudioRef.current = audio; // 오디오 객체 저장
+      // AI 모델 DB에서 URL 가져오기
+      const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
+      if (!modelUrl) {
+        throw new Error("모델 URL을 찾을 수 없습니다.");
+      }
+
+      // 음성 파일 가져오기
+      const voiceResponse = await fetch(modelUrl);
+      const voiceBlob = await voiceResponse.blob();
+      const audioUrl = URL.createObjectURL(voiceBlob);
       
+      const audio = new Audio(audioUrl);
+      selectedModelAudioRef.current = audio;
+
       audio.onended = () => {
         setIsPlayingSelectedModel(false);
-        // 로컬 파일이므로 URL.revokeObjectURL 필요 없음
+        URL.revokeObjectURL(audioUrl);
         if (selectedModelAudioRef.current === audio) {
           selectedModelAudioRef.current = null;
         }
       };
-      
-      audio.play();
 
+      audio.play();
 
     } catch (error) {
       console.error('음성 재생 중 오류:', error);
@@ -205,9 +237,15 @@ export function SentenceCard({
       const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
       console.log("Selected Model URL:", modelUrl)
       console.log("Selected localSentence:", localSentence)
+
+      console.log("Selected Model ID:", selectedModel)
+      console.log("Selected Model Details:", aiModels.find(model => model.id === selectedModel))
+      const selectedModelDetails = aiModels.find(model => model.id === selectedModel)
+      const voice_url = selectedModelDetails?.url
+      console.log("Selected Model URL:", voice_url)
       
       // 음성 파일 가져오기
-      const voiceResponse = await fetch(modelUrl || '');
+      const voiceResponse = await fetch(voice_url || '');
       const voiceBlob = await voiceResponse.blob();
 
       // 무음 파일 가져오기
@@ -216,8 +254,48 @@ export function SentenceCard({
 
       // FormData 생성
       const formData = new FormData();
-      formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
+      formData.append('voice_file', voiceBlob, voice_url?.split('/').pop() || '');
       formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
+
+      if (currentTab === 'custom') {
+        try {
+          setTtsProgress(0);
+          const progressForm = new FormData();
+          progressForm.append('text', localSentence);
+          progressForm.append('audio', voiceBlob, 'voice.wav');
+          const progressRes = await fetch('http://localhost:8000/process-voice', {
+            method: 'POST',
+            body: progressForm,
+          });
+          if (progressRes.ok) {
+            const { task_id } = await progressRes.json();
+            if (task_id) {
+              const es = new EventSource(`http://localhost:8000/process-voice-stream/${task_id}`);
+              eventSourceRef.current = es;
+              es.onmessage = (e) => {
+                try {
+                  const data = JSON.parse(e.data);
+                  setTtsProgress(data.progress);
+                  if (data.completed || data.progress >= 100) {
+                    es.close();
+                    eventSourceRef.current = null;
+                    maybePlayPendingAudio();
+                  }
+                } catch (err) {
+                  console.error('SSE parse error', err);
+                }
+              };
+              es.onerror = (err) => {
+                console.error('SSE error', err);
+                es.close();
+                eventSourceRef.current = null;
+              };
+            }
+          }
+        } catch (err) {
+          console.error('Progress stream error', err);
+        }
+      }
 
       console.log('전송할 데이터:', {
         text: localSentence,
@@ -233,28 +311,38 @@ export function SentenceCard({
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('서버 응답:', errorText);
+        // console.error('서버 응답:', errorText);
         throw new Error(`TTS 변환 실패: ${errorText}`);
       }
 
       // 오디오 데이터를 Blob으로 변환
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
+    // }
+
+      // else
+
+// ###############################################################
       const audio = new Audio(audioUrl);
-      aiExampleAudioRef.current = audio; // 오디오 객체 저장
+      pendingAudioRef.current = audio;
+      aiExampleAudioRef.current = audio; // 미리 저장해두었다가 나중에 재생
 
       audio.onended = () => {
         setIsPlayingAIExample(false);
-        // 로컬 파일이므로 URL.revokeObjectURL 필요 없음
+        setTtsProgress(null);
         if (aiExampleAudioRef.current === audio) {
           aiExampleAudioRef.current = null;
         }
       };
-      
+
+// ############################################################### 둘 중 하나 몰라이제
       audio.play();
+      
+      maybePlayPendingAudio();
+// ###############################################################
 
     } catch (error) {
-      console.error('AI 예시 음성 재생 중 오류:', error);
+      // console.error('AI 예시 음성 재생 중 오류:', error);
       setIsPlayingAIExample(false);
       aiExampleAudioRef.current = null;
     }
@@ -270,19 +358,69 @@ export function SentenceCard({
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
 
+  //  2506011 박남규 aws 업로드하기
+  const uploadToS3 = async (blob: Blob) => {
+    console.log("전달된 blob:", blob)
+    console.log("Blob 타입:", blob.type)
+    console.log("Blob 크기:", blob.size)
+
+    const formData = new FormData()
+    const file = new File([blob], "recording.webm", { type: "audio/webm" })
+
+    console.log("생성된 File 객체:", file)
+    console.log("File 타입:", file.type)
+    console.log("File 크기:", file.size)
+
+    formData.append("file", file)
+
+    for (let [key, value] of formData.entries()) {
+      console.log("FormData 항목:", key, value)
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/upload_record", {
+        method: "POST",
+        body: formData,
+      })
+      console.log("응답 상태:", res.status)
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error("[ERROR] 서버 응답 오류:", errorText)
+        throw new Error(`서버 응답 오류: ${res.status} ${errorText}`)
+      }
+
+      const data = await res.json()
+
+      if (data.success) {
+        console.log("업로드 성공:", data.url)
+        if (onRecordingComplete) onRecordingComplete(data.url)
+        return data.url
+      } else {
+        const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."
+        console.error("업로드 실패:", data.error)
+        throw new Error(errMsg)
+      }
+    } catch (error) {
+      console.error("[ERROR] 업로드 중 예외 발생:", error)
+      throw error
+    }
+  }
+
+
   // 녹음 관련 함수들 추가
   const handleRecord = async () => {
-    console.log("handleRecord called. isRecording:", isRecording);
+    // console.log("handleRecord called. isRecording:", isRecording);
     if (!isRecording) {
       try {
-        console.log("Attempting to get media stream...");
+        // console.log("Attempting to get media stream...");
         let stream;
-        
+
         try {
           // 먼저 실제 마이크로 시도
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
-          console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
+          // console.log("마이크 접근 실패, 가상 오디오 스트림 생성 시도");
           // 마이크 접근 실패 시 가상 오디오 스트림 생성
           const audioContext = new AudioContext();
           const oscillator = audioContext.createOscillator();
@@ -291,6 +429,7 @@ export function SentenceCard({
           oscillator.start();
           stream = destination.stream;
         }
+
 
         let mimeType = 'audio/webm;codecs=opus'
         if (!MediaRecorder.isTypeSupported(mimeType)) {
@@ -304,7 +443,7 @@ export function SentenceCard({
         }
 
         const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
-        
+
         mediaRecorderRef.current = mediaRecorder
         audioChunksRef.current = []
 
@@ -318,26 +457,32 @@ export function SentenceCard({
           const audioBlob = new Blob(audioChunksRef.current, {
             type: mimeType || 'audio/webm'
           })
-          
+
           if (audioURL) {
             URL.revokeObjectURL(audioURL)
           }
-          
+
           const url = URL.createObjectURL(audioBlob)
           setAudioURL(url)
           if (onRecordingComplete) onRecordingComplete(url)
           audioChunksRef.current = []
+
+          // 250611 박남규 업로드
+          uploadToS3(audioBlob)
+          audioChunksRef.current = []
+
 
           if (timerRef.current) {
             clearInterval(timerRef.current)
             timerRef.current = null
           }
           setRecordingTime(0)
+
         }
         if (onRecordingComplete) onRecordingComplete(null)
         mediaRecorder.start()
         onRecord()
-        
+
         setRecordingTime(0)
         timerRef.current = setInterval(() => {
           setRecordingTime(prev => prev + 1)
@@ -375,7 +520,7 @@ export function SentenceCard({
   //   }
   // }
   const handlePlay = () => {
-//    if (!audioURL) return               // 녹음이 아직 없으면 무시
+    //    if (!audioURL) return               // 녹음이 아직 없으면 무시
     if (isPlaying) {
       waveformRef.current?.pause()
       setIsPlaying(false)
@@ -395,6 +540,18 @@ export function SentenceCard({
       document.body.removeChild(a)
     }
   }
+
+  // const handleWordClick = (index: number) => {
+  //   const totalDuration = waveformRef.current?.getDuration()
+  //   if (!totalDuration || words.length === 0) return
+
+  //   const timePerWord = totalDuration / words.length
+  //   waveformRef.current?.setCurrentTime(timePerWord * index)
+  //   waveformRef.current?.play()
+
+  //   setIsPlaying(true)
+  //   setHighlightIndex(index)
+  // }
 
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20">
@@ -465,7 +622,7 @@ export function SentenceCard({
                       {selectedModel === model.id && (
                         <span className="ml-auto text-onair-mint">✓</span>
                       )}
-                      {model.isDefault && selectedModel !== model.id && (
+                      {model.id && selectedModel == model.id && (
                         <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
                       )}
                     </DropdownMenuItem>
@@ -490,8 +647,17 @@ export function SentenceCard({
             maxLength={MAX_LENGTH}
           />
           <p className="text-sm text-onair-text-sub text-right">
-            {localSentence.length}/500
+            {localSentence.length}/300
           </p>
+          {currentTab === 'custom' && ttsProgress !== null && (
+            <div className="mt-2">
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-onair-text-sub">AI 진행률</span>
+                <span className="text-onair-mint">{Math.round(ttsProgress)}%</span>
+              </div>
+              <Progress value={ttsProgress} className="h-2" />
+            </div>
+          )}
         </div>
 
         {/* 녹음 컨트롤러 추가 */}
@@ -537,14 +703,31 @@ export function SentenceCard({
             )}
 
             <div className="flex flex-col items-center gap-2">
+              {/* {hasRecorded && !isRecording && audioURL && (
+                <div className="w-full mb-4">
+                  <WaveformPlayer ref={waveformRef} url={audioURL} />
+                  {audioDuration && (
+                    <div className="mt-2 flex flex-wrap justify-center gap-1 text-onair-text">
+                      {words.map((w, i) => (
+                        <span
+                          key={i}
+                          onClick={() => handleWordClick(i)}
+                          className={`cursor-pointer px-1 rounded ${highlightIndex === i ? 'bg-onair-mint text-onair-bg' : ''}`}
+                        >
+                          {w}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )} */}
               <Button
                 onClick={handleRecord}
                 size="lg"
-                className={`${
-                  isRecording
-                    ? "bg-red-500 hover:bg-red-600 text-white"
-                    : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
-                } font-semibold`}
+                className={`${isRecording
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                  } font-semibold`}
               >
                 {isRecording ? (
                   <>
@@ -589,7 +772,6 @@ export function SentenceCard({
       </CardContent>
     </Card>
 
-    
+
   )
 }
-

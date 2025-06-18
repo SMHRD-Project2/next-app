@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SentenceCard } from "@/components/sentence-card";
-import { AIResultPanel } from "@/components/ai-result-panel";
+import { AIResultPanel, defaultAIAnalysis } from "@/components/ai-result-panel";
 import { VoiceComparisonPanel } from "@/components/voice-comparison-panel";
 import { CustomSentenceUpload } from "@/components/custom-sentence-upload";
 import { PronunciationChallenge } from "@/components/pronunciation-challenge";
 import { type WaveformPlayerHandle } from "@/components/waveform-player";
+import { getAuthStatus } from "@/lib/auth-utils";
 
 interface TrainingTabsProps {
   initialCustomSentence?: string;
@@ -17,6 +18,7 @@ interface TrainingTabsProps {
 
 export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabsProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [sentence, setSentence] = useState<string>(""); // 현재 문장 상태 // 250609 박남규
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab || "short");
@@ -107,6 +109,40 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     setHasRecorded(false);
     setMyVoiceUrl(null);
   };
+  const handleSaveRecord = async () => {
+    const { userProfile } = getAuthStatus()
+    const categories: { [key: string]: string } = {
+      short: '짧은 문장',
+      long: '긴 문장',
+      news: '뉴스 읽기',
+      custom: '내문장 업로드',
+      challenge: '발음 챌린지',
+    }
+    const record = {
+      date: new Date().toISOString().slice(0, 10),
+      category: categories[activeTab],
+      sentence,
+      scores: defaultAIAnalysis,
+      voiceUrl: myVoiceUrl,
+      email: userProfile?.email, // getAuthStatus에서 가져온 이메일 사용
+    }
+    try {
+      await fetch('/api/training-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record),
+      })
+      alert('기록이 저장되었습니다.')
+      
+      // 기록 저장 후 훈련 기록 페이지로 이동할지 묻는 팝업창
+      const goToHistory = confirm('훈련 기록으로 이동하시겠습니까?')
+      if (goToHistory) {
+        router.push('/history')
+      }
+    } catch (err) {
+      console.error('Failed to save record', err)
+    }
+  }
 
   if (loading) return <div className="text-center py-10">문장을 불러오는 중...</div>;
 
@@ -143,10 +179,10 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
               onRecordingComplete={setMyVoiceUrl}
             />
           
-            {hasRecorded && (
+             {hasRecorded && (
               <div className="space-y-6">
-                <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
-                <AIResultPanel />
+                {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
+                <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
               </div>
             )}
           </TabsContent>
@@ -175,8 +211,8 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
           {hasRecorded && (
             <div className="space-y-6">
-              <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
-              <AIResultPanel />
+              {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
+              <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
             </div>
           )}
         </TabsContent>
@@ -195,12 +231,22 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
           {/* AI 분석 결과 및 음성 비교 분석 패널 배치 */}
           {hasRecorded && (
             <div className="space-y-6">
-              <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
-              <AIResultPanel />
+              {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
+              <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
             </div>
           )}
         </TabsContent>
       </Tabs>
+      {hasRecorded && (
+        <div className="text-center mt-6">
+          <button
+            onClick={handleSaveRecord}
+            className="px-4 py-2 bg-onair-mint text-onair-bg rounded hover:bg-onair-mint/90"
+          >
+            기록 저장
+          </button>
+        </div>
+      )}
     </div>
   );
 }

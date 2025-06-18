@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
         name,
         role: 'user',
         joinedAt: new Date(),
+        isDefault: null
       });
 
     return NextResponse.json({ message: '회원가입 성공', userId: result.insertedId }, { status: 201 });
