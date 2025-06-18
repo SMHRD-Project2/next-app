@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Pencil, Volume2, ChevronDown, Play, Pause, Star, MessageSquare, Speech, Mic, Square, ArrowRight, Download } from "lucide-react";
+import { RefreshCw, Pencil, Volume2, ChevronDown, Play, Pause, Star, MessageSquare, Speech, Mic, Square, ArrowRight, Download, Lock, LogIn } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ import {
   WaveformPlayer,
   type WaveformPlayerHandle,
 } from "@/components/waveform-player"
+import { getAuthStatus } from "@/lib/auth-utils"
 
 interface SentenceCardProps {
   sentence: string
@@ -56,6 +57,7 @@ export function SentenceCard({
   const { models: aiModels, isLoading, defaultModelId } = useAIModels()
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   // TTS progress state (for AI announcer playback)
   const [ttsProgress, setTtsProgress] = useState<number | null>(null)
@@ -102,6 +104,23 @@ export function SentenceCard({
     // 클라이언트 사이드에서만 랜덤 값 생성
     const heights = Array.from({ length: 40 }, () => Math.random() * 30 + 10)
     setWaveformHeights(heights)
+
+    // 클라이언트에서만 로그인 상태 확인
+    if (typeof window !== "undefined") {
+      const { isLoggedIn: loggedIn } = getAuthStatus()
+      setIsLoggedIn(loggedIn)
+    }
+
+    // 로그인 상태 변경 감지
+    const handleAuthChange = () => {
+      if (typeof window !== "undefined") {
+        const { isLoggedIn: loggedIn } = getAuthStatus()
+        setIsLoggedIn(loggedIn)
+      }
+    }
+
+    window.addEventListener('localStorageChange', handleAuthChange)
+    return () => window.removeEventListener('localStorageChange', handleAuthChange)
   }, [])
 
   // // Cleanup SSE when unmounting
@@ -581,13 +600,17 @@ export function SentenceCard({
 
   const handleDownload = () => {
     if (audioURL) {
-      const a = document.createElement('a')
-      a.href = audioURL
-      a.download = `recording-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      const link = document.createElement('a')
+      link.href = audioURL
+      link.download = 'recorded-audio.wav'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     }
+  }
+
+  const handleLoginRedirect = () => {
+    window.location.href = "/auth/login"
   }
 
   // const handleWordClick = (index: number) => {
@@ -621,7 +644,7 @@ export function SentenceCard({
               </Button>
             )}
 
-            <div className="inline-flex rounded-md shadow-sm border border-onair-mint">
+            <div className="inline-flex rounded-md shadow-sm border border-onair-mint relative">
               <Button
                 variant="ghost"
                 size="sm"
@@ -678,6 +701,16 @@ export function SentenceCard({
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* 비회원 블러 처리 오버레이 - AI 예시 듣기 버튼만 */}
+              {!isLoggedIn && (
+                <div className="absolute inset-0 bg-onair-bg/80 backdrop-blur-sm rounded-md flex items-center justify-center">
+                    <Lock className="w-4 h-4 text-onair-mint mx-auto mb-1" />
+                  {/* <div className="text-center p-2 bg-onair-bg-sub rounded border border-onair-text-sub/20">
+                    <p className="text-xs text-onair-text-sub">로그인 필요</p>
+                  </div> */}
+                </div>
+              )}
             </div>
           </div>
         </CardTitle>
@@ -820,7 +853,5 @@ export function SentenceCard({
         </div>
       </CardContent>
     </Card>
-
-
   )
 }

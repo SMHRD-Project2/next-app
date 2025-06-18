@@ -218,15 +218,17 @@ export function AIResultPanel({ myVoiceUrl, waveformRef }: VoiceComparisonPanelP
       <CardContent className="space-y-6">
 
         {/* 음성 비교 섹션 */}
-        <div className="space-y-4">
-        <h4 className="font-semibold text-onair-text">파형 비교 분석</h4>
-          <WaveCompare
-            audioFile1="/audio/female.wav"
-            audioFile2={myVoiceUrl || "/audio/male.wav"}
-            label1="AI(정답) - 배경"
-            label2="내 음성 - DTW 정렬됨"
-          />
-        </div>
+        {isLoggedIn && (
+          <div className="space-y-4">
+            <h4 className="font-semibold text-onair-text">파형 비교 분석</h4>
+            <WaveCompare
+              audioFile1="/audio/female.wav"
+              audioFile2={myVoiceUrl || "/audio/male.wav"}
+              label1="AI(정답) - 배경"
+              label2="내 음성 - DTW 정렬됨"
+            />
+          </div>
+        )}
         
         {/* 전체 점수 */}
         <div className="text-center p-4 bg-onair-bg rounded-lg border border-onair-text-sub/20">
