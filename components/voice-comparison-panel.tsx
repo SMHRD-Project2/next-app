@@ -83,7 +83,7 @@ export function VoiceComparisonPanel({ myVoiceUrl, waveformRef }: VoiceCompariso
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20 relative">
       <CardHeader>
-        <CardTitle className="text-onair-text">파형 비교 분석</CardTitle>
+        {/* <CardTitle className="text-onair-text">파형 비교 분석</CardTitle> */}
         <p className="text-onair-text-sub text-sm">세 가지 음성을 비교하여 차이점을 확인해보세요</p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -139,14 +139,6 @@ export function VoiceComparisonPanel({ myVoiceUrl, waveformRef }: VoiceCompariso
           </div>
         ))}
 
-        <div className="mt-6 p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10">
-          <h4 className="font-semibold text-onair-text mb-2">비교 분석</h4>
-          <ul className="space-y-1 text-sm text-onair-text-sub">
-            <li>• AI 예시와 비교하여 억양이 85% 일치합니다</li>
-            <li>• 아나운서 클로닝과 비교하여 톤이 92% 유사합니다</li>
-            <li>• 전체적으로 안정적인 발화 패턴을 보입니다</li>
-          </ul>
-        </div>
       </CardContent>
 
       {/* 비회원 블러 처리 오버레이 */}
