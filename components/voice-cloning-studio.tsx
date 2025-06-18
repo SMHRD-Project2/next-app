@@ -577,79 +577,28 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
 
                 <TabsContent value="record" className="space-y-4">
                   <div className="flex gap-2 justify-end mb-2">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="border-onair-mint text-onair-mint h-[38px] w-10"
-                      onClick={generateRandomSample}
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                    </Button>
-
-                    
-                    <div className="inline-flex rounded-md shadow-sm border border-onair-mint h-[38px]">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
-                        onClick={handlePlaySampleTTS}
-                      >
-                        {isPlayingAIExample ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
-                        {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                             className="relative inline-flex items-center rounded-r-md rounded-l-none text-onair-mint hover:bg-onair-mint hover:text-onair-bg px-2 focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
-                            aria-label="AI 모델 선택"
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[200px]">
-                          {aiModels.map((model) => (
-                            <DropdownMenuItem
-                              key={model.id}
-                              onClick={() => setSelectedModel(model.id)}
-                              className="flex items-center space-x-2 cursor-pointer"
-                            >
-                              <Avatar className="w-6 h-6">
-                                <AvatarImage src={model.avatar} />
-                                <AvatarFallback className="bg-onair-bg text-onair-mint">
-                                  {model.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{model.name}</span>
-                                <span className="text-xs text-onair-text-sub">{model.type}</span>
-                              </div>
-                              {selectedModel === model.id && (
-                                <span className="ml-auto text-onair-mint">✓</span>
-                              )}
-                              {model.id && selectedModel == model.id && (
-                                <Star className="w-4 h-4 text-onair-orange fill-current ml-auto" />
-                              )}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
                   </div>
 
                   {sampleTexts.map((text, index) => (
                     <div key={index} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-onair-mint">샘플</span>
-                        {recordedSamples[index] && (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="border-onair-mint text-onair-mint h-[36px] w-10"
+                          onClick={generateRandomSample}
+                        >
+                          <RefreshCw className="w-5 h-5" />
+                        </Button>
+                        {/* {recordedSamples[index] && (
                           <div className="flex items-center gap-2">
-                            {/* <span className="text-xs text-onair-text-sub">
+                            <span className="text-xs text-onair-text-sub">
                               {formatTime(recordingDurations[index] || 0)}
-                            </span> */}
+                            </span>
                             <CheckCircle className="w-4 h-4 text-green-400" />
                           </div>
-                        )}
+                        )} */}
                       </div>
                       <p className="text-onair-text mb-3">{text}</p>
                       <div className="flex items-center gap-2">

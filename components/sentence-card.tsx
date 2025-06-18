@@ -405,8 +405,20 @@ export function SentenceCard({
   const audioChunksRef = useRef<Blob[]>([])  
   const [recordingTime, setRecordingTime] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<string | null>(null)  // 업로드된 녹음 URL 저장
 
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);  // 녹음된 오디오 재생용 ref 추가
+
+  // 평가하기 버튼 클릭 핸들러 추가
+  const handleEvaluate = async () => {
+    if (!uploadedRecordingUrl) {
+      console.error("업로드된 녹음 파일이 없습니다.");
+      return;
+    }
+    
+    await performVoiceAnalysis(uploadedRecordingUrl);
+  }
 
   //  2506011 박남규 aws 업로드하기
   const uploadToS3 = async (blob: Blob, skipAnalysis: boolean = false) => {
@@ -462,6 +474,7 @@ export function SentenceCard({
 
       if (data.success) {
         console.log("업로드 성공:", data.url)
+        setUploadedRecordingUrl(data.url)  // 업로드된 URL 저장
         if (onRecordingComplete) onRecordingComplete(data.url)
         
         // skipAnalysis가 false일 때만 음성 분석 시작 (무한 루프 방지)
@@ -707,8 +720,8 @@ export function SentenceCard({
           if (onRecordingComplete) onRecordingComplete(url)
           audioChunksRef.current = []
 
-          // 250611 박남규 업로드
-          uploadToS3(audioBlob)
+          // 250611 박남규 업로드 - skipAnalysis: true로 자동 분석 비활성화
+          uploadToS3(audioBlob, true)
           audioChunksRef.current = []
 
 
@@ -759,16 +772,27 @@ export function SentenceCard({
   //     }
   //   }
   // }
-  const handlePlay = () => {
-    //    if (!audioURL) return               // 녹음이 아직 없으면 무시
-    if (isPlaying) {
-      waveformRef.current?.pause()
-      setIsPlaying(false)
-    } else {
-      waveformRef.current?.play()
-      setIsPlaying(true)
+  const handlePlay = async () => {
+    if (!audioURL) return;
+    
+    try {
+      if (isPlaying) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
+        setIsPlaying(false);
+      } else {
+        if (audioRef.current) {
+          audioRef.current.src = audioURL;
+          await audioRef.current.play();
+          setIsPlaying(true);
+        }
+      }
+    } catch (err) {
+      console.error('재생 오류:', err);
+      setIsPlaying(false);
     }
-  }
+  };
 
   const handleDownload = () => {
     if (audioURL) {
@@ -1007,6 +1031,25 @@ export function SentenceCard({
                     {isPlaying ? <Pause className="w-5 h-5 mr-2" /> : <Play className="w-5 h-5 mr-2" />}
                     {isPlaying ? "일시정지" : "재생"}
                   </Button>
+                  <Button
+                    onClick={handleEvaluate}
+                    size="lg"
+                    variant="outline"
+                    className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
+                    disabled={isAnalyzing || !uploadedRecordingUrl}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                        평가 중...
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare className="w-5 h-5 mr-2" />
+                        평가하기
+                      </>
+                    )}
+                  </Button>
                   {/* <Button
                     onClick={handleDownload}
                     size="lg"
@@ -1023,6 +1066,17 @@ export function SentenceCard({
             {hasRecorded && !isRecording && isAnalyzing && <LoadingMessage />}
           </div>
         </div>
+
+        {/* 숨겨진 audio 요소 추가 */}
+        <audio 
+          ref={audioRef}
+          onEnded={() => setIsPlaying(false)}
+          onError={(e) => {
+            console.error('오디오 재생 오류:', e);
+            setIsPlaying(false);
+          }}
+          style={{ display: 'none' }}
+        />
       </CardContent>
     </Card>
   )

@@ -56,6 +56,16 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
   label1 = 'Female (정답) - 배경',
   label2 = 'Male (사용자) - DTW 정렬됨'
 }) => {
+  // S3 URL인 경우 프록시를 통해 접근
+  const getProxiedUrl = (url: string) => {
+    if (url.startsWith('https://tennyvoice.s3.ap-northeast-2.amazonaws.com/')) {
+      return `/api/audio-proxy?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+
+  const proxiedAudioFile1 = getProxiedUrl(audioFile1);
+  const proxiedAudioFile2 = getProxiedUrl(audioFile2);
   const waveformRef1 = useRef<HTMLDivElement>(null);
   const waveformRef2 = useRef<HTMLDivElement>(null);
 
@@ -93,9 +103,9 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
         minPxPerSec: 50,
       });
       
-      // 두 음성 파일 불러오기
-      wavesurfer1.current.load(audioFile1);
-      wavesurfer2.current.load(audioFile2);
+      // 두 음성 파일 불러오기 (프록시된 URL 사용)
+      wavesurfer1.current.load(proxiedAudioFile1);
+      wavesurfer2.current.load(proxiedAudioFile2);
 
       // DTW를 사용한 파형 정렬
       if (wavesurfer1.current && wavesurfer2.current) {

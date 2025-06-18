@@ -148,12 +148,17 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const waveformRef = useRef<WaveformPlayerHandle>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)  // 녹음된 오디오 재생용
+  const exampleAudioRef = useRef<HTMLAudioElement | null>(null)  // AI 예시 음성 재생용
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('🔧 모델 초기화:', { isLoading, aiModelsLength: aiModels.length, defaultModelId });
+    
     if (!isLoading && aiModels.length > 0) {
       const defaultModel = aiModels.find(model => model._id === defaultModelId) || aiModels[0]
+      console.log('🎯 기본 모델 선택:', { defaultModel: defaultModel.name, id: defaultModel.id });
       setSelectedModel(defaultModel.id)
     }
   }, [aiModels, isLoading, defaultModelId])
@@ -182,52 +187,143 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
     try {
       if (playingModel === selectedModel) {
         // 현재 재생 중인 모델의 음성을 일시정지
-        if (audioRef.current) {
-          audioRef.current.pause();
+        if (exampleAudioRef.current) {
+          exampleAudioRef.current.pause();
           setPlayingModel(null);
         }
         return;
       }
 
       // 이전에 재생 중이던 음성이 있다면 정지
-      if (audioRef.current) {
-        audioRef.current.pause();
-        URL.revokeObjectURL(audioRef.current.src);
+      if (exampleAudioRef.current) {
+        exampleAudioRef.current.pause();
+        // URL이 blob URL인 경우에만 해제
+        if (exampleAudioRef.current.src.startsWith('blob:')) {
+          URL.revokeObjectURL(exampleAudioRef.current.src);
+        }
       }
 
       // 새로운 Audio 객체 생성
-      audioRef.current = new Audio();
+      exampleAudioRef.current = new Audio();
 
       // 선택된 모델에 따라 적절한 URL 선택
-      const modelName = aiModels.find(model => model.id === selectedModel)?.name;
-      console.log('Selected Model:', modelName); // 디버깅용 로그
-      console.log('Available Models:', aiModels); // 디버깅용 로그
-      
-      let audioUrl = '';
+      console.log('🔍 디버깅 정보:', {
+        selectedModel,
+        aiModels: aiModels.map(m => ({ id: m.id, name: m.name })),
+        selectedChallenge: { id: selectedChallenge.id, text: selectedChallenge.text }
+      });
 
-      // 모델과 챌린지에 따라 URL 매핑
-      if (modelName?.includes('김주하')) {
-        audioUrl = `https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO/audio+(${selectedChallenge.id}).wav`;
-      } else if (modelName?.includes('이동욱')) {
-        audioUrl = `https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO2/audio+(${selectedChallenge.id}).wav`;
-      } else if (modelName?.includes('박소현')) {
-        audioUrl = `https://tennyvoice.s3.ap-northeast-2.amazonaws.com/CHALL_AUDIO3/audio+(${selectedChallenge.id}).wav`;
-      }
-
-      console.log('Generated Audio URL:', audioUrl); // 디버깅용 로그
-
-      if (!audioUrl) {
-        console.error('No audio URL found for the selected model and challenge');
+      if (!selectedModel) {
+        console.error('선택된 모델이 없습니다.');
+        alert('AI 모델을 먼저 선택해주세요.');
         return;
       }
 
-      audioRef.current.src = audioUrl;
-      audioRef.current.onended = () => {
+      const modelDetails = aiModels.find(model => model.id === selectedModel);
+      if (!modelDetails) {
+        console.error('선택된 모델을 찾을 수 없습니다:', selectedModel);
+        alert('선택된 AI 모델을 찾을 수 없습니다.');
+        return;
+      }
+
+      const modelName = modelDetails.name;
+      console.log('선택된 모델 이름:', modelName);
+      
+      let audioUrl = '';
+
+      // 챌린지 데이터에서 해당 모델의 음성 URL 찾기
+      const challengeText = selectedChallenge.text;
+      let shortModelName = modelName;
+      
+      // 모델 이름 매핑 (기존 아나운서들)
+      if (modelName?.includes('김주하')) {
+        shortModelName = '김주하';
+      } else if (modelName?.includes('이동욱')) {
+        shortModelName = '이동욱';
+      } else if (modelName?.includes('박소현')) {
+        shortModelName = '박소현';
+      }
+      
+      // 챌린지 데이터에서 해당 모델의 음성 URL 찾기
+      const challengeAudioUrl = (selectedChallenge.challengeAudioUrls as any)[challengeText]?.[shortModelName];
+      
+      if (challengeAudioUrl) {
+        // 기존 아나운서 모델의 챌린지 음성이 있는 경우
+        console.log('챌린지 음성 URL 발견:', challengeAudioUrl);
+        audioUrl = `/api/audio-proxy?url=${encodeURIComponent(challengeAudioUrl)}`;
+      } else {
+        // 커스텀 모델이거나 챌린지 음성이 없는 경우 TTS 사용
+        console.log('챌린지 음성이 없어 TTS 사용:', { modelName, challengeText });
+        
+        try {
+          // 음성 파일 가져오기
+          const modelUrl = modelDetails.url;
+          const voiceResponse = await fetch(modelUrl || '');
+          const voiceBlob = await voiceResponse.blob();
+
+          // 무음 파일 가져오기
+          const silenceResponse = await fetch('/audio/silence_100ms.wav');
+          const silenceBlob = await silenceResponse.blob();
+
+          // FormData 생성
+          const formData = new FormData();
+          formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
+          formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
+
+          console.log('TTS 전송할 데이터:', {
+            text: challengeText,
+            voiceFileName: modelUrl?.split('/').pop(),
+            formDataKeys: Array.from(formData.keys())
+          });
+
+          // Next.js API를 통해 TTS 요청
+          const response = await fetch(`/api/tts?text=${encodeURIComponent(challengeText)}`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`TTS 변환 실패: ${errorText}`);
+          }
+
+          // TTS API는 JSON 응답으로 S3 URL을 반환
+          const jsonResponse = await response.json();
+          console.log("TTS JSON 응답:", jsonResponse);
+          
+          if (jsonResponse.success && jsonResponse.url) {
+            // S3 URL을 직접 사용
+            audioUrl = jsonResponse.url;
+            console.log("TTS 결과 S3 URL:", audioUrl);
+          } else {
+            throw new Error("TTS 응답에 유효한 URL이 없습니다.");
+          }
+        } catch (ttsError) {
+          console.error('TTS 생성 실패:', ttsError);
+          alert(`${modelName} 모델로 음성을 생성할 수 없습니다: ${ttsError}`);
+          return;
+        }
+      }
+
+      console.log('최종 생성된 Audio URL:', audioUrl);
+
+      exampleAudioRef.current.src = audioUrl;
+      exampleAudioRef.current.onended = () => {
+        setPlayingModel(null);
+      };
+      exampleAudioRef.current.onerror = (error) => {
+        console.error('Example audio playback error:', error);
         setPlayingModel(null);
       };
 
-      await audioRef.current.play();
-      setPlayingModel(selectedModel);
+      // 안전한 재생을 위해 try-catch 추가
+      try {
+        await exampleAudioRef.current.play();
+        setPlayingModel(selectedModel);
+      } catch (playError) {
+        console.error('Failed to play example audio:', playError);
+        setPlayingModel(null);
+      }
     } catch (error) {
       console.error('Error playing example:', error);
       setPlayingModel(null);
@@ -295,13 +391,12 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
           }
           setRecordingTime(0)
 
-          // 녹음이 완료되면 음성 분석 수행
-          if (onAnalysisComplete) {
-            try {
-              await performVoiceAnalysis(url)
-            } catch (error) {
-              console.error('음성 분석 중 오류 발생:', error)
-            }
+          // 녹음 완료 후 S3에 업로드 (자동 분석 비활성화)
+          try {
+            const uploadedUrl = await uploadToS3(audioBlob)
+            setUploadedRecordingUrl(uploadedUrl)
+          } catch (error) {
+            console.error('업로드 중 오류 발생:', error)
           }
         }
 
@@ -327,21 +422,104 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
 
   // 녹음된 오디오 재생
   const handlePlay = async () => {
-    if (audioURL) {
-      try {
-        if (isPlaying) {
-          waveformRef.current?.pause()
-          setIsPlaying(false)
-        } else {
-          waveformRef.current?.play()
-          setIsPlaying(true)
+    if (!audioURL) return;
+    
+    try {
+      if (isPlaying) {
+        if (audioRef.current) {
+          audioRef.current.pause();
         }
-      } catch (err) {
-        console.error('재생 오류:', err)
-        setIsPlaying(false)
+        setIsPlaying(false);
+      } else {
+        if (audioRef.current) {
+          audioRef.current.src = audioURL;
+          await audioRef.current.play();
+          setIsPlaying(true);
+        }
       }
+    } catch (err) {
+      console.error('재생 오류:', err);
+      setIsPlaying(false);
+    }
+  };
+
+  // 평가하기 버튼 클릭 핸들러 추가
+  const handleEvaluate = async () => {
+    if (!uploadedRecordingUrl) {
+      console.error("업로드된 녹음 파일이 없습니다.");
+      return;
+    }
+    
+    await performVoiceAnalysis(uploadedRecordingUrl);
+  }
+
+  // S3 업로드 함수 추가
+  const uploadToS3 = async (blob: Blob) => {
+    console.log("전달된 blob:", blob)
+    console.log("Blob 타입:", blob.type)
+    console.log("Blob 크기:", blob.size)
+
+    // blob 타입에 따라 파일명과 타입 결정
+    let fileName: string
+    let fileType: string
+    
+    if (blob.type === "audio/wav" || blob.type === "audio/wave") {
+      fileName = "recording.wav"
+      fileType = "audio/wav"
+    } else if (blob.type === "audio/webm") {
+      fileName = "recording.webm"
+      fileType = "audio/webm"
+    } else {
+      // 기본값으로 webm 사용 (기존 호환성 유지)
+      fileName = "recording.webm"
+      fileType = "audio/webm"
+      console.warn("알 수 없는 오디오 타입, 기본값(webm) 사용:", blob.type)
+    }
+
+    const formData = new FormData()
+    const file = new File([blob], fileName, { type: fileType })
+
+    console.log("생성된 File 객체:", file)
+    console.log("File 타입:", file.type)
+    console.log("File 크기:", file.size)
+    console.log("파일명:", fileName)
+
+    formData.append("file", file)
+
+    for (let [key, value] of formData.entries()) {
+      console.log("FormData 항목:", key, value)
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/upload_record", {
+        method: "POST",
+        body: formData,
+      })
+      console.log("응답 상태:", res.status)
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error("[ERROR] 서버 응답 오류:", errorText)
+        throw new Error(`서버 응답 오류: ${res.status} ${errorText}`)
+      }
+
+      const data = await res.json()
+
+      if (data.success) {
+        console.log("업로드 성공:", data.url)
+        return data.url
+      } else {
+        const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."
+        console.error("업로드 실패:", data.error)
+        throw new Error(errMsg)
+      }
+    } catch (error) {
+      console.error("[ERROR] 업로드 중 예외 발생:", error)
+      throw error
     }
   }
+
+
 
   // 녹음 파일 다운로드
   const handleDownload = () => {
@@ -371,12 +549,79 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
       // 챌린지에 맞는 레퍼런스 음성 URL 결정
       const modelName = modelDetails.name
       const challengeText = selectedChallenge.text
-      const referenceUrl = (selectedChallenge.challengeAudioUrls as any)[challengeText]?.[modelName]
+      
+      // 모델 이름에서 "아나운서" 제거하여 매핑
+      let shortModelName = modelName
+      if (modelName?.includes('김주하')) {
+        shortModelName = '김주하'
+      } else if (modelName?.includes('이동욱')) {
+        shortModelName = '이동욱'
+      } else if (modelName?.includes('박소현')) {
+        shortModelName = '박소현'
+      }
+      
+      console.log("모델 이름 매핑:", { 
+        originalName: modelName, 
+        shortName: shortModelName,
+        challengeText,
+        availableKeys: Object.keys((selectedChallenge.challengeAudioUrls as any)[challengeText] || {})
+      })
+      
+      // 먼저 챌린지 데이터에서 찾기
+      let referenceUrl = (selectedChallenge.challengeAudioUrls as any)[challengeText]?.[shortModelName]
 
       if (!referenceUrl) {
-        console.error("챌린지에 맞는 레퍼런스 음성을 찾을 수 없습니다.")
-        setIsAnalyzing(false)
-        return
+        // 챌린지 음성이 없는 경우 TTS로 생성
+        console.log("챌린지 음성이 없어 TTS로 레퍼런스 생성:", { modelName, challengeText });
+        
+        try {
+          // 음성 파일 가져오기
+          const modelUrl = modelDetails.url;
+          const voiceResponse = await fetch(modelUrl || '');
+          const voiceBlob = await voiceResponse.blob();
+
+          // 무음 파일 가져오기
+          const silenceResponse = await fetch('/audio/silence_100ms.wav');
+          const silenceBlob = await silenceResponse.blob();
+
+          // FormData 생성
+          const formData = new FormData();
+          formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
+          formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
+
+          console.log('TTS 레퍼런스 전송할 데이터:', {
+            text: challengeText,
+            voiceFileName: modelUrl?.split('/').pop(),
+            formDataKeys: Array.from(formData.keys())
+          });
+
+          // Next.js API를 통해 TTS 요청
+          const response = await fetch(`/api/tts?text=${encodeURIComponent(challengeText)}`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`TTS 변환 실패: ${errorText}`);
+          }
+
+          // TTS API는 JSON 응답으로 S3 URL을 반환
+          const jsonResponse = await response.json();
+          console.log("TTS 레퍼런스 JSON 응답:", jsonResponse);
+          
+          if (jsonResponse.success && jsonResponse.url) {
+            // S3 URL을 직접 사용
+            referenceUrl = jsonResponse.url;
+            console.log("TTS 레퍼런스 결과 S3 URL:", referenceUrl);
+          } else {
+            throw new Error("TTS 응답에 유효한 URL이 없습니다.");
+          }
+        } catch (ttsError) {
+          console.error('TTS 레퍼런스 생성 실패:', ttsError);
+          setIsAnalyzing(false);
+          return;
+        }
       }
 
       console.log("음성 분석 시작", {
@@ -642,7 +887,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                 )}
               </Button>
 
-              {/* {hasRecorded && !isRecording && audioURL && (
+              {hasRecorded && !isRecording && audioURL && (
                 <div className="flex gap-2">
                   <Button
                     onClick={handlePlay}
@@ -654,6 +899,25 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                     {isPlaying ? "일시정지" : "재생"}
                   </Button>
                   <Button
+                    onClick={handleEvaluate}
+                    size="lg"
+                    variant="outline"
+                    className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
+                    disabled={isAnalyzing || !uploadedRecordingUrl}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <RotateCcw className="w-5 h-5 mr-2 animate-spin" />
+                        평가 중...
+                      </>
+                    ) : (
+                      <>
+                        <Trophy className="w-5 h-5 mr-2" />
+                        평가하기
+                      </>
+                    )}
+                  </Button>
+                  <Button
                     onClick={handleDownload}
                     size="lg"
                     variant="outline"
@@ -663,9 +927,9 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                     다운로드
                   </Button>
                 </div>
-              )} */}
+              )}
 
-              {/* {hasRecorded && (
+              {hasRecorded && (
                 <Button
                   onClick={onReset}
                   size="lg"
@@ -675,16 +939,33 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                   <RotateCcw className="w-5 h-5 mr-2" />
                   다시 도전
                 </Button>
-              )} */}
+              )}
             </div>
 
-            {hasRecorded && !isRecording && <LoadingMessage />}
-            {isAnalyzing && (
-              <div className="text-center mt-4">
-                <div className="text-onair-mint text-sm">AI 분석 중...</div>
-              </div>
-            )}
+            {hasRecorded && !isRecording && isAnalyzing && <LoadingMessage />}
           </div>
+
+          {/* 숨겨진 audio 요소들 추가 */}
+          {/* 녹음된 오디오 재생용 */}
+          <audio 
+            ref={audioRef}
+            onEnded={() => setIsPlaying(false)}
+            onError={(e) => {
+              console.error('녹음된 오디오 재생 오류:', e);
+              setIsPlaying(false);
+            }}
+            style={{ display: 'none' }}
+          />
+          {/* AI 예시 음성 재생용 */}
+          <audio 
+            ref={exampleAudioRef}
+            onEnded={() => setPlayingModel(null)}
+            onError={(e) => {
+              console.error('AI 예시 오디오 재생 오류:', e);
+              setPlayingModel(null);
+            }}
+            style={{ display: 'none' }}
+          />
         </CardContent>
       </Card>
 
