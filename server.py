@@ -41,6 +41,15 @@ logger.addHandler(handler)
 
 load_dotenv(".env.local")
 
+# OpenAI API 키 설정
+# .env.local 파일에 OPENAI_API_KEY=sk-proj-... 추가 필요
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    print("⚠️  OPENAI_API_KEY 환경 변수가 설정되지 않았습니다!")
+    print("📝 .env.local 파일에 다음을 추가하세요:")
+else:
+    print(f"✅ OpenAI API 키 설정됨 (길이: {len(OPENAI_API_KEY)})")
+
 app = FastAPI()
 
 # CORS 설정
@@ -78,6 +87,231 @@ s3_client = boto3.client(
    aws_access_key_id=AWS_ACCESS_KEY_ID,
    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
+
+# OpenAI API 호출 함수
+async def generate_voice_feedback(analysis_result):
+    """OpenAI API를 사용하여 음성 분석 결과에 대한 피드백 생성"""
+    try:
+        logger.info(f"OpenAI API 키 길이: {len(OPENAI_API_KEY) if OPENAI_API_KEY else 0}")
+        
+        # 분석 결과를 텍스트로 포맷팅
+        analysis_text = f"""
+분석 항목	점수 (100점 만점)
+MFCC (발음 정확도)	{analysis_result.get('mfcc', 0):.2f}
+Pitch (음높이)	{analysis_result.get('pitch', 0):.2f}
+Energy (음성 강도)	{analysis_result.get('energy', 0):.2f}
+Speech-rate (말하기 속도)	{analysis_result.get('speed', 0):.2f}
+Formant (모음 정확도)	{analysis_result.get('formant', 0):.2f}
+Intonation (억양)	{analysis_result.get('intonation', 0):.2f}
+Rhythm (리듬감)	{analysis_result.get('rhythm', 0):.2f}
+Pause (휴지 조절)	{analysis_result.get('pause', 0):.2f}
+Overall (전체 점수)	{analysis_result.get('total', 0):.2f}
+        """
+
+        prompt = f"""
+음성 분석 결과를 바탕으로 각 항목별 피드백을 작성해주세요:
+
+{analysis_text}
+
+각 분석 항목별로 한 문장 요약과 2-3 문장의 상세 피드백을 제공해주세요.
+점수에 따른 피드백 가이드라인:
+- 90점 이상: 매우 우수, 유지 권장
+- 80-89점: 우수, 약간의 개선 권장  
+- 70-79점: 보통, 꾸준한 연습 필요
+- 60-69점: 개선 필요, 집중 연습 권장
+- 60점 미만: 많은 개선 필요, 기초 연습 권장
+
+다음 JSON 형식으로만 응답하세요:
+
+{{
+  "analysisId": "{str(uuid.uuid4())}",
+  "overallScore": {analysis_result.get('total', 0):.2f},
+  "items": [
+    {{
+      "metric": "pronunciation",
+      "score": {analysis_result.get('mfcc', 0):.2f},
+      "shortFeedback": "MFCC 점수에 따른 한 문장 피드백",
+      "detailedFeedback": [
+        "첫 번째 상세 피드백",
+        "두 번째 상세 피드백"
+      ]
+    }},
+    {{
+      "metric": "pitch",
+      "score": {analysis_result.get('pitch', 0):.2f},
+      "shortFeedback": "Pitch 점수에 따른 한 문장 피드백",
+      "detailedFeedback": [
+        "첫 번째 상세 피드백",
+        "두 번째 상세 피드백"
+      ]
+    }},
+    {{
+      "metric": "stress",
+      "score": {analysis_result.get('energy', 0):.2f},
+      "shortFeedback": "Energy 점수에 따른 한 문장 피드백",
+      "detailedFeedback": [
+        "첫 번째 상세 피드백",
+        "두 번째 상세 피드백"
+      ]
+    }},
+    {{
+      "metric": "speed",
+      "score": {analysis_result.get('speed', 0):.2f},
+      "shortFeedback": "Speech-rate 점수에 따른 한 문장 피드백",
+      "detailedFeedback": [
+        "첫 번째 상세 피드백",
+        "두 번째 상세 피드백"
+      ]
+    }},
+    {{
+      "metric": "vowel",
+      "score": {analysis_result.get('formant', 0):.2f},
+      "shortFeedback": "Formant 점수에 따른 한 문장 피드백",
+      "detailedFeedback": [
+        "첫 번째 상세 피드백",
+        "두 번째 상세 피드백"
+      ]
+    }},
+    {{
+      "metric": "intonation",
+      "score": {analysis_result.get('intonation', 0):.2f},
+      "shortFeedback": "Intonation 점수에 따른 한 문장 피드백",
+      "detailedFeedback": [
+        "첫 번째 상세 피드백",
+        "두 번째 상세 피드백"
+      ]
+    }},
+    {{
+      "metric": "rhythm",
+      "score": {analysis_result.get('rhythm', 0):.2f},
+      "shortFeedback": "Rhythm 점수에 따른 한 문장 피드백",
+      "detailedFeedback": [
+        "첫 번째 상세 피드백",
+        "두 번째 상세 피드백"
+      ]
+    }},
+    {{
+      "metric": "pause",
+      "score": {analysis_result.get('pause', 0):.2f},
+      "shortFeedback": "Pause 점수에 따른 한 문장 피드백",
+      "detailedFeedback": [
+        "첫 번째 상세 피드백",
+        "두 번째 상세 피드백"
+      ]
+    }}
+  ]
+}}
+
+한국어로 피드백을 작성하고, 위의 JSON 형식만 반환하세요.
+        """
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        }
+
+        data = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "당신은 전문적인 음성 분석 전문가입니다. 주어진 음성 분석 결과를 바탕으로 한국어로 실용적이고 건설적인 피드백을 제공합니다. 반드시 유효한 JSON 형식으로만 응답하세요."
+                },
+                {
+                    "role": "user",  
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.3,
+            "max_tokens": 2500
+        }
+
+        logger.info("OpenAI API 호출 시작")
+        response = req.post("https://api.openai.com/v1/chat/completions", 
+                           headers=headers, 
+                           json=data, 
+                           timeout=60)
+
+        logger.info(f"OpenAI API 응답 상태 코드: {response.status_code}")
+        
+        if response.status_code != 200:
+            logger.error(f"OpenAI API 오류: {response.status_code}")
+            logger.error(f"응답 내용: {response.text}")
+            return None
+
+        result = response.json()
+        feedback_content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        
+        logger.info(f"OpenAI 원본 응답 길이: {len(feedback_content)}")
+        logger.info(f"OpenAI 원본 응답 일부: {feedback_content[:200]}...")
+        
+        # JSON 파싱 시도
+        try:
+            # 응답에서 JSON 부분만 추출 (```json 태그 제거)
+            if "```json" in feedback_content:
+                feedback_content = feedback_content.split("```json")[1].split("```")[0].strip()
+            elif "```" in feedback_content:
+                feedback_content = feedback_content.split("```")[1].split("```")[0].strip()
+            
+            feedback_json = json.loads(feedback_content)
+            logger.info("OpenAI JSON 파싱 성공")
+            return feedback_json
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"OpenAI 응답 JSON 파싱 오류: {e}")
+            logger.error(f"파싱 시도한 내용: {feedback_content}")
+            return None
+
+    except Exception as e:
+        logger.error(f"OpenAI API 호출 중 오류: {str(e)}")
+        import traceback
+        logger.error(f"상세 오류: {traceback.format_exc()}")
+        return None
+
+def create_fallback_feedback(analysis_result):
+    """OpenAI API를 사용할 수 없을 때 기본 피드백 생성"""
+    analysis_id = str(uuid.uuid4())
+    overall_score = analysis_result.get('total', 0)
+    
+    # 기본 피드백 템플릿
+    def get_basic_feedback(metric, score):
+        if score >= 90:
+            return "매우 우수한 수준입니다.", ["발음이 정확하고 자연스럽습니다.", "현재 수준을 유지하시면 됩니다."]
+        elif score >= 80:
+            return "우수한 수준입니다.", ["전반적으로 좋은 발음을 보여주고 있습니다.", "조금 더 연습하면 완벽해질 것 같습니다."]
+        elif score >= 70:
+            return "보통 수준입니다.", ["기본적인 발음은 갖추고 있습니다.", "꾸준한 연습을 통해 개선할 수 있습니다."]
+        elif score >= 60:
+            return "개선이 필요합니다.", ["발음에 다소 부족한 부분이 있습니다.", "집중적인 연습이 필요합니다."]
+        else:
+            return "많은 개선이 필요합니다.", ["발음 개선을 위한 기초 연습이 필요합니다.", "전문가의 도움을 받는 것을 권장합니다."]
+    
+    metrics = [
+        ("pronunciation", analysis_result.get('mfcc', 0)),
+        ("pitch", analysis_result.get('pitch', 0)),
+        ("stress", analysis_result.get('energy', 0)),
+        ("speed", analysis_result.get('speed', 0)),
+        ("vowel", analysis_result.get('formant', 0)),
+        ("intonation", analysis_result.get('intonation', 0)),
+        ("rhythm", analysis_result.get('rhythm', 0)),
+        ("pause", analysis_result.get('pause', 0))
+    ]
+    
+    items = []
+    for metric, score in metrics:
+        short_feedback, detailed_feedback = get_basic_feedback(metric, score)
+        items.append({
+            "metric": metric,
+            "score": round(score, 2),
+            "shortFeedback": short_feedback,
+            "detailedFeedback": detailed_feedback
+        })
+    
+    return {
+        "analysisId": analysis_id,
+        "overallScore": round(overall_score, 2),
+        "items": items
+    }
 
 
 
@@ -127,15 +361,43 @@ async def analyze_voice(request: VoiceAnalysisRequest):
         logger.info("음성 분석 완료")
         logger.info(f"분석 결과: {result}")
         
-        return {
+        # OpenAI 피드백 생성
+        feedback = None
+        if OPENAI_API_KEY:
+            logger.info("OpenAI 피드백 생성 시작")
+            feedback = await generate_voice_feedback(result)
+            if feedback:
+                logger.info("OpenAI 피드백 생성 완료")
+            else:
+                logger.error("OpenAI 피드백 생성 실패 - API 호출 재시도 없이 오류 반환")
+                # 기본 피드백 대신 오류 메시지 포함하여 반환
+                return {
+                    "success": False,
+                    "error": "OpenAI 피드백 생성에 실패했습니다. API 키나 네트워크 연결을 확인해주세요.",
+                    "analysis_result": result,
+                    "timestamp": datetime.now().isoformat()
+                }
+        else:
+            logger.error("OpenAI API 키가 설정되지 않았습니다.")
+            return {
+                "success": False,
+                "error": "OpenAI API 키가 설정되지 않았습니다. 환경변수 OPENAI_API_KEY를 확인해주세요.",
+                "analysis_result": result,
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        response_data = {
             "success": True,
             "analysis_result": result,
+            "ai_feedback": feedback,
             "timestamp": datetime.now().isoformat(),
             "files": {
                 "reference_url": request.reference_url,
                 "user_url": request.user_url
             }
         }
+        
+        return response_data
         
     except Exception as e:
         logger.error(f"음성 분석 중 오류 발생: {str(e)}")

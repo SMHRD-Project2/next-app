@@ -527,6 +527,25 @@ export function SentenceCard({
         console.log("- 리듬(Rhythm) 점수:", analysisResult.analysis_result.rhythm);
         console.log("- 문장간 쉼(Pause) 점수:", analysisResult.analysis_result.pause);
         console.log("🏆 종합 점수:", analysisResult.analysis_result.total);
+        
+        // OpenAI 피드백 결과 출력
+        if (analysisResult.ai_feedback) {
+          console.log("\n🤖 OpenAI 피드백 결과:");
+          console.log("- 분석 ID:", analysisResult.ai_feedback.analysisId);
+          console.log("- 전체 점수:", analysisResult.ai_feedback.overallScore);
+          console.log("- 항목별 피드백:");
+          
+          analysisResult.ai_feedback.items.forEach((item: any) => {
+            console.log(`  📝 ${item.metric} (${item.score}점):`);
+            console.log(`     짧은 피드백: ${item.shortFeedback}`);
+            console.log(`     상세 피드백:`, item.detailedFeedback);
+          });
+          
+          // 전체 피드백 객체도 출력 (개발자용)
+          console.log("🔍 전체 AI 피드백 객체:", analysisResult.ai_feedback);
+        } else {
+          console.log("⚠️ OpenAI 피드백을 받지 못했습니다.");
+        }
       } else {
         console.error("음성 분석 실패:", analysisResult.error);
       }
