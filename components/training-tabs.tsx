@@ -16,10 +16,16 @@ interface TrainingTabsProps {
   initialTab?: string;
 }
 
+interface SentenceData {
+  text: string;
+  voiceUrl?: string;
+}
+
 export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabsProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const [sentence, setSentence] = useState<string>(""); // 현재 문장 상태 // 250609 박남규
+  const [sentence, setSentence] = useState<string>("");
+  const [voiceUrl1, setVoiceUrl1] = useState<string | undefined>(undefined);
+  const [voiceUrl2, setVoiceUrl2] = useState<string | undefined>(undefined);
+  const [voiceUrl3, setVoiceUrl3] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab || "short");
   const [isRecording, setIsRecording] = useState(false);
@@ -28,6 +34,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
   const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const waveformRef = useRef<WaveformPlayerHandle>(null!);
+  const router = useRouter();
 
   // Set initial custom sentence and tab when component mounts
   useEffect(() => {
@@ -40,34 +47,60 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     }
   }, [initialCustomSentence, initialTab]);
 
-  // Separate useEffect for handling scroll
-  useEffect(() => {
-    // Only scroll if we have both customSentence and scroll=true in URL
-    const shouldScroll = searchParams.get("scroll") === "true" && initialCustomSentence;
-    if (shouldScroll) {
-      // Add a small delay to ensure the content is rendered
-      setTimeout(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: 'smooth'
-        });
-      }, 100);
-    }
-  }, [searchParams, initialCustomSentence]);
+  // // Separate useEffect for handling scroll
+  // useEffect(() => {
+  //   // Only scroll if we have both customSentence and scroll=true in URL
+  //   const shouldScroll = searchParams.get("scroll") === "true" && initialCustomSentence;
+  //   if (shouldScroll) {
+  //     // Add a small delay to ensure the content is rendered
+  //     setTimeout(() => {
+  //       window.scrollTo({
+  //         top: document.body.scrollHeight,
+  //         behavior: 'smooth'
+  //       });
+  //     }, 100);
+  //   }
+  // }, [searchParams, initialCustomSentence]);
 
   // 탭에 따라 API에서 무작위 문장을 가져오는 함수 // 250609 박남규
   async function fetchRandomSentence(tab: string) {
     setLoading(true);
     try {
-      // short, long, news 탭의 경우 해당 type을 query로 전달하여 문장 요청 // 250609 박남규
       const res = await fetch(`/api/sentences?type=${tab}`);
       if (!res.ok) throw new Error("Failed to fetch sentence");
       const data = await res.json();
       if (!data) throw new Error("No sentence data received");
-      setSentence(data.text || "");
+      
+      console.log("=== API Response Details ===");
+      console.log("Full Response:", data);
+      console.log("Response Type:", typeof data);
+      console.log("Response Keys:", Object.keys(data));
+      console.log("Response Values:", Object.values(data));
+      console.log("=========================");
+      
+      // API 응답 구조에 따라 적절한 필드 사용
+      const sentenceText = data.sentence || data.text || "";
+      const voiceUrl1 = data.voiceUrl1;  // 김주하 아나운서
+      const voiceUrl2 = data.voiceUrl2;  // 이동욱 아나운서
+      const voiceUrl3 = data.voiceUrl3;  // 박소현 아나운서
+      
+      console.log("Extracted sentence:", sentenceText);
+      console.log("Extracted voiceUrls:", { voiceUrl1, voiceUrl2, voiceUrl3 });
+      
+      setSentence(sentenceText);
+      setVoiceUrl1(voiceUrl1);
+      setVoiceUrl2(voiceUrl2);
+      setVoiceUrl3(voiceUrl3);
+      
+      if (!voiceUrl1 && !voiceUrl2 && !voiceUrl3) {
+        console.warn("No voiceUrls found in API response. Available fields:", Object.keys(data));
+      }
     } catch (error) {
       console.error("문장 불러오기 실패:", error);
       setSentence("");
+      setVoiceUrl1(undefined);
+      setVoiceUrl2(undefined);
+      setVoiceUrl3(undefined);
     } finally {
       setLoading(false);
       setHasRecorded(false);
@@ -75,7 +108,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     }
   }
 
-  // 탭 변경 시 문장을 새로 불러오는 useEffect // 250609 박남규
+  // 탭 변경 시 문장을 새로 불러오는 useEffect
   useEffect(() => {
     if (activeTab === "custom") {
       setSentence(customSentence);
@@ -84,11 +117,11 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       return;
     }
     if (["short", "long", "news"].includes(activeTab)) {
-      fetchRandomSentence(activeTab); // 해당 type에 맞는 문장 불러오기 // 250609 박남규
+      fetchRandomSentence(activeTab);
     }
   }, [activeTab, customSentence]);
 
-  // 새로고침 버튼 클릭 시 문장 새로고침 // 250609 박남규
+  // 새로고침 버튼 클릭 시 문장 새로고침
   const handleRefreshSentence = () => {
     if (["short", "long", "news"].includes(activeTab)) {
       fetchRandomSentence(activeTab);
@@ -97,10 +130,10 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
   const handleRecord = () => {
     setIsRecording(prevIsRecording => {
-      if (prevIsRecording) { // 녹음 중이었다면 (이제 중지될 것이므로)
-        setHasRecorded(true); // 녹음이 완료되었음을 표시
+      if (prevIsRecording) {
+        setHasRecorded(true);
       }
-      return !prevIsRecording; // isRecording 상태 토글 (true -> false, false -> true)
+      return !prevIsRecording;
     });
   };
 
@@ -124,7 +157,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       sentence,
       scores: defaultAIAnalysis,
       voiceUrl: myVoiceUrl,
-      email: userProfile?.email, // getAuthStatus에서 가져온 이메일 사용
+      email: userProfile?.email,
     }
     try {
       await fetch('/api/training-records', {
@@ -167,6 +200,9 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
             
             <SentenceCard
               sentence={sentence}
+              voiceUrl1={voiceUrl1}
+              voiceUrl2={voiceUrl2}
+              voiceUrl3={voiceUrl3}
               onRefresh={handleRefreshSentence}
               currentTab={activeTab}
               onSentenceChange={setSentence}
@@ -198,6 +234,9 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
           <SentenceCard
             sentence={customSentence}
+            voiceUrl1={undefined}
+            voiceUrl2={undefined}
+            voiceUrl3={undefined}
             currentTab={activeTab}
             onSentenceChange={setCustomSentence}
             isRecording={isRecording}
@@ -228,7 +267,6 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
           }}
         />
 
-          {/* AI 분석 결과 및 음성 비교 분석 패널 배치 */}
           {hasRecorded && (
             <div className="space-y-6">
               {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
