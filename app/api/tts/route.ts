@@ -34,13 +34,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 오디오 데이터를 그대로 반환
-    const audioData = await response.arrayBuffer();
-    return new NextResponse(audioData, {
-      headers: {
-        'Content-Type': 'audio/wav',
-      },
-    });
+    // FastAPI 서버가 JSON 응답을 반환하므로 JSON으로 파싱
+    const jsonResponse = await response.json();
+    return NextResponse.json(jsonResponse);
   } catch (error) {
     console.error('TTS 처리 중 오류:', error);
     return NextResponse.json(

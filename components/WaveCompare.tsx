@@ -70,8 +70,8 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
       // 배경 파형 (female.wav) - 뒤에 표시
       wavesurfer1.current = WaveSurfer.create({
         container: waveformRef1.current,
-        waveColor: 'rgba(224, 224, 224, 0.8)',
-        progressColor: 'rgba(208, 208, 208, 0.9)',
+        waveColor: 'rgba(224, 224, 224, 0.5)',
+        progressColor: 'rgba(208, 208, 208, 0.5)',
         height: 150,
         normalize: true,
         interact: true,
@@ -83,8 +83,8 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
       // 앞쪽 파형 (male.wav) - 앞에 표시
       wavesurfer2.current = WaveSurfer.create({
         container: waveformRef2.current,
-        waveColor: 'rgba(74, 144, 226, 0.8)',
-        progressColor: 'rgba(0, 51, 102, 0.9)',
+        waveColor: 'rgba(74, 144, 226, 0.5)',
+        progressColor: 'rgba(0, 51, 102, 0.5)',
         height: 150,
         normalize: true,
         interact: true,

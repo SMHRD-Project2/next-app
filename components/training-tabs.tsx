@@ -33,6 +33,9 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
   const [customSentence, setCustomSentence] = useState(initialCustomSentence || "");
   const [myVoiceUrl, setMyVoiceUrl] = useState<string | null>(null);
   const [audioURL, setAudioURL] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [referenceUrl, setReferenceUrl] = useState<string | null>(null);
+  const [userRecordingUrl, setUserRecordingUrl] = useState<string | null>(null);
   const waveformRef = useRef<WaveformPlayerHandle>(null!);
   const router = useRouter();
 
@@ -105,6 +108,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       setLoading(false);
       setHasRecorded(false);
       setMyVoiceUrl(null);
+      setAnalysisResult(null);  // 분석 결과 초기화
     }
   }
 
@@ -114,6 +118,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       setSentence(customSentence);
       setHasRecorded(false);
       setMyVoiceUrl(null);
+      setAnalysisResult(null);  // 분석 결과 초기화
       return;
     }
     if (["short", "long", "news"].includes(activeTab)) {
@@ -141,7 +146,16 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     setCustomSentence(sentence);
     setHasRecorded(false);
     setMyVoiceUrl(null);
+    setAnalysisResult(null);  // 분석 결과 초기화
   };
+
+  const handleAnalysisComplete = (result: any, refUrl?: string, userUrl?: string) => {
+    console.log("TrainingTabs에서 분석 결과 받음:", result);
+    setAnalysisResult(result);
+    if (refUrl) setReferenceUrl(refUrl);
+    if (userUrl) setUserRecordingUrl(userUrl);
+  };
+
   const handleSaveRecord = async () => {
     const { userProfile } = getAuthStatus()
     const categories: { [key: string]: string } = {
@@ -155,7 +169,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       date: new Date().toISOString().slice(0, 10),
       category: categories[activeTab],
       sentence,
-      scores: defaultAIAnalysis,
+      scores: analysisResult || defaultAIAnalysis,
       voiceUrl: myVoiceUrl,
       email: userProfile?.email,
     }
@@ -213,12 +227,19 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
               canNext={true}
               waveformRef={waveformRef}
               onRecordingComplete={setMyVoiceUrl}
+              onAnalysisComplete={handleAnalysisComplete}
             />
           
-             {hasRecorded && (
+             {hasRecorded && analysisResult && (
               <div className="space-y-6">
                 {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
-                <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+                <AIResultPanel 
+                  myVoiceUrl={myVoiceUrl} 
+                  referenceUrl={referenceUrl}
+                  userRecordingUrl={userRecordingUrl}
+                  waveformRef={waveformRef} 
+                  analysisResult={analysisResult} 
+                />
               </div>
             )}
           </TabsContent>
@@ -246,12 +267,19 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
             canNext={false}
             waveformRef={waveformRef}
             onRecordingComplete={setMyVoiceUrl}
+            onAnalysisComplete={handleAnalysisComplete}
           />
 
-          {hasRecorded && (
+          {hasRecorded && analysisResult && (
             <div className="space-y-6">
               {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
-              <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+              <AIResultPanel 
+                myVoiceUrl={myVoiceUrl} 
+                referenceUrl={referenceUrl}
+                userRecordingUrl={userRecordingUrl}
+                waveformRef={waveformRef} 
+                analysisResult={analysisResult} 
+              />
             </div>
           )}
         </TabsContent>
@@ -264,18 +292,25 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
           onReset={() => {
             setHasRecorded(false);
             setMyVoiceUrl(null);
+            setAnalysisResult(null);  // 분석 결과 초기화
           }}
         />
 
-          {hasRecorded && (
+          {hasRecorded && analysisResult && (
             <div className="space-y-6">
               {/* <VoiceComparisonPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} /> */}
-              <AIResultPanel myVoiceUrl={myVoiceUrl} waveformRef={waveformRef} />
+              <AIResultPanel 
+                myVoiceUrl={myVoiceUrl} 
+                referenceUrl={referenceUrl}
+                userRecordingUrl={userRecordingUrl}
+                waveformRef={waveformRef} 
+                analysisResult={analysisResult} 
+              />
             </div>
           )}
         </TabsContent>
       </Tabs>
-      {hasRecorded && (
+      {hasRecorded && analysisResult && (
         <div className="text-center mt-6">
           <button
             onClick={handleSaveRecord}

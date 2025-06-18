@@ -28,7 +28,10 @@ interface AIAnalysisResult {
 // VoiceComparisonPanel Props 타입
 interface VoiceComparisonPanelProps {
   myVoiceUrl: string | null
+  referenceUrl?: string | null
+  userRecordingUrl?: string | null
   waveformRef?: React.RefObject<WaveformPlayerHandle | null>
+  analysisResult?: AIAnalysisResult
 }
 
 // 기본 AI 분석 결과 데이터
@@ -110,7 +113,7 @@ export const defaultAIAnalysis: AIAnalysisResult = {
   ]
 }
 
-export function AIResultPanel({ myVoiceUrl, waveformRef }: VoiceComparisonPanelProps) {
+export function AIResultPanel({ myVoiceUrl, referenceUrl, userRecordingUrl, waveformRef, analysisResult = defaultAIAnalysis }: VoiceComparisonPanelProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [playingTrack, setPlayingTrack] = useState<string | null>(null)
   const [waveformHeights, setWaveformHeights] = useState<{ [key: string]: number[] }>({})
@@ -154,7 +157,7 @@ export function AIResultPanel({ myVoiceUrl, waveformRef }: VoiceComparisonPanelP
     }
   }, [playingTrack])
 
-  const analysisData = defaultAIAnalysis
+  const analysisData = analysisResult || defaultAIAnalysis
 
   // 메트릭별 라벨 매핑
   const metricLabels = {
@@ -199,16 +202,16 @@ export function AIResultPanel({ myVoiceUrl, waveformRef }: VoiceComparisonPanelP
   }
 
   // 예시 점수 (실제 데이터로 대체)
-  const scoreValues = [
-    analysisData.items[0].score,
-    analysisData.items[1].score,
-    analysisData.items[2].score,
-    analysisData.items[3].score,
-    analysisData.items[4].score,
-    analysisData.items[5].score,
-    analysisData.items[6].score,
-    analysisData.items[7].score,
-  ];
+  const scoreValues = analysisData.items ? [
+    analysisData.items[0]?.score || 0,
+    analysisData.items[1]?.score || 0,
+    analysisData.items[2]?.score || 0,
+    analysisData.items[3]?.score || 0,
+    analysisData.items[4]?.score || 0,
+    analysisData.items[5]?.score || 0,
+    analysisData.items[6]?.score || 0,
+    analysisData.items[7]?.score || 0,
+  ] : [0, 0, 0, 0, 0, 0, 0, 0];
 
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20 relative">
@@ -222,8 +225,8 @@ export function AIResultPanel({ myVoiceUrl, waveformRef }: VoiceComparisonPanelP
           <div className="space-y-4">
             <h4 className="font-semibold text-onair-text">파형 비교 분석</h4>
             <WaveCompare
-              audioFile1="/audio/female.wav"
-              audioFile2={myVoiceUrl || "/audio/male.wav"}
+              audioFile1={referenceUrl || "/audio/female.wav"}
+              audioFile2={userRecordingUrl || "/audio/male.wav"}
               label1="AI(정답) - 배경"
               label2="내 음성 - DTW 정렬됨"
             />

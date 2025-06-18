@@ -36,6 +36,7 @@ interface SentenceCardProps {
   canNext: boolean
   waveformRef: React.RefObject<WaveformPlayerHandle>
   onRecordingComplete?: (url: string | null) => void
+  onAnalysisComplete?: (analysisResult: any, referenceUrl?: string, userRecordingUrl?: string) => void  // 분석 결과 콜백 추가
 }
 
 export function SentenceCard({
@@ -52,12 +53,14 @@ export function SentenceCard({
   onNext,
   canNext,
   waveformRef,
-  onRecordingComplete
+  onRecordingComplete,
+  onAnalysisComplete
 }: SentenceCardProps) {
   const { models: aiModels, isLoading, defaultModelId } = useAIModels()
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)  // 분석 상태 추가
 
   // TTS progress state (for AI announcer playback)
   const [ttsProgress, setTtsProgress] = useState<number | null>(null)
@@ -181,211 +184,137 @@ export function SentenceCard({
   const [isPlayingSelectedModel, setIsPlayingSelectedModel] = useState(false);
   const [isPlayingAIExample, setIsPlayingAIExample] = useState(false);
 
-  const handlePlaySelectedModelSentence = async () => {
-    // 현재 재생 중인 AI 예시 음성 중지 (만약 있다면)
-    if (aiExampleAudioRef.current) {
-      aiExampleAudioRef.current.pause();
-      URL.revokeObjectURL(aiExampleAudioRef.current.src);
-      aiExampleAudioRef.current = null;
-      setIsPlayingAIExample(false);
-    }
+  // const handlePlaySelectedModelSentence = async () => {
+  //   // 현재 재생 중인 AI 예시 음성 중지 (만약 있다면)
+  //   if (aiExampleAudioRef.current) {
+  //     aiExampleAudioRef.current.pause();
+  //     URL.revokeObjectURL(aiExampleAudioRef.current.src);
+  //     aiExampleAudioRef.current = null;
+  //     setIsPlayingAIExample(false);
+  //   }
 
-    // 이미 선택된 모델의 음성이 재생 중이면 중지하고 초기화
-    if (isPlayingSelectedModel) {
-      if (selectedModelAudioRef.current) {
-        selectedModelAudioRef.current.pause();
-        URL.revokeObjectURL(selectedModelAudioRef.current.src);
-        selectedModelAudioRef.current = null;
-      }
-      setIsPlayingSelectedModel(false);
-      return;
-    }
+  //   // 이미 선택된 모델의 음성이 재생 중이면 중지하고 초기화
+  //   if (isPlayingSelectedModel) {
+  //     if (selectedModelAudioRef.current) {
+  //       selectedModelAudioRef.current.pause();
+  //       URL.revokeObjectURL(selectedModelAudioRef.current.src);
+  //       selectedModelAudioRef.current = null;
+  //     }
+  //     setIsPlayingSelectedModel(false);
+  //     return;
+  //   }
 
-    // 선택된 모델이 없으면 경고 후 종료 (실제 모델 선택이 필요한 경우)
-    if (!selectedModel) {
-      console.warn("선택된 모델이 없어 음성을 재생할 수 없습니다.");
-      return;
-    }
+  //   // 선택된 모델이 없으면 경고 후 종료 (실제 모델 선택이 필요한 경우)
+  //   if (!selectedModel) {
+  //     console.warn("선택된 모델이 없어 음성을 재생할 수 없습니다.");
+  //     return;
+  //   }
 
-    try {
-      setIsPlayingSelectedModel(true);
+  //   try {
+  //     setIsPlayingSelectedModel(true);
 
-      // AI 모델 DB에서 URL 가져오기
-      const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
-      if (!modelUrl) {
-        throw new Error("모델 URL을 찾을 수 없습니다.");
-      }
+  //     // AI 모델 DB에서 URL 가져오기
+  //     const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
+  //     if (!modelUrl) {
+  //       throw new Error("모델 URL을 찾을 수 없습니다.");
+  //     }
 
-      // 음성 파일 가져오기
-      const voiceResponse = await fetch(modelUrl);
-      const voiceBlob = await voiceResponse.blob();
-      const audioUrl = URL.createObjectURL(voiceBlob);
+  //     // 음성 파일 가져오기
+  //     const voiceResponse = await fetch(modelUrl);
+  //     const voiceBlob = await voiceResponse.blob();
+  //     const audioUrl = URL.createObjectURL(voiceBlob);
       
-      const audio = new Audio(audioUrl);
-      selectedModelAudioRef.current = audio;
+  //     const audio = new Audio(audioUrl);
+  //     selectedModelAudioRef.current = audio;
 
-      audio.onended = () => {
-        setIsPlayingSelectedModel(false);
-        URL.revokeObjectURL(audioUrl);
-        if (selectedModelAudioRef.current === audio) {
-          selectedModelAudioRef.current = null;
-        }
-      };
+  //     audio.onended = () => {
+  //       setIsPlayingSelectedModel(false);
+  //       URL.revokeObjectURL(audioUrl);
+  //       if (selectedModelAudioRef.current === audio) {
+  //         selectedModelAudioRef.current = null;
+  //       }
+  //     };
 
-      audio.play();
+  //     audio.play();
 
-    } catch (error) {
-      console.error('음성 재생 중 오류:', error);
-      setIsPlayingSelectedModel(false);
-      selectedModelAudioRef.current = null;
-    }
-  };
+  //   } catch (error) {
+  //     console.error('음성 재생 중 오류:', error);
+  //     setIsPlayingSelectedModel(false);
+  //     selectedModelAudioRef.current = null;
+  //   }
+  // };
 
   const handlePlayAIExample = async () => {
-    if (!selectedModel) return;
-
-    const modelDetails = aiModels.find(model => model.id === selectedModel);
-    if (!modelDetails) return;
-
-    console.log("Selected Model Details:", modelDetails);
-    console.log("Current Sentence:", localSentence);
-    console.log("Voice URLs from DB:", { voiceUrl1, voiceUrl2, voiceUrl3 });
-
-    // 아나운서 모델이고 voiceUrl이 있으며, custom 탭이 아닌 경우에만 DB의 voiceUrl 재생
-    if (currentTab !== 'custom') {
-      let selectedVoiceUrl = null;
-      
-      // 각 아나운서별로 해당하는 voiceUrl을 선택
-      if (modelDetails.name === '김주하 아나운서' && voiceUrl1) {
-        selectedVoiceUrl = voiceUrl1;
-      } else if (modelDetails.name === '이동욱 아나운서' && voiceUrl2) {
-        selectedVoiceUrl = voiceUrl2;
-      } else if (modelDetails.name === '박소현 아나운서' && voiceUrl3) {
-        selectedVoiceUrl = voiceUrl3;
-      }
-
-      if (selectedVoiceUrl) {
-        console.log("Playing voice from DB:", selectedVoiceUrl);
-        
-        // 현재 재생 중인 오디오가 있다면 중지
-        if (currentAudioRef.current) {
-          currentAudioRef.current.pause();
-          currentAudioRef.current = null;
-        }
-
-        // 새로운 오디오 생성 및 재생
-        const audio = new Audio(selectedVoiceUrl);
-        currentAudioRef.current = audio;
-        
-        audio.onended = () => {
-          setIsPlaying(false);
-          currentAudioRef.current = null;
-        };
-
-        try {
-          await audio.play();
-          setIsPlaying(true);
-        } catch (error) {
-          console.error("Error playing audio:", error);
-          setIsPlaying(false);
-          currentAudioRef.current = null;
-        }
-        return;
-      }
+    if (!selectedModel) {
+      console.error("선택된 모델이 없습니다.");
+      return;
     }
 
-    // DB의 voiceUrl이 없거나 custom 탭인 경우 TTS 사용
     try {
-      console.log("Using TTS for playback");
-      const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
-      console.log("Selected Model URL:", modelUrl);
-      console.log("Selected localSentence:", localSentence);
-
-      // 음성 파일 가져오기
-      const voiceResponse = await fetch(modelUrl || '');
-      const voiceBlob = await voiceResponse.blob();
-
-      // 무음 파일 가져오기
-      const silenceResponse = await fetch('/audio/silence_100ms.wav');
-      const silenceBlob = await silenceResponse.blob();
-
-      // FormData 생성
-      const formData = new FormData();
-      formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
-      formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
-
-      console.log('전송할 데이터:', {
-        text: localSentence,
-        voiceFileName: modelUrl?.split('/').pop(),
-        formDataKeys: Array.from(formData.keys())
-      });
-
-      // Next.js API를 통해 요청
-      const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`TTS 변환 실패: ${errorText}`);
+      setIsPlayingAIExample(true);
+      
+      // DB의 voiceUrl이 있으면 사용, 없으면 TTS 생성
+      let audioUrl = null;
+      
+      if (currentTab !== 'custom') {
+        const modelDetails = aiModels.find(model => model.id === selectedModel);
+        if (modelDetails?.name === '김주하 아나운서' && voiceUrl1) {
+          audioUrl = voiceUrl1;
+        } else if (modelDetails?.name === '이동욱 아나운서' && voiceUrl2) {
+          audioUrl = voiceUrl2;
+        } else if (modelDetails?.name === '박소현 아나운서' && voiceUrl3) {
+          audioUrl = voiceUrl3;
+        }
       }
 
-      // 오디오 데이터를 Blob으로 변환
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      
-      console.log("audioUrl", audioUrl)
-      // audioUrl을 S3에 넣은 뒤 selectedVoiceUrl으로 받은 URL을 사용
+      // DB에 음성이 없거나 custom 탭인 경우 TTS 사용
+      if (!audioUrl) {
+        console.log("Using TTS for playback");
+        const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
+        console.log("Selected Model URL:", modelUrl);
+        console.log("Selected localSentence:", localSentence);
 
+        // 음성 파일 가져오기
+        const voiceResponse = await fetch(modelUrl || '');
+        const voiceBlob = await voiceResponse.blob();
 
-      const audio = new Audio(audioUrl);
-      currentAudioRef.current = audio;
+        // 무음 파일 가져오기
+        const silenceResponse = await fetch('/audio/silence_100ms.wav');
+        const silenceBlob = await silenceResponse.blob();
 
-      audio.onended = () => {
-        setIsPlaying(false);
-        currentAudioRef.current = null;
-        URL.revokeObjectURL(audioUrl);
-      };
+        // FormData 생성
+        const formData = new FormData();
+        formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
+        formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
 
-      await audio.play();
-      setIsPlaying(true);
-
-    } catch (error) {
-      console.error('TTS 처리 중 오류:', error);
-      setIsPlaying(false);
-      currentAudioRef.current = null;
-    }
-  };
-
-  const handleTTSPlayback = async (modelDetails: typeof aiModels[0]) => {
-    try {
-      console.log("Starting TTS conversion for model:", modelDetails.name);
-      console.log("Text to convert:", localSentence);
-      
-      const response = await fetch("/api/tts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        console.log('전송할 데이터:', {
           text: localSentence,
-          modelId: modelDetails.id,
-        }),
-      });
+          voiceFileName: modelUrl?.split('/').pop(),
+          formDataKeys: Array.from(formData.keys())
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("TTS API Error Response:", errorText);
-        throw new Error(`TTS conversion failed: ${errorText}`);
-      }
+        // Next.js API를 통해 요청
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
+          method: 'POST',
+          body: formData,
+        });
 
-      const data = await response.json();
-      console.log("TTS API Response:", data);
-      
-      if (!data.audioUrl) {
-        throw new Error("No audio URL in TTS response");
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`TTS 변환 실패: ${errorText}`);
+        }
+
+        // TTS API는 JSON 응답으로 S3 URL을 반환
+        const jsonResponse = await response.json();
+        console.log("TTS JSON 응답:", jsonResponse);
+        
+        if (jsonResponse.success && jsonResponse.url) {
+          // S3 URL을 직접 사용
+          audioUrl = jsonResponse.url;
+          console.log("TTS 결과 S3 URL:", audioUrl);
+        } else {
+          throw new Error("TTS 응답에 유효한 URL이 없습니다.");
+        }
       }
 
       // 현재 재생 중인 오디오가 있다면 중지
@@ -395,25 +324,78 @@ export function SentenceCard({
       }
 
       // 새로운 오디오 생성 및 재생
-      const audio = new Audio(data.audioUrl);
+      const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
       
       audio.onended = () => {
-        setIsPlaying(false);
+        setIsPlayingAIExample(false);
         currentAudioRef.current = null;
       };
 
       await audio.play();
-      setIsPlaying(true);
+      setIsPlayingAIExample(true);
     } catch (error) {
-      console.error("TTS Error:", error);
-      setIsPlaying(false);
+      console.error('TTS 처리 중 오류:', error);
+      setIsPlayingAIExample(false);
       currentAudioRef.current = null;
-      
-      // 에러 발생 시 사용자에게 알림
-      alert("음성 변환에 실패했습니다. 다시 시도해주세요.");
     }
   };
+
+  // const handleTTSPlayback = async (modelDetails: typeof aiModels[0]) => {
+  //   try {
+  //     console.log("Starting TTS conversion for model:", modelDetails.name);
+  //     console.log("Text to convert:", localSentence);
+      
+  //     const response = await fetch("/api/tts", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         text: localSentence,
+  //         modelId: modelDetails.id,
+  //       }),
+  //     });
+
+  //     if (!response.ok) {
+  //       const errorText = await response.text();
+  //       console.error("TTS API Error Response:", errorText);
+  //       throw new Error(`TTS conversion failed: ${errorText}`);
+  //     }
+
+  //     const data = await response.json();
+  //     console.log("TTS API Response:", data);
+      
+  //     if (!data.audioUrl) {
+  //       throw new Error("No audio URL in TTS response");
+  //     }
+
+  //     // 현재 재생 중인 오디오가 있다면 중지
+  //     if (currentAudioRef.current) {
+  //       currentAudioRef.current.pause();
+  //       currentAudioRef.current = null;
+  //     }
+
+  //     // 새로운 오디오 생성 및 재생
+  //     const audio = new Audio(data.audioUrl);
+  //     currentAudioRef.current = audio;
+      
+  //     audio.onended = () => {
+  //       setIsPlaying(false);
+  //       currentAudioRef.current = null;
+  //     };
+
+  //     await audio.play();
+  //     setIsPlaying(true);
+  //   } catch (error) {
+  //     console.error("TTS Error:", error);
+  //     setIsPlaying(false);
+  //     currentAudioRef.current = null;
+      
+  //     // 에러 발생 시 사용자에게 알림
+  //     alert("음성 변환에 실패했습니다. 다시 시도해주세요.");
+  //   }
+  // };
 
   // 녹음 관련 상태들 추가
   const [audioURL, setAudioURL] = useState<string | null>(null)
@@ -427,17 +409,35 @@ export function SentenceCard({
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
   //  2506011 박남규 aws 업로드하기
-  const uploadToS3 = async (blob: Blob) => {
+  const uploadToS3 = async (blob: Blob, skipAnalysis: boolean = false) => {
     console.log("전달된 blob:", blob)
     console.log("Blob 타입:", blob.type)
     console.log("Blob 크기:", blob.size)
 
+    // blob 타입에 따라 파일명과 타입 결정
+    let fileName: string
+    let fileType: string
+    
+    if (blob.type === "audio/wav" || blob.type === "audio/wave") {
+      fileName = "recording.wav"
+      fileType = "audio/wav"
+    } else if (blob.type === "audio/webm") {
+      fileName = "recording.webm"
+      fileType = "audio/webm"
+    } else {
+      // 기본값으로 webm 사용 (기존 호환성 유지)
+      fileName = "recording.webm"
+      fileType = "audio/webm"
+      console.warn("알 수 없는 오디오 타입, 기본값(webm) 사용:", blob.type)
+    }
+
     const formData = new FormData()
-    const file = new File([blob], "recording.webm", { type: "audio/webm" })
+    const file = new File([blob], fileName, { type: fileType })
 
     console.log("생성된 File 객체:", file)
     console.log("File 타입:", file.type)
     console.log("File 크기:", file.size)
+    console.log("파일명:", fileName)
 
     formData.append("file", file)
 
@@ -464,8 +464,10 @@ export function SentenceCard({
         console.log("업로드 성공:", data.url)
         if (onRecordingComplete) onRecordingComplete(data.url)
         
-        // 음성 분석 시작
-        await performVoiceAnalysis(data.url)
+        // skipAnalysis가 false일 때만 음성 분석 시작 (무한 루프 방지)
+        if (!skipAnalysis) {
+          await performVoiceAnalysis(data.url)
+        }
         
         return data.url
       } else {
@@ -482,10 +484,13 @@ export function SentenceCard({
   // 음성 분석 함수 추가
   const performVoiceAnalysis = async (userRecordingUrl: string) => {
     try {
+      setIsAnalyzing(true);  // 분석 시작
+      
       // AI 아나운서 모델 정보 가져오기
       const modelDetails = aiModels.find(model => model.id === selectedModel);
       if (!modelDetails) {
         console.error("선택된 AI 모델을 찾을 수 없습니다.");
+        setIsAnalyzing(false);  // 분석 실패 시 상태 초기화
         return;
       }
 
@@ -505,7 +510,52 @@ export function SentenceCard({
 
       // DB에 음성이 없거나 custom 탭인 경우 모델 URL 사용
       if (!referenceUrl) {
-        referenceUrl = modelDetails.url;
+        console.log("DB에 음성이 없거나 custom 탭인 경우 모델 URL 사용");
+        const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
+        console.log("Selected Model URL:", modelUrl);
+        console.log("Selected localSentence:", localSentence);
+
+        // 음성 파일 가져오기
+        const voiceResponse = await fetch(modelUrl || '');
+        const voiceBlob = await voiceResponse.blob();
+
+        // 무음 파일 가져오기
+        const silenceResponse = await fetch('/audio/silence_100ms.wav');
+        const silenceBlob = await silenceResponse.blob();
+
+        // FormData 생성
+        const formData = new FormData();
+        formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
+        formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
+
+        console.log('전송할 데이터:', {
+          text: localSentence,
+          voiceFileName: modelUrl?.split('/').pop(),
+          formDataKeys: Array.from(formData.keys())
+        });
+
+        // Next.js API를 통해 요청
+        const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`TTS 변환 실패: ${errorText}`);
+        }
+
+        // TTS API는 JSON 응답으로 S3 URL을 반환
+        const jsonResponse = await response.json();
+        console.log("TTS JSON 응답:", jsonResponse);
+        
+        if (jsonResponse.success && jsonResponse.url) {
+          // S3 URL을 직접 사용
+          referenceUrl = jsonResponse.url;
+          console.log("TTS 결과 S3 URL:", referenceUrl);
+        } else {
+          throw new Error("TTS 응답에 유효한 URL이 없습니다.");
+        }
       }
 
       if (!referenceUrl) {
@@ -532,8 +582,13 @@ export function SentenceCard({
         })
       });
 
+      console.log("음성 분석 API 응답 상태:", analysisResponse.status);
+      console.log("음성 분석 API 응답 헤더:", Object.fromEntries(analysisResponse.headers.entries()));
+
       if (!analysisResponse.ok) {
-        throw new Error(`음성 분석 API 호출 실패: ${analysisResponse.status}`);
+        const errorText = await analysisResponse.text();
+        console.error("음성 분석 API 오류 응답:", errorText);
+        throw new Error(`음성 분석 API 호출 실패: ${analysisResponse.status} - ${errorText}`);
       }
 
       const analysisResult = await analysisResponse.json();
@@ -560,22 +615,35 @@ export function SentenceCard({
           console.log("- 항목별 피드백:");
           
           analysisResult.ai_feedback.items.forEach((item: any) => {
-            console.log(`  📝 ${item.metric} (${item.score}점):`);
+            console.log(`   ${item.metric} (${item.score}점):`);
             console.log(`     짧은 피드백: ${item.shortFeedback}`);
             console.log(`     상세 피드백:`, item.detailedFeedback);
           });
           
           // 전체 피드백 객체도 출력 (개발자용)
           console.log("🔍 전체 AI 피드백 객체:", analysisResult.ai_feedback);
+          
+          // 분석 결과를 부모 컴포넌트로 전달
+          if (onAnalysisComplete) {
+            onAnalysisComplete(analysisResult.ai_feedback, referenceUrl, userRecordingUrl);
+          }
         } else {
           console.log("⚠️ OpenAI 피드백을 받지 못했습니다.");
         }
       } else {
         console.error("음성 분석 실패:", analysisResult.error);
+        console.error("전체 분석 결과:", analysisResult);
       }
 
     } catch (error) {
       console.error("음성 분석 중 오류 발생:", error);
+      console.error("에러 상세 정보:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        error: error
+      });
+    } finally {
+      setIsAnalyzing(false);  // 분석 완료 (성공/실패 관계없이)
     }
   }
 
@@ -952,7 +1020,7 @@ export function SentenceCard({
               )}
             </div>
 
-            {hasRecorded && !isRecording && <LoadingMessage />}
+            {hasRecorded && !isRecording && isAnalyzing && <LoadingMessage />}
           </div>
         </div>
       </CardContent>
