@@ -12,7 +12,7 @@ interface SocialLoginButtonsProps {
 export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const router = useRouter()
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'next-app-gilt-one.vercel.app'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://next-app-gilt-one.vercel.app/'
 
   const handleSocialLogin = async (provider: string) => {
     setLoadingProvider(provider)
@@ -26,7 +26,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
           authUrl = 
             `https://kauth.kakao.com/oauth/authorize?` +
             `client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&` +
-            `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/kakao/login`)}&` +
+            `redirect_uri=${encodeURIComponent(`${baseUrl}api/auth/kakao/login`)}&` +
             `response_type=code&` +
             `scope=profile_nickname`
           popupName = 'kakao_login'
