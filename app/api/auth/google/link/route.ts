@@ -24,7 +24,7 @@ export async function POST(request: Request) {
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
         code: authorizationCode,
-        redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/google/callback`,
+        redirect_uri: `${process.env.NEXTAUTH_URL}api/auth/google/callback`,
       }),
     })
 
