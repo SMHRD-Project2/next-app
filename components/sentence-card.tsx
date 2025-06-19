@@ -588,13 +588,20 @@ export function SentenceCard({
   //   }
   // }
   const handlePlay = () => {
-    //    if (!audioURL) return               // 녹음이 아직 없으면 무시
-    if (isPlaying) {
-      waveformRef.current?.pause()
+    if (!audioURL || !waveformRef.current) {
+      console.warn('audioURL 또는 waveformRef가 없습니다:', { audioURL, waveformRef: waveformRef.current })
+      return
+    }
+    
+    try {
+      if (isPlaying) {
+        waveformRef.current.pause()
+      } else {
+        waveformRef.current.play()
+      }
+    } catch (error) {
+      console.error('재생 중 오류 발생:', error)
       setIsPlaying(false)
-    } else {
-      waveformRef.current?.play()
-      setIsPlaying(true)
     }
   }
 
@@ -785,24 +792,16 @@ export function SentenceCard({
             )}
 
             <div className="flex flex-col items-center gap-2">
-              {/* {hasRecorded && !isRecording && audioURL && (
-                <div className="w-full mb-4">
-                  <WaveformPlayer ref={waveformRef} url={audioURL} />
-                  {audioDuration && (
-                    <div className="mt-2 flex flex-wrap justify-center gap-1 text-onair-text">
-                      {words.map((w, i) => (
-                        <span
-                          key={i}
-                          onClick={() => handleWordClick(i)}
-                          className={`cursor-pointer px-1 rounded ${highlightIndex === i ? 'bg-onair-mint text-onair-bg' : ''}`}
-                        >
-                          {w}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+              {hasRecorded && !isRecording && audioURL && (
+                // hidden 처리 (숨김 처리)
+                <div className="w-full mb-4 hidden">
+                  <WaveformPlayer 
+                    ref={waveformRef} 
+                    url={audioURL} 
+                    onPlayStateChange={setIsPlaying}
+                  />
                 </div>
-              )} */}
+              )}
               <Button
                 onClick={handleRecord}
                 size="lg"

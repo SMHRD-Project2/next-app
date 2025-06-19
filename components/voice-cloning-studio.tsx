@@ -523,23 +523,23 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       }
 
       // Show success message
-      alert("AI 모델이 성공적으로 저장되었습니다!");
+      //alert("AI 모델이 성공적으로 저장되었습니다!");
 
       // Show navigation confirmation
-      if (window.confirm("내 AI 모델로 이동하시겠습니까?")) {
-        // Reset the form
-        setStep(1);
-        setRecordedSamples([]);
-        setModelName("");
-        setModelDescription("");
-        setProcessingProgress(0);
+      // if (window.confirm("내 AI 모델로 이동하시겠습니까?")) {
+      //   // Reset the form
+      //   setStep(1);
+      //   setRecordedSamples([]);
+      //   setModelName("");
+      //   setModelDescription("");
+      //   setProcessingProgress(0);
 
-        // 모델 목록 새로고침
-        await refreshModels();
+      //   // 모델 목록 새로고침
+      //   await refreshModels();
 
-        // Call the onSaveSuccess callback to switch tabs
-        onSaveSuccess();
-      }
+      //   // Call the onSaveSuccess callback to switch tabs
+      //   onSaveSuccess();
+      // }
     } catch (error) {
       console.error("[ERROR] 모델 저장 중 오류:", error);
       alert("모델 저장 중 오류가 발생했습니다.");
@@ -905,50 +905,22 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                 <CheckCircle className="w-6 h-6 text-green-400" />
                 모델 생성 완료!
               </CardTitle>
-              <p className="text-onair-text-sub">"{modelName}" AI 모델이 성공적으로 생성되었습니다.</p>
+              <p className="text-onair-text-sub">"{modelName}" AI 모델이 성공적으로 생성되었습니다!.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="bg-gradient-to-r from-onair-mint/10 to-onair-blue/10 rounded-lg p-6 text-center">
-                <h3 className="text-lg font-semibold text-onair-text mb-2">축하합니다! 🎉</h3>
+                <h3 className="text-lg font-semibold text-onair-text mb-2">축하합니다!</h3>
                 <p className="text-onair-text-sub">
-                  새로운 AI 음성 모델이 준비되었습니다. 이제 훈련에서 사용할 수 있습니다.
+                  새로운 AI 음성 모델이 준비되었습니다. 이제 내 AI 모델에서 확인하고 사용할 수 있습니다.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-onair-bg rounded-lg p-4 text-center">
-                  <h4 className="font-medium text-onair-text mb-1">모델 품질</h4>
-                  <p className="text-2xl font-bold text-onair-mint">92%</p>
-                  <p className="text-xs text-onair-text-sub">매우 우수</p>
-                </div>
-                <div className="bg-onair-bg rounded-lg p-4 text-center">
-                  <h4 className="font-medium text-onair-text mb-1">유사도</h4>
-                  <p className="text-2xl font-bold text-onair-orange">89%</p>
-                  <p className="text-xs text-onair-text-sub">원본과 매우 유사</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 mt-6">
+              <div className="flex justify-center mt-6">
                 <Button
-                  onClick={() => {
-                    setStep(1)
-                    setRecordedSamples([])
-                    setRecordedUrls([])
-                    setModelName("")
-                    setModelDescription("")
-                    setProcessingProgress(0)
-                    generateRandomSample()
-                  }}
-                  variant="outline"
-                  className="flex-1 border-onair-text-sub/20"
+                  onClick={() => onSaveSuccess()}
+                  className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-8"
                 >
-                  새 모델 만들기
-                </Button>
-                <Button
-                  onClick={handleSaveModel}
-                  className="flex-1 bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
-                >
-                  내 AI 모델에 저장하기
+                  내 AI 모델 보러가기
                 </Button>
               </div>
             </CardContent>
@@ -984,6 +956,13 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       }
     }
   }, [])
+
+  // step이 4가 되면 자동으로 모델 저장
+  useEffect(() => {
+    if (step === 4) {
+      handleSaveModel()
+    }
+  }, [step])
 
   // 녹음 시간 포맷팅 함수
   const formatTime = (seconds: number) => {

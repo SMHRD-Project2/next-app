@@ -314,20 +314,21 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   }
 
   // 녹음된 오디오 재생
-  const handlePlay = async () => {
-    if (audioURL) {
-      try {
-        if (isPlaying) {
-          waveformRef.current?.pause()
-          setIsPlaying(false)
-        } else {
-          waveformRef.current?.play()
-          setIsPlaying(true)
-        }
-      } catch (err) {
-        console.error('재생 오류:', err)
-        setIsPlaying(false)
+  const handlePlay = () => {
+    if (!audioURL || !waveformRef.current) {
+      console.warn('audioURL 또는 waveformRef가 없습니다:', { audioURL, waveformRef: waveformRef.current })
+      return
+    }
+    
+    try {
+      if (isPlaying) {
+        waveformRef.current.pause()
+      } else {
+        waveformRef.current.play()
       }
+    } catch (error) {
+      console.error('재생 중 오류 발생:', error)
+      setIsPlaying(false)
     }
   }
 
@@ -536,6 +537,16 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
               </>
             )}
 
+            {hasRecorded && !isRecording && audioURL && (
+              <div className="w-full mb-4 hidden">
+                <WaveformPlayer 
+                  ref={waveformRef} 
+                  url={audioURL} 
+                  onPlayStateChange={setIsPlaying}
+                />
+              </div>
+            )}
+
             <div className="flex justify-center gap-4">
               <Button
                 onClick={handleRecord}
@@ -559,7 +570,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                 )}
               </Button>
 
-              {/* {hasRecorded && !isRecording && audioURL && (
+              {hasRecorded && !isRecording && audioURL && (
                 <div className="flex gap-2">
                   <Button
                     onClick={handlePlay}
@@ -570,17 +581,8 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                     {isPlaying ? <Pause className="w-5 h-5 mr-2" /> : <Play className="w-5 h-5 mr-2" />}
                     {isPlaying ? "일시정지" : "재생"}
                   </Button>
-                  <Button
-                    onClick={handleDownload}
-                    size="lg"
-                    variant="outline"
-                    className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
-                  >
-                    <Download className="w-5 h-5 mr-2" />
-                    다운로드
-                  </Button>
                 </div>
-              )} */}
+              )}
 
               {/* {hasRecorded && (
                 <Button
