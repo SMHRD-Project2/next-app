@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // FastAPI 서버로 요청 전송
-    const apiUrl = 'http://localhost:8000/tts';
+    const apiUrl = `${process.env.NEXT_PUBLIC_PY_URL}/tts`;
     const apiFormData = new FormData();
     apiFormData.append('voice_file', voiceFile);
     apiFormData.append('silence_file', silenceFile);
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     }
 
     // FastAPI 서버 URL
-    const fastApiUrl = process.env.FASTAPI_URL || 'http://localhost:8000';
+    const fastApiUrl = process.env.NEXT_PUBLIC_PY_URL;
     
     //console.log('FastAPI 요청:', {
     //   url: `${fastApiUrl}/tts`,

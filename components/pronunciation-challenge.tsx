@@ -491,7 +491,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
     }
 
     try {
-      const res = await fetch("http://localhost:8000/upload_record", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_PY_URL}/upload_record`, {
         method: "POST",
         body: formData,
       })
@@ -518,8 +518,6 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
       throw error
     }
   }
-
-
 
   // 녹음 파일 다운로드
   const handleDownload = () => {
@@ -632,7 +630,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
       })
 
       // 음성 분석 API 호출
-      const analysisResponse = await fetch("http://localhost:8000/analyze-voice", {
+      const analysisResponse = await fetch(`${process.env.NEXT_PUBLIC_PY_URL}/analyze-voice`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

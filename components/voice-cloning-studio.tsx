@@ -314,7 +314,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       //   type: recordedSamples[0].type
       // })
 
-      const response = await fetch('http://localhost:8000/upload_model', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PY_URL }/upload_model`, {
         method: 'POST',
         body: formData,
       })
@@ -339,9 +339,9 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
 
   // 실시간 진행률 스트림 연결 함수
   const connectProgressStream = (taskId: string) => {
-    // console.log(`📡 SSE 연결 시도: http://localhost:8000/process-voice-stream/${taskId}`)
+    // console.log(`📡 SSE 연결 시도: ${process.env.NEXT_PUBLIC_PY_URL }/process-voice-stream/${taskId}`)
     
-    const eventSource = new EventSource(`http://localhost:8000/process-voice-stream/${taskId}`)
+    const eventSource = new EventSource(`${process.env.NEXT_PUBLIC_PY_URL }/process-voice-stream/${taskId}`)
 
     eventSource.onopen = () => {
       // console.log('✅ SSE 연결 성공')

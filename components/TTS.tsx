@@ -26,7 +26,7 @@ export const TTS = ({ text, voice = 'SPK005.wav', onError }: TTSProps) => {
       formData.append('voice_file', voiceBlob, voice);
 
       // FastAPI 서버로 요청
-      const response = await fetch(`http://localhost:8000/tts?text=${encodeURIComponent(text)}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PY_URL }/tts?text=${encodeURIComponent(text)}`, {
         method: 'POST',
         body: formData,
       });

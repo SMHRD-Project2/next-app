@@ -458,7 +458,7 @@ export function SentenceCard({
     }
 
     try {
-      const res = await fetch("http://localhost:8000/upload_record", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_PY_URL}/upload_record`, {
         method: "POST",
         body: formData,
       })
@@ -584,7 +584,7 @@ export function SentenceCard({
       });
 
       // 음성 분석 API 호출
-      const analysisResponse = await fetch("http://localhost:8000/analyze-voice", {
+      const analysisResponse = await fetch(`${process.env.NEXT_PUBLIC_PY_URL}/analyze-voice`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

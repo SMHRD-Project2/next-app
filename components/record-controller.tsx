@@ -132,7 +132,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
               fileSize: file.size
             });
 
-            const response = await fetch("http://localhost:8000/upload_model", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_PY_URL}/upload_model`, {
               method: "POST",
               body: formData,
             });
