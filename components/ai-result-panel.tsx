@@ -250,6 +250,9 @@ export function AIResultPanel({ myVoiceUrl, referenceUrl, userRecordingUrl, wave
             />
           </div>
         )}
+
+        <h4 className="font-semibold text-onair-text">육각 그래프</h4>
+        <VoiceRadarChart scores={scoreValues} />
         
         {/* 전체 점수 */}
         <div className="text-center p-4 bg-onair-bg rounded-lg border border-onair-text-sub/20">
@@ -258,9 +261,6 @@ export function AIResultPanel({ myVoiceUrl, referenceUrl, userRecordingUrl, wave
           </div>
           <div className="text-onair-text-sub text-sm">전체 평가 점수</div>
         </div>
-
-        <h4 className="font-semibold text-onair-text">육각 그래프</h4>
-        <VoiceRadarChart scores={scoreValues} />
 
         {/* 개별 점수
         <div className="grid grid-cols-2 gap-4">

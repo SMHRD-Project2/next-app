@@ -28,6 +28,12 @@ export default function HomePage() {
   const router = useRouter()
 
   const handleStartButtonClick = () => {
+    // 무조건 훈련실로 이동
+    router.push('/training')
+  }
+
+  const handleFreeStartButtonClick = () => {
+    // 로그인 시 훈련실, 비로그인 시 로그인 페이지로 이동
     if (isLoggedIn) {
       router.push('/training')
     } else {
@@ -193,7 +199,7 @@ export default function HomePage() {
               <Button 
                 size="lg" 
                 className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-6"
-                onClick={handleStartButtonClick}
+                onClick={handleFreeStartButtonClick}
               >
                 무료로 시작하기
               </Button>

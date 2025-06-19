@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2, Play, Pause, Eye } from "lucide-react"
+import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2, Play, Pause, Eye, ChevronDown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
@@ -16,6 +16,9 @@ export default function HistoryPage() {
   const [trainingRecords, setTrainingRecords] = useState<any[]>([])
   const [selectedRecord, setSelectedRecord] = useState<any>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>("전체")
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // 현재 재생 중인 항목의 ID를 추적 (null이면 재생 중인 항목 없음)
   const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
@@ -108,6 +111,34 @@ export default function HistoryPage() {
       }
     }
   }, [])
+
+  // 바깥 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    if (showDropdown) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showDropdown])
+
+  const categories = [
+    "전체",
+    "짧은 문장",
+    "긴 문장",
+    "뉴스 읽기",
+    "내문장 업로드",
+    "발음 챌린지"
+  ]
+
+  const filteredRecords = selectedCategory === "전체"
+    ? trainingRecords
+    : trainingRecords.filter(item => item.category === selectedCategory)
 
   // 평균 정확도 계산
   const calculateAverageAccuracy = () => {
@@ -249,13 +280,48 @@ export default function HistoryPage() {
       {/* 훈련 기록 */}
       <Card className="bg-onair-bg-sub border-onair-text-sub/20">
         <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Calendar className="w-5 h-5 text-onair-mint" />
-            <h2 className="text-xl font-semibold text-onair-text">훈련 기록</h2>
+          <div className="flex items-center gap-2 mb-4 justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-onair-mint" />
+              <h2 className="text-lg font-semibold text-onair-text">훈련 기록</h2>
+            </div>
+            {/* 드롭다운 필터 */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-onair-bg-sub border border-gray-600 text-onair-white text-sm shadow-sm hover:bg-white/20 hover:shadow-md transition-all duration-200 ease-in-out"
+                onClick={() => setShowDropdown(v => !v)}
+                type="button"
+              >
+                {selectedCategory}
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`} />
+              </button>
+              <div
+                className={`absolute right-0 mt-2 w-40 bg-onair-bg-sub border border-gray-600 rounded-lg shadow-xl z-20 overflow-hidden transition-all duration-200 ease-in-out
+                  ${showDropdown ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}
+                `}
+              >
+                {categories.map(category => (
+                  <button
+                    key={category}
+                    className={`block w-full text-left px-4 py-2 text-sm transition-all duration-100
+                      ${selectedCategory === category
+                        ? "bg-white/10 text-white font-semibold"
+                        : "text-onair-text hover:bg-white/10 hover:text-white"}
+                    `}
+                    onClick={() => {
+                      setSelectedCategory(category)
+                      setShowDropdown(false)
+                    }}
+                    type="button"
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-
-          <div className="space-y-4">
-            {trainingRecords.map((item) => {
+          <div className="space-y-3">
+            {filteredRecords.map((item) => {
               const getScoreColor = (score: number) => {
                 if (score >= 90) return "text-onair-mint"
                 if (score >= 80) return "text-onair-orange"
@@ -265,13 +331,16 @@ export default function HistoryPage() {
               const getCategoryColor = (category: string) => {
                 switch (category) {
                   case "뉴스 읽기":
-                    return "bg-onair-mint/10 text-onair-mint"
+                    return "bg-onair-blue/10 text-onair-blue"
                   case "긴 문장":
                     return "bg-onair-orange/10 text-onair-orange"
                   case "짧은 문장":
-                    return "bg-onair-blue/10 text-onair-blue"
-                  default:
-                    return "bg-onair-text-sub/10 text-onair-text-sub"
+                    return "bg-onair-mint/10 text-onair-mint"
+                  case "발음 챌린지":
+                    return "bg-onair-red/20 text-red-400"
+                  case "내문장 업로드":
+                    return "bg-white/10 text-gray"
+
                 }
               }
 
@@ -388,6 +457,11 @@ export default function HistoryPage() {
                 </div>
               )
             })}
+            {filteredRecords.length === 0 && (
+              <div className="text-center text-onair-text-sub py-8 text-sm">
+                해당 카테고리의 기록이 없습니다.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -249,7 +249,7 @@ export function Navigation() {
                         className="w-full justify-start px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-400"
                         onClick={handleLogout}
                       >
-                        <LogOut className="mr-3 h-4 w-4" />
+                        <LogOut className="h-4 w-4" />
                         로그아웃
                       </Button>
                     </div>

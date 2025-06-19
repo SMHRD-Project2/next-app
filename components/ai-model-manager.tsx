@@ -27,6 +27,7 @@ export function AIModelManager() {
   const [playingModel, setPlayingModel] = useState<number | null>(null)
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
   const { models, isLoading, error, refreshModels, defaultModelId } = useAIModels()
+  const [modelType, setModelType] = useState<"전체" | "프리미엄" | "사용자 생성">("전체")
 
   const handlePlay = async (modelId: number) => {
     try {
@@ -205,7 +206,15 @@ export function AIModelManager() {
   }
 
   if (isLoading) {
-    return <div>로딩 중...</div>
+    return (
+      <div className="flex justify-center items-center h-40">
+        <div className="flex space-x-2">
+          <div className="w-3 h-3 bg-onair-mint rounded-full animate-bounce [animation-delay:-0.3s]" />
+          <div className="w-3 h-3 bg-onair-mint rounded-full animate-bounce [animation-delay:-0.15s]" />
+          <div className="w-3 h-3 bg-onair-mint rounded-full animate-bounce" />
+        </div>
+      </div>
+    )
   }
 
   if (error) {
@@ -221,84 +230,111 @@ export function AIModelManager() {
         </div>
       </div>
 
+      <div className="flex gap-2.5 mb-2">
+        {["전체", "프리미엄", "사용자 생성"].map((type) => (
+          <label
+            key={type}
+            className={`
+              flex items-center gap-1 cursor-pointer px-3 py-1 rounded-full border
+              transition
+              ${modelType === type
+                ? "bg-onair-mint text-white border-onair-mint font-semibold"
+                : "bg-onair-bg-sub text-onair-text-sub border-onair-text-sub/20"}
+            `}
+          >
+            <input
+              type="radio"
+              name="modelType"
+              value={type}
+              checked={modelType === type}
+              onChange={() => setModelType(type as typeof modelType)}
+              className="hidden"
+            />
+            <span className="text-sm">{type === "전체" ? "전체 보기" : type}</span>
+          </label>
+        ))}
+      </div>
+
       <div className="grid gap-4">
-        {models.map((model) => (
-          <Card key={model.id} className="bg-onair-bg-sub border-onair-text-sub/20">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-4 flex-1">
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={model.avatar || "/placeholder.svg"} />
-                    <AvatarFallback className="bg-onair-bg text-onair-mint">{model.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
+        {models
+          .filter((model) => modelType === "전체" || model.quality === modelType)
+          .map((model) => (
+            <Card key={model.id} className="bg-onair-bg-sub border-onair-text-sub/20">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-4 flex-1">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={model.avatar || "/placeholder.svg"} />
+                      <AvatarFallback className="bg-onair-bg text-onair-mint">{model.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
 
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-semibold text-onair-text">{model.name}</h3>
-                      {defaultModelId === model._id && <Star className="w-4 h-4 text-yellow-400 fill-current" />}
-                      <Badge className={getQualityColor(model.quality)}>{model.quality}</Badge>
-                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold text-onair-text">{model.name}</h3>
+                        {defaultModelId === model._id && <Star className="w-4 h-4 text-yellow-400 fill-current" />}
+                        <Badge className={getQualityColor(model.quality)}>{model.quality}</Badge>
+                      </div>
 
-                    <p className="text-sm text-onair-text-sub">{model.description}</p>
+                      <p className="text-sm text-onair-text-sub">{model.description}</p>
 
-                    <div className="flex items-center space-x-4 text-xs text-onair-text-sub">
-                      <span>유형: {model.type}</span>
-                      <span>생성일: {model.createdAt}</span>
-                    </div>
+                      <div className="flex items-center space-x-4 text-xs text-onair-text-sub">
+                        <span>유형: {model.type}</span>
+                        <span>생성일: {model.createdAt}</span>
+                      </div>
 
-                    <div className="flex items-center space-x-1 h-6 bg-onair-bg rounded p-1">
-                      {Array.from({ length: 30 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`${getWaveformBarColor(model.type)} rounded-full ${playingModel === model.id ? "animate-wave" : ""}`}
-                          style={{
-                            width: "2px",
-                            height: `${Math.random() * 16 + 4}px`,
-                            animationDelay: playingModel === model.id ? `${i * 0.05}s` : "0s",
-                          }}
-                        />
-                      ))}
+                      <div className="flex items-center space-x-1 h-6 bg-onair-bg rounded p-1">
+                        {Array.from({ length: 30 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className={`${getWaveformBarColor(model.type)} rounded-full ${playingModel === model.id ? "animate-wave" : ""}`}
+                            style={{
+                              width: "2px",
+                              height: `${Math.random() * 16 + 4}px`,
+                              animationDelay: playingModel === model.id ? `${i * 0.05}s` : "0s",
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center space-x-2">
-                {model.quality !== "프리미엄" && (
+                  <div className="flex items-center space-x-2">
+                  {model.quality !== "프리미엄" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+                        onClick={() => handleDelete(model.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
-                      onClick={() => handleDelete(model.id)}
+                      className={`${defaultModelId === model._id ? 'border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-white' : 'border-onair-text-sub/20 text-onair-text-sub hover:bg-onair-text-sub hover:text-onair-bg'}`}
+                      onClick={() => handleSetDefault(model.id)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Star className={`w-4 h-4 ${defaultModelId === model._id ? 'fill-current' : ''}`} />
                     </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`${defaultModelId === model._id ? 'border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-white' : 'border-onair-text-sub/20 text-onair-text-sub hover:bg-onair-text-sub hover:text-onair-bg'}`}
-                    onClick={() => handleSetDefault(model.id)}
-                  >
-                    <Star className={`w-4 h-4 ${defaultModelId === model._id ? 'fill-current' : ''}`} />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={getPlayButtonClasses(model.type)}
-                    onClick={() => handlePlay(model.id)}
-                  >
-                    {playingModel === model.id ? (
-                      <Pause className="w-4 h-4" />
-                    ) : (
-                      <Play className="w-4 h-4" />
-                    )}
-                  </Button>
-            
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={getPlayButtonClasses(model.type)}
+                      onClick={() => handlePlay(model.id)}
+                    >
+                      {playingModel === model.id ? (
+                        <Pause className="w-4 h-4" />
+                      ) : (
+                        <Play className="w-4 h-4" />
+                      )}
+                    </Button>
+              
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))}
       </div>
     </div>
   )

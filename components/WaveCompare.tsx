@@ -203,8 +203,7 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">DTW를 사용한 음성 파형 정렬</h2>
-      
+
       {/* 라디오 버튼 */}
       <div className="mb-4">
         <div className="flex gap-6">
