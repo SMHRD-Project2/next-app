@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         grant_type: 'authorization_code',
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        redirect_uri: `${baseUrl}api/auth/google/login`,
+        redirect_uri: `${baseUrl}/api/auth/google/login`,
         code: code,
       }),
     })
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     //console.log('[GOOGLE LOGIN] 로그인 성공, 사용자 프로필:', userProfile)
 
     // 성공 페이지로 리다이렉트하면서 사용자 정보 전달
-    const successUrl = new URL('api/auth/google/success', request.url)
+    const successUrl = new URL('/api/auth/google/success', request.url)
     successUrl.searchParams.set('user', encodeURIComponent(JSON.stringify(userProfile)))
     
     return NextResponse.redirect(successUrl)

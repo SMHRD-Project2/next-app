@@ -144,7 +144,7 @@ export const connectSNS = (provider: string) => {
     case 'google':
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&` +
-        `redirect_uri=${encodeURIComponent(`${baseUrl}api/auth/google`)}&` +
+        `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/google`)}&` +
         `response_type=code&` +
         `scope=email profile&` +
         `state=${state}`
