@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev\" \"C:/Users/ehdrm/anaconda3/python.exe server.py\"",
+    "dev": "concurrently \"next dev\" \"C:/Users/smhrd/anaconda3/python.exe server.py\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
