@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   try {
     //console.log('[GOOGLE LOGIN] 토큰 요청 시작')
     
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
+    const baseUrl = process.env.BASE_URL || 'next-app-gilt-one.vercel.app'
     
     // 1. 구글에서 액세스 토큰 받기
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

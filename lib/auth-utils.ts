@@ -121,7 +121,7 @@ export const connectSNS = (provider: string) => {
 
   // console.log(`[${provider.toUpperCase()}] 연동 시작 - 사용자:`, userProfile.email)
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'next-app-gilt-one.vercel.app'
   let authUrl = ''
   const state = encodeURIComponent(userProfile.email) // 사용자 이메일을 state로 전달
   

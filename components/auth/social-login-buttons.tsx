@@ -12,7 +12,7 @@ interface SocialLoginButtonsProps {
 export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const router = useRouter()
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'next-app-gilt-one.vercel.app'
 
   const handleSocialLogin = async (provider: string) => {
     setLoadingProvider(provider)

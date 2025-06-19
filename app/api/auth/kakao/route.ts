@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     //console.log('[KAKAO] 토큰 요청 시작')
     
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
+    const baseUrl = process.env.BASE_URL || 'next-app-gilt-one.vercel.app'
     
     // 카카오에서 액세스 토큰 받기
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {

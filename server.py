@@ -57,7 +57,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://next-app-gilt-one.vercel.app",
-        "http://localhost:3000",
+        "next-app-gilt-one.vercel.app",
         "http://127.0.0.1:3000"
     ],  # Next.js 개발 서버 및 프로덕션
     allow_credentials=True,
@@ -1102,7 +1102,7 @@ async def process_voice_stream(task_id: str):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "Access-Control-Allow-Origin": "http://localhost:3000",
+            "Access-Control-Allow-Origin": "next-app-gilt-one.vercel.app",
             "Access-Control-Allow-Methods": "GET",
             "Access-Control-Allow-Headers": "Cache-Control",
             "Content-Type": "text/event-stream"
