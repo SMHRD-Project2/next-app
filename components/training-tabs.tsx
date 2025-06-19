@@ -114,6 +114,8 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
 
   // 탭 변경 시 문장을 새로 불러오는 useEffect
   useEffect(() => {
+    setHasRecorded(false);
+    setMyVoiceUrl(null);
     if (activeTab === "custom") {
       setSentence(customSentence);
       setHasRecorded(false);

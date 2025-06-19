@@ -56,16 +56,16 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
       await fetchDefaultModel(userProfile.email);
 
       // 로컬 스토리지에서 캐시된 데이터 확인
-      const cachedData = localStorage.getItem('aiModels')
-      const cacheTimestamp = localStorage.getItem('aiModelsTimestamp')
-      const now = new Date().getTime()
+      // const cachedData = localStorage.getItem('aiModels')
+      // const cacheTimestamp = localStorage.getItem('aiModelsTimestamp')
+      // const now = new Date().getTime()
       
-      // 캐시가 있고 5분 이내라면 캐시된 데이터 사용
-      if (cachedData && cacheTimestamp && (now - parseInt(cacheTimestamp)) < 300000) {
-        setModels(JSON.parse(cachedData))
-        setIsLoading(false)
-        return
-      }
+      // // 캐시가 있고 5분 이내라면 캐시된 데이터 사용
+      // if (cachedData && cacheTimestamp && (now - parseInt(cacheTimestamp)) < 300000) {
+      //   setModels(JSON.parse(cachedData))
+      //   setIsLoading(false)
+      //   return
+      // }
 
       // 사용자 모델 가져오기
       const userResponse = await fetch(`/api/models?email=${userProfile.email}`)
@@ -110,9 +110,9 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
       const allModels = [...userModels, ...adminModels]
       setModels(allModels)
       
-      // 로컬 스토리지에 데이터 캐싱
-      localStorage.setItem('aiModels', JSON.stringify(allModels))
-      localStorage.setItem('aiModelsTimestamp', now.toString())
+      // // 로컬 스토리지에 데이터 캐싱
+      // localStorage.setItem('aiModels', JSON.stringify(allModels))
+      // localStorage.setItem('aiModelsTimestamp', now.toString())
     } catch (error) {
       setError('AI 모델을 불러오는데 실패했습니다.')
       console.error('Failed to fetch models:', error)
@@ -123,8 +123,6 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
 
   // 모델 저장 후 새로고침 함수
   const refreshModels = async () => {
-    // 캐시 타임스탬프 초기화
-    localStorage.removeItem('aiModelsTimestamp')
     await fetchModels()
   }
 

@@ -15,10 +15,12 @@ export interface WaveformPlayerHandle {
 interface WaveformPlayerProps {
   /** Blob/Object URL 또는 일반 URL */
   url: string | null
+  /** 재생 상태 변경 콜백 */
+  onPlayStateChange?: (isPlaying: boolean) => void
 }
 
 export const WaveformPlayer = forwardRef<WaveformPlayerHandle, WaveformPlayerProps>(
-  function WaveformPlayer({ url }, ref) {
+  function WaveformPlayer({ url, onPlayStateChange }, ref) {
     const containerRef   = useRef<HTMLDivElement | null>(null)
     const waveSurferRef  = useRef<any>(null)
 
@@ -59,6 +61,19 @@ export const WaveformPlayer = forwardRef<WaveformPlayerHandle, WaveformPlayerPro
           height         : 80,
           responsive     : true,
           barWidth       : 2,
+        })
+
+        /* 이벤트 리스너 추가 */
+        waveSurferRef.current.on('play', () => {
+          onPlayStateChange?.(true)
+        })
+
+        waveSurferRef.current.on('pause', () => {
+          onPlayStateChange?.(false)
+        })
+
+        waveSurferRef.current.on('finish', () => {
+          onPlayStateChange?.(false)
         })
 
         waveSurferRef.current.load(url)

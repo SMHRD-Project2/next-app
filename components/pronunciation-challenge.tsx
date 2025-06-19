@@ -864,6 +864,16 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
               </>
             )}
 
+            {hasRecorded && !isRecording && audioURL && (
+              <div className="w-full mb-4 hidden">
+                <WaveformPlayer 
+                  ref={waveformRef} 
+                  url={audioURL} 
+                  onPlayStateChange={setIsPlaying}
+                />
+              </div>
+            )}
+
             <div className="flex justify-center gap-4">
               <Button
                 onClick={handleRecord}

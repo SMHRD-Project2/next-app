@@ -981,24 +981,16 @@ export function SentenceCard({
             )}
 
             <div className="flex flex-col items-center gap-2">
-              {/* {hasRecorded && !isRecording && audioURL && (
-                <div className="w-full mb-4">
-                  <WaveformPlayer ref={waveformRef} url={audioURL} />
-                  {audioDuration && (
-                    <div className="mt-2 flex flex-wrap justify-center gap-1 text-onair-text">
-                      {words.map((w, i) => (
-                        <span
-                          key={i}
-                          onClick={() => handleWordClick(i)}
-                          className={`cursor-pointer px-1 rounded ${highlightIndex === i ? 'bg-onair-mint text-onair-bg' : ''}`}
-                        >
-                          {w}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+              {hasRecorded && !isRecording && audioURL && (
+                // hidden 처리 (숨김 처리)
+                <div className="w-full mb-4 hidden">
+                  <WaveformPlayer 
+                    ref={waveformRef} 
+                    url={audioURL} 
+                    onPlayStateChange={setIsPlaying}
+                  />
                 </div>
-              )} */}
+              )}
               <Button
                 onClick={handleRecord}
                 size="lg"
