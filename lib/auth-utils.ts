@@ -129,7 +129,7 @@ export const connectSNS = (provider: string) => {
     case 'kakao':
       authUrl = `https://kauth.kakao.com/oauth/authorize?` +
         `client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&` +
-        `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/kakao`)}&` +
+        `redirect_uri=${encodeURIComponent(`${baseUrl}api/auth/kakao`)}&` +
         `response_type=code&` +
         `scope=profile_nickname&` +
         `state=${state}`
