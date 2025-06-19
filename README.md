@@ -7,3 +7,4 @@ pip install -r requirements.txt
 
 
 바뀐거 확인하기
+파이썬은 bore를 사용한다
