@@ -48,7 +48,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
           authUrl = 
             `https://accounts.google.com/o/oauth2/v2/auth?` +
             `client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&` +
-            `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/google/login`)}&` +
+            `redirect_uri=${encodeURIComponent(`${baseUrl}api/auth/google/login`)}&` +
             `response_type=code&` +
             `scope=profile email&` +
             `access_type=offline&` +
