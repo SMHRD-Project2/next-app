@@ -6,7 +6,7 @@ import os
 
 # 서버 설정
 BASE_URL = "http://bore.pub"
-PORT = os.getenv("TTS_PORT")
+PORT = "9616"
 SERVER_URL = f"{BASE_URL}:{PORT}"
 
 # TTS 설정
