@@ -23,7 +23,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
 
       switch (provider) {
         case 'kakao':
-          const kakaoRedirectUri = `${baseUrl}api/auth/kakao/login`
+          const kakaoRedirectUri = `${baseUrl}/api/auth/kakao/login`
           authUrl = 
             `https://kauth.kakao.com/oauth/authorize?` +
             `client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&` +

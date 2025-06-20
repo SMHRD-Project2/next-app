@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     //console.log('[KAKAO LOGIN] 토큰 요청 시작')
     
     const baseUrl = process.env.BASE_URL || 'https://next-app-gilt-one.vercel.app'
-    const redirectUri = `${baseUrl}api/auth/kakao/login`
+    const redirectUri = `${baseUrl}/api/auth/kakao/login`
     
     console.log('[KAKAO LOGIN] Base URL:', baseUrl)
     console.log('[KAKAO LOGIN] Redirect URI:', redirectUri)
