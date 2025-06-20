@@ -31,7 +31,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
             `response_type=code&` +
             `scope=profile_nickname`
           popupName = 'kakao_login'
-          console.log('[/components/auth/social-login-buttons.tsx] 카카오 Redirect URI:', kakaoRedirectUri)
+          console.log('카카오 Redirect URI:', kakaoRedirectUri)
           break
           
         case 'naver':
@@ -103,7 +103,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
               // 로그인 성공 시 메인 페이지로 이동
               window.location.reload();
             } catch (error) {
-              console.error('[/components/auth/social-login-buttons.tsx] 로그인 상태 확인 실패:', error);
+              console.error('로그인 상태 확인 실패:', error);
               alert(`${provider} 로그인에 실패했습니다. 회원가입 페이지로 이동합니다.`);
               popup.close()
               window.location.href = '/auth/signup';
@@ -130,7 +130,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
                 window.location.href = '/'
                 
               } else if (event.data.type === 'SOCIAL_LOGIN_ERROR') {
-                console.error(`[/components/auth/social-login-buttons.tsx] [${provider.toUpperCase()} LOGIN] 로그인 에러:`, event.data.error)
+                console.error(`[${provider.toUpperCase()} LOGIN] 로그인 에러:`, event.data.error)
                 clearInterval(timer)
                 setLoadingProvider(null)
                 window.removeEventListener('message', messageHandler)
@@ -143,7 +143,7 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
             window.addEventListener('message', messageHandler)
   
     } catch (error) {
-      console.error(`[/components/auth/social-login-buttons.tsx] ${provider} 로그인 실패:`, error)
+      console.error(`${provider} 로그인 실패:`, error)
       alert(`${provider} 로그인 중 오류가 발생했습니다.`)
       setLoadingProvider(null)
       

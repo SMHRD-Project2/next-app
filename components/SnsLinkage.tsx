@@ -24,19 +24,17 @@ export default function SnsLinkage({ userId }: SnsLinkageProps) {
     const clientId = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY
     const redirectUri = `${currentOrigin}api/auth/kakao/callback`
     
-    console.log('[/components/SnsLinkage.tsx] 카카오 클라이언트 ID:', clientId)
-    console.log('[/components/SnsLinkage.tsx] 현재 Origin:', currentOrigin)
-    console.log('[/components/SnsLinkage.tsx] Redirect URI:', redirectUri)
+    // console.log('카카오 클라이언트 ID:', clientId)
+    // console.log('현재 Origin:', currentOrigin)
+    // console.log('Redirect URI:', redirectUri)
     
     if (!clientId) {
-      console.error('[/components/SnsLinkage.tsx] 카카오 클라이언트 ID가 설정되지 않음')
       setMessage('카카오 클라이언트 ID가 설정되지 않았습니다.')
       setLoading('')
       return
     }
 
     if (!currentOrigin) {
-      console.error('[/components/SnsLinkage.tsx] 현재 도메인을 확인할 수 없음')
       setMessage('현재 도메인을 확인할 수 없습니다.')
       setLoading('')
       return
