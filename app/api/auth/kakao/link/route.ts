@@ -23,7 +23,7 @@ export async function POST(request: Request) {
         grant_type: 'authorization_code',
         client_id: process.env.KAKAO_CLIENT_ID!,
         code: authorizationCode,
-        redirect_uri: `${process.env.NEXTAUTH_URL}api/auth/kakao/callback`,
+        redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/kakao/callback`,
       }),
     })
 
