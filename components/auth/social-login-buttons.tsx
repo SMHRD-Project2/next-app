@@ -23,13 +23,15 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
 
       switch (provider) {
         case 'kakao':
+          const kakaoRedirectUri = `${baseUrl}api/auth/kakao/login`
           authUrl = 
             `https://kauth.kakao.com/oauth/authorize?` +
             `client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&` +
-            `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/kakao/login`)}&` +
+            `redirect_uri=${encodeURIComponent(kakaoRedirectUri)}&` +
             `response_type=code&` +
             `scope=profile_nickname`
           popupName = 'kakao_login'
+          console.log('카카오 Redirect URI:', kakaoRedirectUri)
           break
           
         case 'naver':
