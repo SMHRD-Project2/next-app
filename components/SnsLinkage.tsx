@@ -73,7 +73,7 @@ export default function SnsLinkage({ userId }: SnsLinkageProps) {
     setLoading('google')
     
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
-    const redirectUri = `${currentOrigin}api/auth/google/callback`
+    const redirectUri = `${currentOrigin.replace(/\/$/, '')}/api/auth/google/callback`
     
     if (!clientId || !currentOrigin) {
       setMessage('구글 설정에 오류가 있습니다.')
