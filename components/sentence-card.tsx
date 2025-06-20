@@ -651,6 +651,7 @@ export function SentenceCard({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true"
         },
         body: JSON.stringify({
           reference_url: referenceUrl,
@@ -892,7 +893,7 @@ export function SentenceCard({
 
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20">
-      <CardHeader>
+      <CardHeader>                                                
         <CardTitle className="text-onair-text flex items-center justify-between">
           <span>훈련 문장</span>
           <div className="flex items-center space-x-2 ml-auto">

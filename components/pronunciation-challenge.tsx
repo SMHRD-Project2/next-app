@@ -493,6 +493,7 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_PY_URL}/upload_record`, {
         method: "POST",
+        
         body: formData,
       })
       console.log("응답 상태:", res.status)
@@ -634,6 +635,8 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true"
+          
         },
         body: JSON.stringify({
           reference_url: referenceUrl,

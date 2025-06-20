@@ -28,6 +28,9 @@ export const TTS = ({ text, voice = 'SPK005.wav', onError }: TTSProps) => {
       // FastAPI 서버로 요청
       const response = await fetch(`${process.env.NEXT_PUBLIC_PY_URL }/tts?text=${encodeURIComponent(text)}`, {
         method: 'POST',
+        headers: {
+          "ngrok-skip-browser-warning": "true"
+        },
         body: formData,
       });
 

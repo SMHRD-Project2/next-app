@@ -39,17 +39,20 @@ formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-load_dotenv(".env.local")
+load_dotenv("C:/Users/smhrd/Desktop/ggg/next-app/.env.local")
 
 # OpenAI API 키 설정
 # .env.local 파일에 OPENAI_API_KEY=sk-proj-... 추가 필요
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+ASD = os.getenv("ASD")
+ASD1 = os.getenv("ASD1")
 if not OPENAI_API_KEY:
     print("⚠️  OPENAI_API_KEY 환경 변수가 설정되지 않았습니다!")
     print("📝 .env.local 파일에 다음을 추가하세요:")
 else:
     print(f"✅ OpenAI API 키 설정됨 (길이: {len(OPENAI_API_KEY)})")
-
+    print("ASDasdsadasdasdsad", ASD)
+    print("ASDasdsadasdasdsad", ASD1)
 app = FastAPI()
 
 # CORS 설정
@@ -58,7 +61,8 @@ app.add_middleware(
     allow_origins=[
         "https://next-app-gilt-one.vercel.app",
         "next-app-gilt-one.vercel.app",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "http://localhost:3000"
     ],  # Next.js 개발 서버 및 프로덕션
     allow_credentials=True,
     allow_methods=["*"],

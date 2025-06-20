@@ -2,10 +2,11 @@ import requests
 import json
 import sseclient
 import time
+import os
 
 # 서버 설정
 BASE_URL = "http://bore.pub"
-PORT = "44483"
+PORT = os.getenv("TTS_PORT")
 SERVER_URL = f"{BASE_URL}:{PORT}"
 
 # TTS 설정

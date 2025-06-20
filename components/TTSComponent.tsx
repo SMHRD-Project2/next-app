@@ -34,6 +34,9 @@ export default function TTSComponent({
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_PY_URL }/tts?text=${encodeURIComponent(text)}`, {
         method: 'POST',
+        headers: {
+          "ngrok-skip-browser-warning": "true"
+        },
         body: formData,
       });
 
