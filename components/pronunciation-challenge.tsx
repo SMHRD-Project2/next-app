@@ -153,6 +153,25 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<string | null>(null)
 
+  
+  // 부모 컴포넌트에서 녹음 상태가 변경되면 녹음 중지
+  useEffect(() => {
+    if (!isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+    }
+  }, [isRecording])
+
+  // 컴포넌트 언마운트 시 녹음 중지
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
+
   useEffect(() => {
     console.log('🔧 모델 초기화:', { isLoading, aiModelsLength: aiModels.length, defaultModelId });
     

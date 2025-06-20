@@ -88,6 +88,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       const voiceUrl3 = data.voiceUrl3;  // 박소현 아나운서
       
       console.log("Extracted sentence:", sentenceText);
+
       console.log("Extracted voiceUrls:", { voiceUrl1, voiceUrl2, voiceUrl3 });
       
       setSentence(sentenceText);
@@ -127,6 +128,13 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       fetchRandomSentence(activeTab);
     }
   }, [activeTab, customSentence]);
+  
+  // 탭을 변경하면 녹음 상태 초기화
+  useEffect(() => {
+    if (isRecording) {
+      setIsRecording(false);
+    }
+  }, [activeTab]);
 
   // 새로고침 버튼 클릭 시 문장 새로고침
   const handleRefreshSentence = () => {

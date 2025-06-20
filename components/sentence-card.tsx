@@ -81,7 +81,7 @@ export function SentenceCard({
     }
   }
 
-  const MAX_LENGTH = 300;
+  const MAX_LENGTH = 250;
 
   // 250609 박남규 - 내부 문장 상태를 따로 관리하도록 수정
   const [localSentence, setLocalSentence] = useState(sentence);
@@ -465,13 +465,31 @@ export function SentenceCard({
   const [isPlaying, setIsPlaying] = useState(false)
   const [waveHeights, setWaveHeights] = useState<number[]>([])
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])  
+  const audioChunksRef = useRef<Blob[]>([])
   const [recordingTime, setRecordingTime] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<string | null>(null)  // 업로드된 녹음 URL 저장
 
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);  // 녹음된 오디오 재생용 ref 추가
+
+  // 부모 컴포넌트에서 녹음 상태가 변경되면 녹음 중지
+  useEffect(() => {
+    if (!isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+    }
+  }, [isRecording])
+
+  // 컴포넌트 언마운트 시 녹음 중지
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
 
   // 평가하기 버튼 클릭 핸들러 추가
   const handleEvaluate = async () => {
@@ -1011,7 +1029,7 @@ export function SentenceCard({
             maxLength={MAX_LENGTH}
           />
           <p className="text-sm text-onair-text-sub text-right">
-            {localSentence.length}/300
+            {localSentence.length}/250
           </p>
           {currentTab === 'custom' && ttsProgress !== null && (
             <div className="mt-2">
