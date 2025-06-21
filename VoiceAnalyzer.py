@@ -5,10 +5,12 @@ import warnings
 import numpy as np
 import librosa
 import scipy.signal
+from scipy.io import wavfile
 from dtw import dtw
 from scipy.spatial.distance import euclidean, cosine
 import parselmouth
 from parselmouth.praat import call
+import io
 
 warnings.filterwarnings("ignore")
 
@@ -25,11 +27,33 @@ class Analyzer:
         if self.ref_sr != self.usr_sr:                      # 리샘플링
             self.usr_y = librosa.resample(self.usr_y, orig_sr=self.usr_sr, target_sr=self.ref_sr)
             self.usr_sr = self.ref_sr
-        self.ref_sound = parselmouth.Sound(ref_file)
-        self.usr_sound = parselmouth.Sound(usr_file)
+
+        # 노이즈 제거
+        self.ref_y = self.remove_noise(self.ref_y)
+        self.usr_y = self.remove_noise(self.usr_y)
+
+        self.ref_sound = parselmouth.Sound(self.ref_y, self.ref_sr)
+        self.usr_sound = parselmouth.Sound(self.usr_y, self.usr_sr)
         self.ref_dur  = len(self.ref_y) / self.ref_sr
         self.usr_dur  = len(self.usr_y) / self.usr_sr
         self.res = {}                                      # 결과 dict
+
+    def remove_noise(self, y: np.ndarray) -> np.ndarray:
+        """간단한 위너 필터를 사용한 노이즈 제거"""
+        try:
+            return scipy.signal.wiener(y)
+        except Exception:
+            return y
+
+    def get_processed_audio_buffers(self):
+        """노이즈가 제거된 오디오를 WAV 형태의 BytesIO로 반환"""
+        ref_buf = io.BytesIO()
+        usr_buf = io.BytesIO()
+        wavfile.write(ref_buf, int(self.ref_sr), (self.ref_y * 32767).astype(np.int16))
+        wavfile.write(usr_buf, int(self.usr_sr), (self.usr_y * 32767).astype(np.int16))
+        ref_buf.seek(0)
+        usr_buf.seek(0)
+        return ref_buf, usr_buf
 
     # ---------- 각 분석기 ----------
     def mfcc(self, n=13):
@@ -159,12 +183,12 @@ class Analyzer:
 
         # 터미널 출력 (LLM 프롬프트용)
         print("\n--- Analysis Result ---")
-        for k,label in [
-            ("mfcc","MFCC"),("pitch","Pitch"),("energy","Energy"),
-            ("speed","Speech-rate"),("formant","Formant"),
-            ("intonation","Intonation"),("rhythm","Rhythm"),
-            ("pause","Pause"),("total","Overall")
+        for k, label in [
+            ("mfcc", "MFCC"), ("pitch", "Pitch"), ("energy", "Energy"),
+            ("speed", "Speech-rate"), ("formant", "Formant"),
+            ("intonation", "Intonation"), ("rhythm", "Rhythm"),
+            ("pause", "Pause"), ("total", "Overall")
         ]:
             print(f"{label:12s}: {self.res.get(k,0):6.2f}")
 
-        return self.res                 # API 연동 시 사용 
+        return self.res  # API 연동 시 사용

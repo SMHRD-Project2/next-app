@@ -696,8 +696,11 @@ export function SentenceCard({
       }
 
       const analysisResult = await analysisResponse.json();
-      
+
       console.log("🎯 음성 분석 결과:", analysisResult);
+
+      const processedRefUrl = analysisResult.processed_files?.reference_url || referenceUrl
+      const processedUserUrl = analysisResult.processed_files?.user_url || userRecordingUrl
       
       if (analysisResult.success) {
         console.log("📊 상세 분석 점수:");
@@ -732,7 +735,11 @@ export function SentenceCard({
           
           // 분석 결과를 부모 컴포넌트로 전달
           if (onAnalysisComplete) {
-            onAnalysisComplete(analysisResult.ai_feedback, referenceUrl, userRecordingUrl);
+            onAnalysisComplete(
+              analysisResult.ai_feedback,
+              processedRefUrl,
+              processedUserUrl
+            );
           }
         } else {
           console.log("⚠️ OpenAI 피드백을 받지 못했습니다.");
