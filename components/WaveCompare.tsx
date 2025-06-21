@@ -80,8 +80,8 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
       // 배경 파형 (female.wav) - 뒤에 표시
       wavesurfer1.current = WaveSurfer.create({
         container: waveformRef1.current,
-        waveColor: 'rgb(0, 0, 0)',
-        progressColor: 'rgba(208, 208, 208, 1)',
+        waveColor: 'rgb(145, 145, 145)', // 회색 (정답/참조)
+        progressColor: 'rgba(255, 255, 255, 0.9)',
         height: 150,
         normalize: true,
         interact: true,
@@ -93,8 +93,8 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
       // 앞쪽 파형 (male.wav) - 앞에 표시
       wavesurfer2.current = WaveSurfer.create({
         container: waveformRef2.current,
-        waveColor: 'rgba(255, 255, 255, 0.5)',
-        progressColor: 'rgba(109, 145, 245, 0.97)',
+        waveColor: 'rgba(121, 172, 253, 0.7)', // 파란색 (사용자/비교)
+        progressColor: 'rgba(41, 111, 224, 0.9)',
         height: 150,
         normalize: true,
         interact: true,
@@ -221,9 +221,12 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
             onClick={() => handleVersionChange('user')}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors duration-200 ${
               selectedVersion === 'user'
-                ? 'bg-slate-300 text-slate-800'
+                ? 'text-white'
                 : 'text-slate-300 hover:text-white'
             }`}
+            style={{
+              backgroundColor: selectedVersion === 'user' ? 'rgb(69, 135, 243)' : 'transparent'
+            }}
           >
             내 음성
           </button>
@@ -232,9 +235,9 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
         {/* 재생/일시정지 버튼 */}
         <button
           onClick={handlePlayPause}
-          className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+          className="w-8 h-8 bg-transparent text-gray-300 rounded-full text-xs transition-colors flex items-center justify-center border-2 border-gray-400 hover:bg-white/10 hover:border-white"
         >
-          {isPlaying ? '일시정지' : `재생 (${selectedVersion === 'ai' ? 'AI' : '내'})`}
+          {isPlaying ? '⏸' : '▶'}
         </button>
       </div>
 

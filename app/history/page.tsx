@@ -216,7 +216,29 @@ export default function HistoryPage() {
 
   // 더보기 버튼 핸들러 수정
   const handleViewDetails = (recordId: string) => {
+    const wasOpen = selectedRecordId === recordId;
     setSelectedRecordId(prev => prev === recordId ? null : recordId)
+    
+    // 패널이 열릴 때만 스크롤 조정 (닫힐 때는 조정하지 않음)
+    if (!wasOpen) {
+      // 다음 렌더링 사이클에서 스크롤 조정을 위해 setTimeout 사용
+      setTimeout(() => {
+        const element = document.getElementById(`record-${recordId}`);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          const isInViewport = rect.top >= 0 && rect.bottom <= window.innerHeight;
+          
+          // 요소가 뷰포트에 완전히 보이지 않는 경우에만 스크롤 조정
+          if (!isInViewport) {
+            element.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            });
+          }
+        }
+      }, 100); // 패널이 렌더링될 시간을 주기 위해 약간의 지연
+    }
   }
 
   return (
@@ -325,7 +347,11 @@ export default function HistoryPage() {
               const isDetailOpen = selectedRecordId === item._id;
 
               return (
-                <div key={item._id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
+                <div 
+                  key={item._id} 
+                  id={`record-${item._id}`}
+                  className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(item.category)}`}>
