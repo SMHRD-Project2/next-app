@@ -16,6 +16,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Upload, Mic, Play, Square, CheckCircle, Wand2, RefreshCw, Volume2, Speech, ChevronDown, MessageSquare, Star, Circle, PlayCircle, Pause, Download } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAIModels } from "@/lib/ai-model-context"
+import Lottie from "lottie-react"
+import congratsAnimation from "@/public/lottie/congrats.json"
 
 interface VoiceCloningStudioProps {
   onSaveSuccess: () => void
@@ -549,6 +551,21 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
     }
   };
 
+  // 1. 상태 초기화 함수 추가
+  const resetAll = () => {
+    setStep(1)
+    setRecordedSamples([])
+    setRecordedUrls([])
+    setModelName("")
+    setModelDescription("")
+    setProcessingProgress(0)
+    setIsProcessing(false)
+    setCurrentRecordingIndex(-1)
+    setRecordingTime(0)
+    setRecordingDurations([])
+    generateRandomSample() // 샘플 텍스트도 새로 뽑기
+  }
+
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -857,20 +874,29 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                 <CheckCircle className="w-6 h-6 text-green-400" />
                 모델 생성 완료!
               </CardTitle>
-              <p className="text-onair-text-sub">"{modelName}" AI 모델이 성공적으로 생성되었습니다!.</p>
+             
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="bg-gradient-to-r from-onair-mint/10 to-onair-blue/10 rounded-lg p-6 text-center">
+                <div className="flex justify-center mb-2">
+                  <Lottie animationData={congratsAnimation} style={{ width: 120, height: 120 }} loop />
+                </div>
                 <h3 className="text-lg font-semibold text-onair-text mb-2">축하합니다!</h3>
-                <p className="text-onair-text-sub">
-                  새로운 AI 음성 모델이 준비되었습니다. 이제 내 AI 모델에서 확인하고 사용할 수 있습니다.
-                </p>
+                
+                <p className="text-onair-text-sub">"{modelName}" AI 모델이 성공적으로 생성되었습니다.</p>
               </div>
 
-              <div className="flex justify-center mt-6">
+              <div className="flex flex-col sm:flex-row justify-center mt-6 gap-4 px-4 sm:px-0">
+                <Button
+                  variant="outline"
+                  className="border-onair-mint text-onair-mint px-4 sm:px-8 w-full sm:w-auto"
+                  onClick={resetAll}
+                >
+                  새 모델 만들러 가기
+                </Button>
                 <Button
                   onClick={() => onSaveSuccess()}
-                  className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-8"
+                  className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-4 sm:px-8 w-full sm:w-auto"
                 >
                   내 AI 모델 보러가기
                 </Button>

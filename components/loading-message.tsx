@@ -34,7 +34,7 @@ export function LoadingMessage() {
         {messages[messageIndex]}
       </p>
       <div className="absolute bottom-0 right-0">
-        <Loader2 className="w-4 h-4 text-onair-mint animate-spin" />
+        {/* <Loader2 className="w-4 h-4 text-onair-mint animate-spin" /> */}
       </div>
     </div>
   );

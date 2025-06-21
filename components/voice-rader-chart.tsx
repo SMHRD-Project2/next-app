@@ -3,13 +3,13 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip 
 
 const categories = [
   '발음 특성',
-  '음높이 패턴',
-  '강세 패턴',
+  '음높이',
+  '강세',
   '발화 속도',
   '모음 발음',
-  '억양 패턴',
+  '억양',
   '리듬',
-  '쉼표 패턴',
+  '쉼표',
 ];
 
 export default function VoiceRadarChart({ scores }: { scores: number[] }) {

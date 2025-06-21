@@ -28,6 +28,12 @@ export default function HomePage() {
   const router = useRouter()
 
   const handleStartButtonClick = () => {
+    // 무조건 훈련실로 이동
+    router.push('/training')
+  }
+
+  const handleFreeStartButtonClick = () => {
+    // 로그인 시 훈련실, 비로그인 시 로그인 페이지로 이동
     if (isLoggedIn) {
       router.push('/training')
     } else {
@@ -51,7 +57,7 @@ export default function HomePage() {
           <div className="max-w-2xl space-y-6">
             <div className="space-y-2">
               <p className="text-onair-mint font-medium">입으로 완성하는 꿈</p>
-              <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">AI 기반 아나운서 발음 훈련</h1>
+              <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">AI 기반 발음 훈련</h1>
             </div>
             <p className="text-onair-text-sub text-lg md:text-xl max-w-lg">
               실제 아나운서 발화에 가까운 음성 훈련과 시각적 피드백으로 자기주도 반복학습이 가능한 실전형 플랫폼
@@ -117,23 +123,14 @@ export default function HomePage() {
                 </div>
 
                 <p className="text-onair-text-sub leading-relaxed">
-                  "ON AIR의 AI 음성 모델은 실제 아나운서의 발화 패턴을 매우 정확하게 재현하고 있습니다. 특히 억양, 강세,
-                  휴지(pause)의 자연스러운 처리가 인상적입니다. 음성 합성 기술의 최신 발전을 잘 반영하고 있으며, 특히
-                  한국어 특유의 발음 특성을 정확하게 구현한 점이 돋보입니다. 이러한 고품질 음성 모델은 발음 훈련에 있어
-                  매우 효과적인 참고 자료가 될 것입니다."
+                  "ON AIR의 AI 음성 모델은 명확하고 정확한 발화 패턴을 제공합니다. 특히 어려운 발음과 억양을 단계별로 학습할 수 있도록 설계되어 있으며, 한국어 특유의 발음 특성을 정확하게 구현했습니다. 
+                  억양, 강세, 휴지의 자연스러운 처리가 돋보이며, 발음 훈련에 매우 효과적인 참고 자료가 될 것입니다."
                 </p>
 
                 <div className="pt-4 border-t border-onair-text-sub/10">
                   <p className="text-onair-text-sub">
                     <span className="text-onair-mint font-medium">주요 강점: </span>
                     자연스러운 억양 처리 (98%), 명확한 발음 (97%), 감정 표현 (95%), 전문성 (96%)
-                  </p>
-                </div>
-
-                <div className="pt-4">
-                  <p className="text-onair-text-sub italic">
-                    "ON AIR의 AI 음성 모델은 현재 시장에서 가장 자연스럽고 전문적인 한국어 음성 합성 기술 중 하나로
-                    평가됩니다. 특히 아나운서 훈련을 위한 목적으로는 최적의 선택입니다."
                   </p>
                 </div>
               </div>
@@ -184,7 +181,7 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-12">
         <Card className="bg-gradient-to-r from-onair-mint/10 to-onair-blue/10 border-onair-mint/20">
           <CardContent className="p-8 text-center space-y-6">
-            <h2 className="text-2xl font-bold text-onair-text">지금 바로 AI 아나운서 훈련을 시작하세요</h2>
+            <h2 className="text-2xl font-bold text-onair-text">지금 바로 AI 발음 훈련을 시작하세요</h2>
             <p className="text-onair-text-sub max-w-2xl mx-auto">
               ON AIR의 AI 음성 모델과 실시간 피드백 시스템으로 아나운서 수준의 발음을 완성하세요. 지금 가입하면 7일간
               무료로 모든 기능을 이용할 수 있습니다.
@@ -193,7 +190,7 @@ export default function HomePage() {
               <Button 
                 size="lg" 
                 className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-6"
-                onClick={handleStartButtonClick}
+                onClick={handleFreeStartButtonClick}
               >
                 무료로 시작하기
               </Button>

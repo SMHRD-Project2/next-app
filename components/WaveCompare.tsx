@@ -203,8 +203,7 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">DTW를 사용한 음성 파형 정렬</h2>
-      
+
       {/* 라디오 버튼 */}
       <div className="mb-4">
         <div className="flex gap-6">
@@ -217,7 +216,7 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
               onChange={() => handleVersionChange('ai')}
               className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
             />
-            <span className="text-sm font-medium">AI버전</span>
+            <span className="text-sm font-medium">AI 음성</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -228,7 +227,7 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
               onChange={() => handleVersionChange('user')}
               className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
             />
-            <span className="text-sm font-medium">내버전</span>
+            <span className="text-sm font-medium">내 음성</span>
           </label>
         </div>
       </div>
@@ -264,7 +263,7 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
         onClick={handlePlayPause}
         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
       >
-        {isPlaying ? '일시정지' : '재생'} ({selectedVersion === 'ai' ? 'AI버전' : '내버전'})
+        {isPlaying ? '일시정지' : '재생'} ({selectedVersion === 'ai' ? 'AI 음성' : '내 음성'})
       </button>
     </div>
   );

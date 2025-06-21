@@ -1,21 +1,21 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2, Play, Pause, Eye } from "lucide-react"
+import { Calendar, TrendingUp, Award, Lock, LogIn, Trash2, Play, Pause, Eye, ChevronDown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import { useState, useEffect, useRef } from "react"
 import { getAuthStatus } from "@/lib/auth-utils"
 import { AIResultPanel } from "@/components/ai-result-panel"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function HistoryPage() {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
   const [trainingRecords, setTrainingRecords] = useState<any[]>([])
-  const [selectedRecord, setSelectedRecord] = useState<any>(null)
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // 현재 재생 중인 항목의 ID를 추적 (null이면 재생 중인 항목 없음)
   const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null)
@@ -109,6 +109,32 @@ export default function HistoryPage() {
     }
   }, [])
 
+  // 바깥 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    if (showDropdown) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showDropdown])
+
+  const categories = [
+    "전체",
+    "짧은 문장",
+    "긴 문장",
+    "뉴스 읽기",
+    "내문장 업로드",
+    "발음 챌린지"
+  ]
+
+  const filteredRecords = trainingRecords
+
   // 평균 정확도 계산
   const calculateAverageAccuracy = () => {
     if (trainingRecords.length === 0) {
@@ -184,32 +210,10 @@ export default function HistoryPage() {
     }
   }
 
-  // 더보기 버튼 핸들러 추가
-  const handleViewDetails = (record: any) => {
-    setSelectedRecord(record)
-    setIsDetailModalOpen(true)
+  // 더보기 버튼 핸들러 수정
+  const handleViewDetails = (recordId: string) => {
+    setSelectedRecordId(prev => prev === recordId ? null : recordId)
   }
-
-  // 이전 버전의 오디오 재생 토글 함수
-  // const toggleAudioPlayback = (id: string) => {    
-  //   if (currentPlayingId === id) {
-  //     // 현재 재생 중인 오디오 정지
-  //     if (audioElement) {
-  //       audioElement.pause()
-  //       audioElement.currentTime = 0
-  //     }
-  //     setCurrentPlayingId(null)
-  //   } else {
-  //     // 새로운 오디오 재생
-  //     if (audioElement) {
-  //       audioElement.pause()
-  //     }
-  //     const newAudio = new Audio(`/api/audio/${id}`)
-  //     newAudio.play()
-  //     setAudioElement(newAudio)
-  //     setCurrentPlayingId(id)
-  //   }
-  // }
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -249,13 +253,48 @@ export default function HistoryPage() {
       {/* 훈련 기록 */}
       <Card className="bg-onair-bg-sub border-onair-text-sub/20">
         <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Calendar className="w-5 h-5 text-onair-mint" />
-            <h2 className="text-xl font-semibold text-onair-text">훈련 기록</h2>
+          <div className="flex items-center gap-2 mb-4 justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-onair-mint" />
+              <h2 className="text-lg font-semibold text-onair-text">훈련 기록</h2>
+            </div>
+            {/* 드롭다운 필터 */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-onair-bg-sub border border-gray-600 text-onair-white text-sm shadow-sm hover:bg-white/20 hover:shadow-md transition-all duration-200 ease-in-out"
+                onClick={() => setShowDropdown(v => !v)}
+                type="button"
+              >
+                {selectedRecordId ? trainingRecords.find(r => r._id === selectedRecordId)?.category : "전체"}
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`} />
+              </button>
+              <div
+                className={`absolute right-0 mt-2 w-40 bg-onair-bg-sub border border-gray-600 rounded-lg shadow-xl z-20 overflow-hidden transition-all duration-200 ease-in-out
+                  ${showDropdown ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}
+                `}
+              >
+                {categories.map(category => (
+                  <button
+                    key={category}
+                    className={`block w-full text-left px-4 py-2 text-sm transition-all duration-100
+                      ${selectedRecordId === category
+                        ? "bg-white/10 text-white font-semibold"
+                        : "text-onair-text hover:bg-white/10 hover:text-white"}
+                    `}
+                    onClick={() => {
+                      setSelectedRecordId(category)
+                      setShowDropdown(false)
+                    }}
+                    type="button"
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-
-          <div className="space-y-4">
-            {trainingRecords.map((item) => {
+          <div className="space-y-3">
+            {filteredRecords.map((item) => {
               const getScoreColor = (score: number) => {
                 if (score >= 90) return "text-onair-mint"
                 if (score >= 80) return "text-onair-orange"
@@ -265,18 +304,22 @@ export default function HistoryPage() {
               const getCategoryColor = (category: string) => {
                 switch (category) {
                   case "뉴스 읽기":
-                    return "bg-onair-mint/10 text-onair-mint"
+                    return "bg-onair-blue/10 text-onair-blue"
                   case "긴 문장":
                     return "bg-onair-orange/10 text-onair-orange"
                   case "짧은 문장":
-                    return "bg-onair-blue/10 text-onair-blue"
-                  default:
-                    return "bg-onair-text-sub/10 text-onair-text-sub"
+                    return "bg-onair-mint/10 text-onair-mint"
+                  case "발음 챌린지":
+                    return "bg-onair-red/20 text-red-400"
+                  case "내문장 업로드":
+                    return "bg-white/10 text-gray"
+
                 }
               }
 
               // 현재 항목이 재생 중인지 확인
               const isThisItemPlaying = currentPlayingId === item._id;
+              const isDetailOpen = selectedRecordId === item._id;
 
               return (
                 <div key={item._id} className="p-4 bg-onair-bg rounded-lg border border-onair-text-sub/10 space-y-3">
@@ -286,6 +329,16 @@ export default function HistoryPage() {
                         {item.category}
                       </span>
                       <span className="text-onair-text-sub text-sm">{item.date}</span>
+                    </div>
+                    {/* 모바일에서만 삭제 버튼 표시 - 오른쪽 정렬 */}
+                    <div className="sm:hidden flex justify-end">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(item._id) }}
+                        className="px-2 py-1 text-xs border border-onair-text-sub/20 text-onair-text-sub hover:text-red-400 hover:bg-onair-bg-sub rounded flex items-center gap-1 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        삭제
+                      </button>
                     </div>
                   </div>
 
@@ -308,7 +361,10 @@ export default function HistoryPage() {
                             <p className="text-onair-text-sub text-xs">
                               {item.metric === 'pronunciation' ? '발음' : 
                                item.metric === 'intonation' ? '억양' : 
-                               item.metric === 'rhythm' ? '리듬' : item.metric}
+                               item.metric === 'rhythm' ? '리듬' : 
+                               item.metric === 'pitch' ? '음높이' :
+                               item.metric === 'stress' ? '강세' :
+                               item.metric}
                             </p>
                             <p className={`font-semibold ${getScoreColor(item.score)}`}>
                               {item.score?.toFixed(1) || 'N/A'}
@@ -342,52 +398,70 @@ export default function HistoryPage() {
                   </div>
 
                   {/* 액션 버튼 */}
-                  <div className="flex justify-between items-end">
-                    {/* 음성 재생 및 다시 훈련 버튼 그룹 */}
-                    <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
                       {/* 음성 재생 버튼 */}
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleAudioPlayback(item._id, item) }}
-                        className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1"
+                        className="px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs sm:text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-text hover:bg-onair-bg-sub rounded flex items-center gap-1 transition-colors"
                       >
-                        {isThisItemPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        {isThisItemPlaying ? "일시정지" : "음성 재생"}
+                        {isThisItemPlaying ? <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                        <span className="hidden sm:inline">{isThisItemPlaying ? "일시정지" : "음성 재생"}</span>
+                        <span className="sm:hidden">{isThisItemPlaying ? "정지" : "재생"}</span>
                       </button>
                       {/* 더보기 버튼 */}
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleViewDetails(item) }}
-                        className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-mint hover:bg-onair-bg-sub rounded flex items-center gap-1"
+                        onClick={(e) => { e.stopPropagation(); handleViewDetails(item._id) }}
+                        className="px-2.5 py-1.5 sm:px-3 sm:py-1 text-xs sm:text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-onair-mint hover:bg-onair-bg-sub rounded flex items-center gap-1 transition-colors"
                       >
-                        <Eye className="w-4 h-4" />
-                        더보기
+                        <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">{isDetailOpen ? "닫기" : "더보기"}</span>
+                        <span className="sm:hidden">{isDetailOpen ? "닫기" : "상세"}</span>
                       </button>
                       {/* 다시 훈련 버튼 */}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleRetrain(item.sentence) }}
-                        className="px-3 py-1 text-sm bg-onair-mint text-onair-bg hover:bg-onair-mint/90 rounded flex items-center gap-1"
+                        className="px-3 py-1.5 sm:px-3 sm:py-1 text-xs sm:text-sm bg-onair-mint text-onair-bg hover:bg-onair-mint/90 rounded flex items-center gap-1 transition-colors"
                       >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path
                             fillRule="evenodd"
                             d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
                             clipRule="evenodd"
                           />
                         </svg>
-                        다시 훈련
+                        <span className="hidden sm:inline">다시 훈련</span>
+                        <span className="sm:hidden">다시 훈련</span>
                       </button>
                     </div>
-                    {/* 삭제 버튼 */}
+                    {/* 데스크톱에서만 삭제 버튼 표시 */}
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(item._id) }}
-                      className="px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-red-400 hover:bg-onair-bg-sub rounded flex items-center gap-1"
+                      className="hidden sm:flex px-3 py-1 text-sm border border-onair-text-sub/20 text-onair-text-sub hover:text-red-400 hover:bg-onair-bg-sub rounded items-center gap-1 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                       삭제
                     </button>
                   </div>
+                  {/* AI 분석 결과 패널: 카드 내부에 조건부 렌더링 */}
+                  {isDetailOpen && (
+                    <div className="mt-4">
+                      <AIResultPanel
+                        myVoiceUrl={item.voiceUrl}
+                        referenceUrl={item.referenceUrl}
+                        userRecordingUrl={item.userRecordingUrl}
+                        analysisResult={item.analysisResult || item.scores}
+                      />
+                    </div>
+                  )}
                 </div>
               )
             })}
+            {filteredRecords.length === 0 && (
+              <div className="text-center text-onair-text-sub py-8 text-sm">
+                해당 카테고리의 기록이 없습니다.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -432,25 +506,6 @@ export default function HistoryPage() {
           </svg>
         </button>
       </div>
-
-      {/* AI 분석 결과 모달 */}
-      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-onair-text">
-              AI 분석 결과 - {selectedRecord?.category} ({selectedRecord?.date})
-            </DialogTitle>
-          </DialogHeader>
-          {selectedRecord && (
-            <AIResultPanel
-              myVoiceUrl={selectedRecord.voiceUrl}
-              referenceUrl={selectedRecord.referenceUrl}
-              userRecordingUrl={selectedRecord.userRecordingUrl}
-              analysisResult={selectedRecord.analysisResult || selectedRecord.scores}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
