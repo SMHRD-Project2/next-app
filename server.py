@@ -796,6 +796,11 @@ async def extract_text(request: URLRequest):
                 filtered_lines.append(line)
                 
         filtered_text = '\n'.join(filtered_lines)
+
+        # 특정 텍스트 제거
+        remove_text = "자동 추출 기술로 요약된 내용입니다. 요약 기술의 특성상 본문의 주요 내용이 제외될 수 있어, 전체 맥락을 이해하기 위해서는 기사 본문 전체보기를 권장합니다.\n이동 통신망을 이용하여 음성을 재생하면 별도의 데이터 통화료가 부과될 수 있습니다."
+        filtered_text = filtered_text.replace(remove_text, "").strip()
+        
         return {"text": filtered_text}
     except Exception as e:
         return {"error": str(e)}

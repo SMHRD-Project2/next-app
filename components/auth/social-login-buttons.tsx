@@ -94,10 +94,8 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
               });
               
               if (!response.ok) {
-                // 로그인 실패 시 회원가입 페이지로 이동
-                alert(`${provider} 로그인에 실패했습니다. 회원가입 페이지로 이동합니다.`);
-                popup.close()
-                window.location.href = '/auth/signup';
+                // 로그인 실패 시 현재 페이지 유지
+                console.log(`${provider} 로그인 실패 - 현재 페이지 유지`);
                 return;
               }
               
@@ -136,9 +134,8 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
                 setLoadingProvider(null)
                 window.removeEventListener('message', messageHandler)
                 popup.close()
-                alert(`${provider} 로그인 중 오류가 발생했습니다: ${event.data.error}`)
-                // 로그인 실패 시 회원가입 페이지로 이동
-                window.location.href = '/auth/signup'
+                // 로그인 실패 시 현재 페이지 유지 (alert와 페이지 이동 제거)
+                console.log(`${provider} 로그인 실패 - 현재 페이지 유지`)
               }
             }
             window.addEventListener('message', messageHandler)
