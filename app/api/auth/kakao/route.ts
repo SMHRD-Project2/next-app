@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     //console.log('[KAKAO] 토큰 요청 시작')
     
-    const baseUrl = (process.env.BASE_URL || 'https://onair.vercel.app').replace(/\/$/, '')
+    const baseUrl = (process.env.BASE_URL || 'https://f5-onair.vercel.app').replace(/\/$/, '')
     const redirectUri = `${baseUrl}/api/auth/kakao`
     
     console.log('[KAKAO] Base URL:', baseUrl)

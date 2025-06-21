@@ -12,7 +12,7 @@ interface SocialLoginButtonsProps {
 export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const router = useRouter()
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://onair.vercel.app'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://f5-onair.vercel.app'
 
   const handleSocialLogin = async (provider: string) => {
     setLoadingProvider(provider)
