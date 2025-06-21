@@ -158,7 +158,7 @@ export function PronunciationChallenge({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const waveformRef = useRef<WaveformPlayerHandle | null>(null)
+  const waveformRef = useRef<WaveformPlayerHandle>(null!)
   const audioRef = useRef<HTMLAudioElement | null>(null)  // 녹음된 오디오 재생용
   const exampleAudioRef = useRef<HTMLAudioElement | null>(null)  // AI 예시 음성 재생용
   const headerControlsRef = useRef<HTMLDivElement>(null)

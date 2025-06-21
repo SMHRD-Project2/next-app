@@ -8,12 +8,15 @@ import { Lock, LogIn } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { useState, useEffect, Suspense } from "react"
+import { useAIModels } from "@/lib/ai-model-context"
 
 function AIModelsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isLoggedIn } = useAuth()
   const [activeTab, setActiveTab] = useState("models")
+  const { refreshModels } = useAIModels()
+
 
   // URL의 tab 파라미터가 변경될 때 activeTab 상태 업데이트
   useEffect(() => {
@@ -72,7 +75,12 @@ function AIModelsContent() {
         </TabsContent>
 
         <TabsContent value="cloning">
-          <VoiceCloningStudio onSaveSuccess={() => setActiveTab("models")} />
+        <VoiceCloningStudio
+            onSaveSuccess={async () => {
+              await refreshModels()
+              setActiveTab("models")
+            }}
+          />
         </TabsContent>
       </Tabs>
       {/* 스크롤 버튼 */}
