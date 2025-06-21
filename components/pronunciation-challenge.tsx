@@ -4,9 +4,20 @@ import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Star } from "lucide-react"
+import { Mic, Square, RefreshCw, Trophy, Star, ChevronDown, Play, Pause, Volume2, MessageSquare } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAIModels } from "@/lib/ai-model-context"
+import { LoadingMessage } from "@/components/loading-message"
+import { WaveformPlayer, WaveformPlayerHandle } from "@/components/waveform-player"
+import { VoiceComparisonPanel } from "@/components/voice-comparison-panel"
+import { getAuthStatus } from "@/lib/auth-utils"
 import { SentenceCard } from "@/components/sentence-card"
-import { type WaveformPlayerHandle } from "@/components/waveform-player"
 
 interface Challenge {
   id: number
@@ -137,7 +148,23 @@ export function PronunciationChallenge({
   const [selectedChallenge, setSelectedChallenge] = useState(challenges[0])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const currentChallengeRef = useRef<HTMLDivElement>(null)
+  const [selectedModel, setSelectedModel] = useState<number | null>(null)
+  const [playingModel, setPlayingModel] = useState<number | null>(null)
+  const [audioURL, setAudioURL] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
   const waveformRef = useRef<WaveformPlayerHandle>(null!)
+  const audioRef = useRef<HTMLAudioElement | null>(null)  // 녹음된 오디오 재생용
+  const exampleAudioRef = useRef<HTMLAudioElement | null>(null)  // AI 예시 음성 재생용
+  const headerControlsRef = useRef<HTMLDivElement>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<string | null>(null)
+  const [waveformHeights, setWaveformHeights] = useState<number[]>([])
+  const [isClient, setIsClient] = useState(false)
 
   const filteredChallenges = selectedDifficulty
     ? challenges.filter((c) => c.difficulty === selectedDifficulty)
@@ -231,10 +258,13 @@ export function PronunciationChallenge({
 
       <Card ref={currentChallengeRef} className="bg-onair-bg-sub border-onair-text-sub/20">
         <CardHeader>
-          <CardTitle className="text-onair-text flex items-center gap-2">
-            <span>현재 챌린지</span>
-            <Badge className={selectedChallenge.color}>{selectedChallenge.difficulty}</Badge>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-onair-text flex items-center gap-2">
+              <span>현재 챌린지</span>
+              <Badge className={selectedChallenge.color}>{selectedChallenge.difficulty}</Badge>
+            </CardTitle>
+            <div ref={headerControlsRef} className="flex items-center space-x-2" />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="p-6 bg-onair-bg rounded-lg border border-onair-text-sub/10">
@@ -264,6 +294,10 @@ export function PronunciationChallenge({
             waveformRef={waveformRef}
             onRecordingComplete={() => {}}
             onAnalysisComplete={onAnalysisComplete}
+            noCard
+            hideTitle
+            showSentenceBox={false}
+            headerPortalRef={headerControlsRef}
           />
         </CardContent>
       </Card>

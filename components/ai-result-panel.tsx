@@ -9,6 +9,12 @@ import { getAuthStatus } from "@/lib/auth-utils"
 import { WaveformPlayer, type WaveformPlayerHandle } from "@/components/waveform-player"
 import VoiceRadarChart from "@/components/voice-rader-chart"
 import WaveCompare from "./WaveCompare"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 
 // AI 분석 결과 타입 정의
@@ -224,14 +230,14 @@ export function AIResultPanel({ myVoiceUrl, referenceUrl, userRecordingUrl, wave
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20 relative w-full">
       <CardHeader className="p-2 sm:p-3">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
-          <CardTitle className="text-onair-text text-sm sm:text-base">AI 분석 결과</CardTitle>
+        <div className="flex flex-row justify-between items-center gap-2">
+          <CardTitle className="text-onair-text text-lg sm:text-xl">AI 분석 결과</CardTitle>
           {isSaved && isLoggedIn && (
             <div className="flex items-center text-onair-mint text-xs">
               <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              자동 저장됨
+              <span className="mr-1">자동 저장됨</span>
             </div>
           )}
         </div>
@@ -241,7 +247,7 @@ export function AIResultPanel({ myVoiceUrl, referenceUrl, userRecordingUrl, wave
         {/* 음성 비교 섹션 */}
         {isLoggedIn && (
           <div className="space-y-1.5">
-            <h4 className="font-semibold text-onair-text text-xs sm:text-sm">파형 비교 분석</h4>
+            <h4 className="font-semibold text-onair-text text-md md:text-md">파형 비교 분석</h4>
             <div className="w-full">
               <WaveCompare
                 audioFile1={referenceUrl || "/audio/female.wav"}
@@ -254,46 +260,60 @@ export function AIResultPanel({ myVoiceUrl, referenceUrl, userRecordingUrl, wave
         )}
 
         <div className="space-y-1.5">
-          <h4 className="font-semibold text-onair-text text-xs sm:text-sm">발음 분석 레이더 차트</h4>
+          <h4 className="font-semibold text-onair-text text-md md:text-md">발음 분석 평가</h4>
           <div className="w-full flex justify-center">
             <div className="w-full">
-              <VoiceRadarChart scores={scoreValues} />
+
+              {/* 전체 점수 */}
+              <div className="text-center p-2 bg-onair-bg rounded-lg border border-onair-text-sub/20">
+                <div className="text-lg sm:text-xl font-bold text-onair-mint">
+                  {analysisData.overallScore.toFixed(1)}점
+                </div>
+                <div className="text-onair-text-sub text-xs">전체 평가 점수</div>
+              </div>
+              <VoiceRadarChart scores={scoreValues} items={analysisData.items} />
             </div>
           </div>
         </div>
-        
-        {/* 전체 점수 */}
-        <div className="text-center p-2 bg-onair-bg rounded-lg border border-onair-text-sub/20">
-          <div className="text-lg sm:text-xl font-bold text-onair-mint">
-            {analysisData.overallScore.toFixed(1)}점
-          </div>
-          <div className="text-onair-text-sub text-xs">전체 평가 점수</div>
-        </div>
 
         {/* 피드백 */}
-        <div className="space-y-1.5">
-          <h4 className="font-semibold text-onair-text text-xs sm:text-sm">상세 피드백</h4>
-          <div className="grid gap-1.5">
-            {analysisData.items.map((item, index) => {
-              const feedbackType = getFeedbackType(item.score)
-              const colors = {
-                good: "bg-onair-mint/10 text-onair-mint border-onair-mint/20",
-                improve: "bg-onair-orange/10 text-onair-orange border-onair-orange/20",
-                tip: "bg-onair-blue/10 text-onair-blue border-onair-blue/20",
-              }
+        <div className="space-y-1.5 mt-4">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="item-1">
+              <AccordionTrigger className="font-semibold text-onair-text text-md md:text-md">
+                상세 피드백
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="grid gap-1.5 pt-2">
+                  {analysisData.items.map((item, index) => {
+                    const feedbackType = getFeedbackType(item.score)
+                    const colors = {
+                      good: "bg-onair-mint/10 text-onair-mint border-onair-mint/20",
+                      improve: "bg-onair-orange/10 text-onair-orange border-onair-orange/20",
+                      tip: "bg-onair-blue/10 text-onair-blue border-onair-blue/20",
+                    }
+                    const label = metricLabels[item.metric as keyof typeof metricLabels] || item.metric;
 
-              return (
-                <div key={index} className={`p-1.5 rounded-md border ${colors[feedbackType]}`}>
-                  <p className="text-xs font-medium mb-0.5">{item.shortFeedback}</p>
-                  {item.detailedFeedback.map((detail, detailIndex) => (
-                    <p key={detailIndex} className="text-xs text-onair-text-sub leading-tight">
-                      {detail}
-                    </p>
-                  ))}
+                    return (
+                      <div
+                        key={index}
+                        className={`p-2 rounded-lg border ${colors[feedbackType]}`}
+                      >
+                        <div className="font-semibold mb-1">
+                          <span className="font-bold">{label}:</span> {item.shortFeedback}
+                        </div>
+                        {item.detailedFeedback.map((detail, detailIndex) => (
+                          <p key={detailIndex} className="text-sm text-onair-text-sub leading-relaxed">
+                            {detail}
+                          </p>
+                        ))}
+                      </div>
+                    )
+                  })}
                 </div>
-              )
-            })}
-          </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
       </CardContent>
 

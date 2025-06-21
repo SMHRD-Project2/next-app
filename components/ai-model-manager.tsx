@@ -265,7 +265,9 @@ export function AIModelManager() {
                   <div className="flex items-start space-x-4 flex-1 min-w-0">
                     <Avatar className="w-12 h-12 flex-shrink-0">
                       <AvatarImage src={model.avatar || "/placeholder.svg"} />
-                      <AvatarFallback className="bg-onair-bg text-onair-mint">{model.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="bg-gray-500 text-white font-semibold text-lg">
+                        {model.name.charAt(0)}
+                      </AvatarFallback>
                     </Avatar>
 
                     <div className="flex-1 space-y-2 min-w-0">

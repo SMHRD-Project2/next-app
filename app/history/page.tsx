@@ -15,6 +15,7 @@ export default function HistoryPage() {
   const [trainingRecords, setTrainingRecords] = useState<any[]>([])
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>("전체") // 새로운 상태 추가
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // 현재 재생 중인 항목의 ID를 추적 (null이면 재생 중인 항목 없음)
@@ -133,7 +134,10 @@ export default function HistoryPage() {
     "발음 챌린지"
   ]
 
-  const filteredRecords = trainingRecords
+  // 필터링 로직 수정
+  const filteredRecords = selectedCategory === "전체" 
+    ? trainingRecords 
+    : trainingRecords.filter(record => record.category === selectedCategory)
 
   // 평균 정확도 계산
   const calculateAverageAccuracy = () => {
@@ -223,29 +227,28 @@ export default function HistoryPage() {
       </div>
 
       {/* 요약 통계 */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-3 gap-4 md:gap-6">
         <Card className="bg-onair-bg-sub border-onair-text-sub/20">
-          <CardContent className="p-6 text-center">
-            <Calendar className="w-8 h-8 text-onair-mint mx-auto mb-2" />
-            <h3 className="text-2xl font-bold text-onair-text">15일</h3>
-            <p className="text-onair-text-sub">총 훈련 일수</p>
+          <CardContent className="p-3 md:p-6 text-center">
+            <Calendar className="w-6 h-6 md:w-8 md:h-8 text-onair-mint mx-auto mb-1 md:mb-2" />
+            <h3 className="text-lg md:text-2xl font-bold text-onair-text">15일</h3>
+            <p className="text-[13px] md:text-sm text-onair-text-sub">총 훈련 일수</p>
           </CardContent>
         </Card>
 
         <Card className="bg-onair-bg-sub border-onair-text-sub/20">
-          <CardContent className="p-6 text-center">
-            <Award className="w-8 h-8 text-onair-blue mx-auto mb-2" />
-            <h3 className="text-2xl font-bold text-onair-text">{trainingRecords.length}개</h3>
-            <p className="text-onair-text-sub">훈련 갯수</p>
+          <CardContent className="p-3 md:p-6 text-center">
+            <Award className="w-6 h-6 md:w-8 md:h-8 text-onair-blue mx-auto mb-1 md:mb-2" />
+            <h3 className="text-lg md:text-2xl font-bold text-onair-text">{trainingRecords.length}개</h3>
+            <p className="text-[13px] md:text-sm text-onair-text-sub">훈련 갯수</p>
           </CardContent>
         </Card>
 
         <Card className="bg-onair-bg-sub border-onair-text-sub/20">
-          <CardContent className="p-6 text-center">
-            <TrendingUp className="w-8 h-8 text-onair-orange mx-auto mb-2" />
-            <h3 className="text-2xl font-bold text-onair-text">{averageAccuracy}%</h3>
-            <p className="text-onair-text-sub">평균 정확도</p>
-
+          <CardContent className="p-3 md:p-6 text-center">
+            <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-onair-orange mx-auto mb-1 md:mb-2" />
+            <h3 className="text-lg md:text-2xl font-bold text-onair-text">{averageAccuracy}%</h3>
+            <p className="text-[13px] md:text-sm text-onair-text-sub">평균 정확도</p>
           </CardContent>
         </Card>
       </div>
@@ -258,14 +261,14 @@ export default function HistoryPage() {
               <Calendar className="w-4 h-4 text-onair-mint" />
               <h2 className="text-lg font-semibold text-onair-text">훈련 기록</h2>
             </div>
-            {/* 드롭다운 필터 */}
+            {/* 드롭다운 필터 수정 */}
             <div className="relative" ref={dropdownRef}>
               <button
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-onair-bg-sub border border-gray-600 text-onair-white text-sm shadow-sm hover:bg-white/20 hover:shadow-md transition-all duration-200 ease-in-out"
                 onClick={() => setShowDropdown(v => !v)}
                 type="button"
               >
-                {selectedRecordId ? trainingRecords.find(r => r._id === selectedRecordId)?.category : "전체"}
+                {selectedCategory}
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`} />
               </button>
               <div
@@ -277,12 +280,12 @@ export default function HistoryPage() {
                   <button
                     key={category}
                     className={`block w-full text-left px-4 py-2 text-sm transition-all duration-100
-                      ${selectedRecordId === category
+                      ${selectedCategory === category
                         ? "bg-white/10 text-white font-semibold"
                         : "text-onair-text hover:bg-white/10 hover:text-white"}
                     `}
                     onClick={() => {
-                      setSelectedRecordId(category)
+                      setSelectedCategory(category)
                       setShowDropdown(false)
                     }}
                     type="button"
@@ -416,7 +419,7 @@ export default function HistoryPage() {
                       >
                         <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden sm:inline">{isDetailOpen ? "닫기" : "더보기"}</span>
-                        <span className="sm:hidden">{isDetailOpen ? "닫기" : "상세"}</span>
+                        <span className="sm:hidden">{isDetailOpen ? "닫기" : "더보기"}</span>
                       </button>
                       {/* 다시 훈련 버튼 */}
                       <button
@@ -459,7 +462,7 @@ export default function HistoryPage() {
             })}
             {filteredRecords.length === 0 && (
               <div className="text-center text-onair-text-sub py-8 text-sm">
-                해당 카테고리의 기록이 없습니다.
+                {selectedCategory === "전체" ? "훈련 기록이 없습니다." : `${selectedCategory} 카테고리의 기록이 없습니다.`}
               </div>
             )}
           </div>

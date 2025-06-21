@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { createPortal } from "react-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Pencil, Volume2, ChevronDown, Play, Pause, Star, MessageSquare, Speech, Mic, Square, ArrowRight, Download, Lock, LogIn } from "lucide-react";
@@ -37,6 +38,10 @@ interface SentenceCardProps {
   waveformRef: React.RefObject<WaveformPlayerHandle>
   onRecordingComplete?: (url: string | null) => void
   onAnalysisComplete?: (analysisResult: any, referenceUrl?: string, userRecordingUrl?: string) => void  // 분석 결과 콜백 추가
+  noCard?: boolean
+  hideTitle?: boolean
+  showSentenceBox?: boolean
+  headerPortalRef?: React.RefObject<HTMLElement | null>
 }
 
 export function SentenceCard({
@@ -54,7 +59,11 @@ export function SentenceCard({
   canNext,
   waveformRef,
   onRecordingComplete,
-  onAnalysisComplete
+  onAnalysisComplete,
+  noCard = false,
+  hideTitle = false,
+  showSentenceBox = true,
+  headerPortalRef,
 }: SentenceCardProps) {
   const { models: aiModels, isLoading, defaultModelId } = useAIModels()
   const [waveformHeights, setWaveformHeights] = useState<number[]>([])
@@ -909,12 +918,10 @@ export function SentenceCard({
   //   setHighlightIndex(index)
   // }
 
-  return (
-    <Card className="bg-onair-bg-sub border-onair-text-sub/20">
-      <CardHeader>                                                
-        <CardTitle className="text-onair-text flex items-center justify-between">
-          <span>훈련 문장</span>
-          <div className="flex items-center space-x-2 ml-auto">
+  const headerContent = (
+    <div className="text-onair-text flex items-center justify-between">
+      {hideTitle ? null : <span className="text-2xl font-semibold">훈련 문장</span>}
+      <div className="flex items-center space-x-2 ml-auto">
             {onRefresh && (
               <Button
                 variant="outline"
@@ -1012,12 +1019,15 @@ export function SentenceCard({
                 </div>
               )}
             </div>
-          </div>
-        </CardTitle>
-      </CardHeader>
+            </div>
+    </div>
+  );
 
-      <CardContent>
-        {/* 250609 박남규 - 훈련 문장을 직접 보여주고 수정 가능하도록 처리 */}
+  const headerPortal = headerPortalRef?.current ? createPortal(headerContent, headerPortalRef.current) : null;
+
+  const content = (
+        <>
+        {showSentenceBox && (
         <div className="p-6 bg-onair-bg rounded-lg border border-onair-text-sub/10">
           <textarea
             ref={textareaRef}
@@ -1041,7 +1051,7 @@ export function SentenceCard({
             </div>
           )}
         </div>
-
+)}
         {/* 녹음 컨트롤러 추가 */}
         <div className="mt-4">
           <div className="text-center space-y-4">
@@ -1178,7 +1188,32 @@ export function SentenceCard({
           }}
           style={{ display: 'none' }}
         />
-      </CardContent>
-    </Card>
+      </>
+  );
+
+  if (noCard) {
+    return (
+      <>
+        {headerPortal}
+        <div className="space-y-4">
+          {headerPortal ? null : headerContent}
+          {content}
+        </div>
+      </>
+    )
+  }
+
+  return (
+    <>
+      {headerPortal}
+      <Card className="bg-onair-bg-sub border-onair-text-sub/20">
+        <CardHeader>
+          {headerPortal ? null : headerContent}
+        </CardHeader>
+        <CardContent>
+          {content}
+        </CardContent>
+      </Card>
+    </>
   )
 }
