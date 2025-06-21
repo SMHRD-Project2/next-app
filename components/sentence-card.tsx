@@ -698,6 +698,9 @@ export function SentenceCard({
       const analysisResult = await analysisResponse.json();
       
       console.log("🎯 음성 분석 결과:", analysisResult);
+
+      const processedRefUrl = analysisResult.processed_files?.reference_url || referenceUrl
+      const processedUserUrl = analysisResult.processed_files?.user_url || userRecordingUrl
       
       if (analysisResult.success) {
         console.log("📊 상세 분석 점수:");

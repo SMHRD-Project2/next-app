@@ -104,8 +104,8 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
       });
       
       // 두 음성 파일 불러오기 (프록시된 URL 사용)
-      wavesurfer1.current.load(proxiedAudioFile1);
-      wavesurfer2.current.load(proxiedAudioFile2);
+      wavesurfer1.current.load(proxiedAudioFile1)
+      wavesurfer2.current.load(proxiedAudioFile2)
 
       // DTW를 사용한 파형 정렬
       if (wavesurfer1.current && wavesurfer2.current) {
@@ -171,7 +171,7 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
       wavesurfer1.current?.destroy();
       wavesurfer2.current?.destroy();
     };
-  }, []);
+  }, [proxiedAudioFile1, proxiedAudioFile2]);
 
   const handlePlayPause = () => {
     if (isPlaying) {

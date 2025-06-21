@@ -22,6 +22,7 @@ class Analyzer:
     def __init__(self, ref_file: str, usr_file: str):
         self.ref_y, self.ref_sr = librosa.load(ref_file, sr=None)
         self.usr_y, self.usr_sr = librosa.load(usr_file, sr=None)
+        
         if self.ref_sr != self.usr_sr:                      # 리샘플링
             self.usr_y = librosa.resample(self.usr_y, orig_sr=self.usr_sr, target_sr=self.ref_sr)
             self.usr_sr = self.ref_sr

@@ -60,7 +60,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://f5-onair.vercel.app",
-        "f5-onair.vercel.app",
+        "onair.vercel.app",
         "http://127.0.0.1:3000",
         "http://localhost:3000"
     ],  # Next.js 개발 서버 및 프로덕션
@@ -365,15 +365,6 @@ async def analyze_voice(request: VoiceAnalysisRequest):
         # 음성 분석 실행
         analyzer = Analyzer(temp_ref_path, temp_user_path)
         result = analyzer.run()
-
-        # 노이즈 제거된 음성 파일을 메모리에 저장 후 S3 업로드
-        ref_buf, usr_buf = analyzer.get_processed_audio_buffers()
-        proc_ref_key = f"processed/{uuid.uuid4()}_ref.wav"
-        proc_usr_key = f"processed/{uuid.uuid4()}_usr.wav"
-        s3_client.upload_fileobj(ref_buf, S3_BUCKET_NAME, proc_ref_key, ExtraArgs={"ContentType": "audio/wav"})
-        s3_client.upload_fileobj(usr_buf, S3_BUCKET_NAME, proc_usr_key, ExtraArgs={"ContentType": "audio/wav"})
-        processed_ref_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{proc_ref_key}"
-        processed_usr_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{proc_usr_key}"
         
         logger.info("음성 분석 완료")
         logger.info(f"분석 결과: {result}")
@@ -411,10 +402,6 @@ async def analyze_voice(request: VoiceAnalysisRequest):
             "files": {
                 "reference_url": request.reference_url,
                 "user_url": request.user_url
-            },
-            "processed_files": {
-                "reference_url": processed_ref_url,
-                "user_url": processed_usr_url
             }
         }
         
