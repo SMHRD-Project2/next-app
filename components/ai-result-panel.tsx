@@ -222,13 +222,13 @@ export function AIResultPanel({ myVoiceUrl, referenceUrl, userRecordingUrl, wave
   ] : [0, 0, 0, 0, 0, 0, 0, 0];
 
   return (
-    <Card className="bg-onair-bg-sub border-onair-text-sub/20 relative">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-onair-text">AI 분석 결과</CardTitle>
+    <Card className="bg-onair-bg-sub border-onair-text-sub/20 relative w-full">
+      <CardHeader className="p-2 sm:p-3">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
+          <CardTitle className="text-onair-text text-sm sm:text-base">AI 분석 결과</CardTitle>
           {isSaved && isLoggedIn && (
-            <div className="flex items-center text-onair-mint text-sm">
-              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <div className="flex items-center text-onair-mint text-xs">
+              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               자동 저장됨
@@ -236,98 +236,83 @@ export function AIResultPanel({ myVoiceUrl, referenceUrl, userRecordingUrl, wave
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-3 p-2 sm:p-3">
 
         {/* 음성 비교 섹션 */}
         {isLoggedIn && (
-          <div className="space-y-4">
-            <h4 className="font-semibold text-onair-text">파형 비교 분석</h4>
-            <WaveCompare
-              audioFile1={referenceUrl || "/audio/female.wav"}
-              audioFile2={userRecordingUrl || "/audio/male.wav"}
-              label1="AI(정답) - 배경"
-              label2="내 음성 - DTW 정렬됨"
-            />
+          <div className="space-y-1.5">
+            <h4 className="font-semibold text-onair-text text-xs sm:text-sm">파형 비교 분석</h4>
+            <div className="w-full">
+              <WaveCompare
+                audioFile1={referenceUrl || "/audio/female.wav"}
+                audioFile2={userRecordingUrl || "/audio/male.wav"}
+                label1="AI 음성"
+                label2="내 음성"
+              />
+            </div>
           </div>
         )}
 
-        <h4 className="font-semibold text-onair-text">육각 그래프</h4>
-        <VoiceRadarChart scores={scoreValues} />
+        <div className="space-y-1.5">
+          <h4 className="font-semibold text-onair-text text-xs sm:text-sm">발음 분석 레이더 차트</h4>
+          <div className="w-full flex justify-center">
+            <div className="w-full">
+              <VoiceRadarChart scores={scoreValues} />
+            </div>
+          </div>
+        </div>
         
         {/* 전체 점수 */}
-        <div className="text-center p-4 bg-onair-bg rounded-lg border border-onair-text-sub/20">
-          <div className="text-2xl font-bold text-onair-mint mb-1">
+        <div className="text-center p-2 bg-onair-bg rounded-lg border border-onair-text-sub/20">
+          <div className="text-lg sm:text-xl font-bold text-onair-mint">
             {analysisData.overallScore.toFixed(1)}점
           </div>
-          <div className="text-onair-text-sub text-sm">전체 평가 점수</div>
+          <div className="text-onair-text-sub text-xs">전체 평가 점수</div>
         </div>
 
-        {/* 개별 점수
-        <div className="grid grid-cols-2 gap-4">
-          {analysisData.items.map((item) => {
-            const getColor = (score: number) => {
-              if (score >= 90) return "text-onair-mint"
-              if (score >= 80) return "text-onair-orange"
-              return "text-red-400"
-            }
-
-            return (
-              <div key={item.metric} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-onair-text-sub text-sm">
-                    {metricLabels[item.metric as keyof typeof metricLabels] || item.metric}
-                  </span>
-                  <span className={`font-semibold ${getColor(item.score)}`}>
-                    {item.score.toFixed(1)}점
-                  </span>
-                </div>
-                <Progress value={item.score} className="h-2" />
-              </div>
-            )
-          })}
-        </div> */}
-
         {/* 피드백 */}
-        <div className="space-y-3">
-          <h4 className="font-semibold text-onair-text">상세 피드백</h4>
-          {analysisData.items.map((item, index) => {
-            const feedbackType = getFeedbackType(item.score)
-            const colors = {
-              good: "bg-onair-mint/10 text-onair-mint border-onair-mint/20",
-              improve: "bg-onair-orange/10 text-onair-orange border-onair-orange/20",
-              tip: "bg-onair-blue/10 text-onair-blue border-onair-blue/20",
-            }
+        <div className="space-y-1.5">
+          <h4 className="font-semibold text-onair-text text-xs sm:text-sm">상세 피드백</h4>
+          <div className="grid gap-1.5">
+            {analysisData.items.map((item, index) => {
+              const feedbackType = getFeedbackType(item.score)
+              const colors = {
+                good: "bg-onair-mint/10 text-onair-mint border-onair-mint/20",
+                improve: "bg-onair-orange/10 text-onair-orange border-onair-orange/20",
+                tip: "bg-onair-blue/10 text-onair-blue border-onair-blue/20",
+              }
 
-            return (
-              <div key={index} className={`p-3 rounded-lg border ${colors[feedbackType]}`}>
-                <p className="text-sm font-medium mb-1">{item.shortFeedback}</p>
-                {item.detailedFeedback.map((detail, detailIndex) => (
-                  <p key={detailIndex} className="text-xs text-onair-text-sub">
-                    {detail}
-                  </p>
-                ))}
-              </div>
-            )
-          })}
+              return (
+                <div key={index} className={`p-1.5 rounded-md border ${colors[feedbackType]}`}>
+                  <p className="text-xs font-medium mb-0.5">{item.shortFeedback}</p>
+                  {item.detailedFeedback.map((detail, detailIndex) => (
+                    <p key={detailIndex} className="text-xs text-onair-text-sub leading-tight">
+                      {detail}
+                    </p>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </CardContent>
 
       {/* 비회원 블러 처리 오버레이 */}
       {!isLoggedIn && (
-        <div className="absolute inset-0 bg-onair-bg/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
-          <div className="text-center p-6 bg-onair-bg-sub rounded-lg border border-onair-text-sub/20 max-w-sm mx-4">
-            <Lock className="w-12 h-12 text-onair-mint mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-onair-text mb-2">
+        <div className="absolute inset-0 bg-onair-bg/80 backdrop-blur-sm rounded-lg flex items-center justify-center p-2">
+          <div className="text-center p-3 sm:p-4 bg-onair-bg-sub rounded-lg border border-onair-text-sub/20 w-full max-w-xs">
+            <Lock className="w-6 h-6 sm:w-8 sm:h-8 text-onair-mint mx-auto mb-2 sm:mb-3" />
+            <h3 className="text-sm sm:text-base font-semibold text-onair-text mb-1 sm:mb-2">
               로그인이 필요합니다
             </h3>
-            <p className="text-onair-text-sub text-sm mb-4">
+            <p className="text-onair-text-sub text-xs sm:text-sm mb-2 sm:mb-3">
               AI 분석 결과를 확인하려면 로그인해주세요
             </p>
             <Button 
               onClick={handleLoginRedirect}
-              className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+              className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg w-full text-xs sm:text-sm py-1.5 sm:py-2"
             >
-              <LogIn className="w-4 h-4 mr-2" />
+              <LogIn className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               로그인하기
             </Button>
           </div>

@@ -883,17 +883,17 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
                 <p className="text-onair-text-sub">"{modelName}" AI 모델이 성공적으로 생성되었습니다.</p>
               </div>
 
-              <div className="flex justify-center mt-6 gap-4">
+              <div className="flex flex-col sm:flex-row justify-center mt-6 gap-4 px-4 sm:px-0">
                 <Button
                   variant="outline"
-                  className="border-onair-mint text-onair-mint px-8"
+                  className="border-onair-mint text-onair-mint px-4 sm:px-8 w-full sm:w-auto"
                   onClick={resetAll}
                 >
                   새 모델 만들러 가기
                 </Button>
                 <Button
                   onClick={() => onSaveSuccess()}
-                  className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-8"
+                  className="bg-onair-mint hover:bg-onair-mint/90 text-onair-bg px-4 sm:px-8 w-full sm:w-auto"
                 >
                   내 AI 모델 보러가기
                 </Button>

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Mic, Square, RotateCcw, Trophy, Star, ChevronDown, Play, Pause, Volume2, Download } from "lucide-react"
+import { Mic, Square, RefreshCw, Trophy, Star, ChevronDown, Play, Pause, Volume2, MessageSquare } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,7 @@ interface Challenge {
       [key: string]: string;
     };
   };
+  onAnalysisComplete?: (analysisResult: any, referenceUrl?: string, userRecordingUrl?: string) => void
 }
 
 interface PronunciationChallengeProps {
@@ -152,6 +153,12 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
   const exampleAudioRef = useRef<HTMLAudioElement | null>(null)  // AI 예시 음성 재생용
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<string | null>(null)
+  const [waveformHeights, setWaveformHeights] = useState<number[]>([])
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   useEffect(() => {
     console.log('🔧 모델 초기화:', { isLoading, aiModelsLength: aiModels.length, defaultModelId });
@@ -835,26 +842,42 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
             <p className="text-sm text-onair-text-sub">💡 팁: {selectedChallenge.tips}</p>
           </div>
 
-          {/* 녹음 컨트롤 */}
+        
+        {/* 녹음 컨트롤러 추가 */}
+        <div className="mt-4">
           <div className="text-center space-y-4">
             <h3 className="text-lg font-semibold text-onair-text">
-              {isRecording ? "녹음 중..." : hasRecorded ? "녹음 완료!" : "음성 녹음"}
+              {isRecording ? "녹음 중..." : hasRecorded ? "녹음 완료!" : " "}
             </h3>
 
             {isRecording && (
               <>
                 <div className="flex items-center justify-center space-x-1 h-16">
-                  {Array.from({ length: 20 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="bg-onair-orange rounded-full animate-wave"
-                      style={{
-                        width: "4px",
-                        height: `${Math.random() * 40 + 20}px`,
-                        animationDelay: `${i * 0.1}s`,
-                      }}
-                    />
-                  ))}
+                  {isClient && waveformHeights.length > 0 ? (
+                    waveformHeights.map((height, i) => (
+                      <div
+                        key={i}
+                        className="bg-onair-orange rounded-full animate-wave"
+                        style={{
+                          width: "4px",
+                          height: `${height}px`,
+                          animationDelay: `${i * 0.1}s`,
+                        }}
+                      />
+                    ))
+                  ) : (
+                    Array.from({ length: 20 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="bg-onair-orange rounded-full animate-wave"
+                        style={{
+                          width: "4px",
+                          height: "30px",
+                          animationDelay: `${i * 0.1}s`,
+                        }}
+                      />
+                    ))
+                  )}
                 </div>
                 <p className="text-onair-text-sub text-sm mt-2">
                   {` ${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')}`}
@@ -862,25 +885,24 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
               </>
             )}
 
-            {hasRecorded && !isRecording && audioURL && (
-              <div className="w-full mb-4 hidden">
-                <WaveformPlayer 
-                  ref={waveformRef} 
-                  url={audioURL} 
-                  onPlayStateChange={setIsPlaying}
-                />
-              </div>
-            )}
-
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-col items-center gap-2">
+              {hasRecorded && !isRecording && audioURL && (
+                // hidden 처리 (숨김 처리)
+                <div className="w-full mb-4 hidden">
+                  <WaveformPlayer 
+                    ref={waveformRef} 
+                    url={audioURL} 
+                    onPlayStateChange={setIsPlaying}
+                  />
+                </div>
+              )}
               <Button
                 onClick={handleRecord}
                 size="lg"
-                className={`${
-                  isRecording
-                    ? "bg-red-500 hover:bg-red-600 text-white"
-                    : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
-                } font-semibold`}
+                className={`${isRecording
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-onair-mint hover:bg-onair-mint/90 text-onair-bg"
+                  } font-semibold`}
               >
                 {isRecording ? (
                   <>
@@ -915,17 +937,17 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                   >
                     {isAnalyzing ? (
                       <>
-                        <RotateCcw className="w-5 h-5 mr-2 animate-spin" />
+                        <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
                         평가 중...
                       </>
                     ) : (
                       <>
-                        <Trophy className="w-5 h-5 mr-2" />
+                        <MessageSquare className="w-5 h-5 mr-2" />
                         평가하기
                       </>
                     )}
                   </Button>
-                  <Button
+                  {/* <Button
                     onClick={handleDownload}
                     size="lg"
                     variant="outline"
@@ -933,25 +955,14 @@ export function PronunciationChallenge({ isRecording, onRecord, hasRecorded, onR
                   >
                     <Download className="w-5 h-5 mr-2" />
                     다운로드
-                  </Button>
+                  </Button> */}
                 </div>
-              )}
-
-              {hasRecorded && (
-                <Button
-                  onClick={onReset}
-                  size="lg"
-                  variant="outline"
-                  className="border-onair-blue text-onair-blue hover:bg-onair-blue hover:text-onair-bg"
-                >
-                  <RotateCcw className="w-5 h-5 mr-2" />
-                  다시 도전
-                </Button>
               )}
             </div>
 
             {hasRecorded && !isRecording && isAnalyzing && <LoadingMessage />}
           </div>
+        </div>
 
           {/* 숨겨진 audio 요소들 추가 */}
           {/* 녹음된 오디오 재생용 */}

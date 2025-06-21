@@ -230,13 +230,13 @@ export function AIModelManager() {
         </div>
       </div>
 
-      <div className="flex gap-2.5 mb-2">
+      <div className="flex flex-wrap gap-2.5 mb-2">
         {["전체", "프리미엄", "사용자 생성"].map((type) => (
           <label
             key={type}
             className={`
               flex items-center gap-1 cursor-pointer px-3 py-1 rounded-full border
-              transition
+              transition whitespace-nowrap
               ${modelType === type
                 ? "bg-onair-mint text-white border-onair-mint font-semibold"
                 : "bg-onair-bg-sub text-onair-text-sub border-onair-text-sub/20"}
@@ -261,25 +261,25 @@ export function AIModelManager() {
           .map((model) => (
             <Card key={model.id} className="bg-onair-bg-sub border-onair-text-sub/20">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <Avatar className="w-12 h-12">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex items-start space-x-4 flex-1 min-w-0">
+                    <Avatar className="w-12 h-12 flex-shrink-0">
                       <AvatarImage src={model.avatar || "/placeholder.svg"} />
                       <AvatarFallback className="bg-onair-bg text-onair-mint">{model.name.charAt(0)}</AvatarFallback>
                     </Avatar>
 
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold text-onair-text">{model.name}</h3>
-                        {defaultModelId === model._id && <Star className="w-4 h-4 text-yellow-400 fill-current" />}
+                    <div className="flex-1 space-y-2 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-onair-text truncate">{model.name}</h3>
+                        {defaultModelId === model._id && <Star className="w-4 h-4 text-yellow-400 fill-current flex-shrink-0" />}
                         <Badge className={getQualityColor(model.quality)}>{model.quality}</Badge>
                       </div>
 
-                      <p className="text-sm text-onair-text-sub">{model.description}</p>
+                      <p className="text-sm text-onair-text-sub line-clamp-2">{model.description}</p>
 
-                      <div className="flex items-center space-x-4 text-xs text-onair-text-sub">
-                        <span>유형: {model.type}</span>
-                        <span>생성일: {model.createdAt}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-onair-text-sub">
+                        <span className="truncate">유형: {model.type}</span>
+                        <span className="truncate">생성일: {model.createdAt}</span>
                       </div>
 
                       <div className="flex items-center space-x-1 h-6 bg-onair-bg rounded p-1">
@@ -298,8 +298,8 @@ export function AIModelManager() {
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                  {model.quality !== "프리미엄" && (
+                  <div className="flex items-center justify-end gap-2 flex-shrink-0">
+                    {model.quality !== "프리미엄" && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -329,7 +329,6 @@ export function AIModelManager() {
                         <Play className="w-4 h-4" />
                       )}
                     </Button>
-              
                   </div>
                 </div>
               </CardContent>
