@@ -60,7 +60,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://f5-onair.vercel.app",
-        "onair.vercel.app",
+        "f5-onair.vercel.app",
         "http://127.0.0.1:3000",
         "http://localhost:3000"
     ],  # Next.js 개발 서버 및 프로덕션
@@ -365,6 +365,15 @@ async def analyze_voice(request: VoiceAnalysisRequest):
         # 음성 분석 실행
         analyzer = Analyzer(temp_ref_path, temp_user_path)
         result = analyzer.run()
+
+        # 노이즈 제거된 음성 파일을 메모리에 저장 후 S3 업로드
+        ref_buf, usr_buf = analyzer.get_processed_audio_buffers()
+        proc_ref_key = f"processed/{uuid.uuid4()}_ref.wav"
+        proc_usr_key = f"processed/{uuid.uuid4()}_usr.wav"
+        s3_client.upload_fileobj(ref_buf, S3_BUCKET_NAME, proc_ref_key, ExtraArgs={"ContentType": "audio/wav"})
+        s3_client.upload_fileobj(usr_buf, S3_BUCKET_NAME, proc_usr_key, ExtraArgs={"ContentType": "audio/wav"})
+        processed_ref_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{proc_ref_key}"
+        processed_usr_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{proc_usr_key}"
         
         logger.info("음성 분석 완료")
         logger.info(f"분석 결과: {result}")
@@ -402,6 +411,10 @@ async def analyze_voice(request: VoiceAnalysisRequest):
             "files": {
                 "reference_url": request.reference_url,
                 "user_url": request.user_url
+            },
+            "processed_files": {
+                "reference_url": processed_ref_url,
+                "user_url": processed_usr_url
             }
         }
         
@@ -796,11 +809,11 @@ async def extract_text(request: URLRequest):
                 filtered_lines.append(line)
                 
         filtered_text = '\n'.join(filtered_lines)
-
+        
         # 특정 텍스트 제거
         remove_text = "자동 추출 기술로 요약된 내용입니다. 요약 기술의 특성상 본문의 주요 내용이 제외될 수 있어, 전체 맥락을 이해하기 위해서는 기사 본문 전체보기를 권장합니다.\n이동 통신망을 이용하여 음성을 재생하면 별도의 데이터 통화료가 부과될 수 있습니다."
         filtered_text = filtered_text.replace(remove_text, "").strip()
-
+        
         return {"text": filtered_text}
     except Exception as e:
         return {"error": str(e)}
