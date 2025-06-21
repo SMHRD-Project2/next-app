@@ -14,6 +14,11 @@ export async function POST(request: Request) {
     }
 
     // 카카오 토큰 요청
+    const baseAuthUrl = (process.env.NEXTAUTH_URL || '').replace(/\/$/, '')
+    const redirectUri = `${baseAuthUrl}/api/auth/kakao/callback`
+    
+    console.log('[KAKAO LINK] Redirect URI:', redirectUri)
+    
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
       headers: {
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
         grant_type: 'authorization_code',
         client_id: process.env.KAKAO_CLIENT_ID!,
         code: authorizationCode,
-        redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/kakao/callback`,
+        redirect_uri: redirectUri,
       }),
     })
 

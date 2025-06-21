@@ -54,6 +54,24 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
     }
   }, [])
 
+  // 부모 컴포넌트에서 녹음 상태가 변경되면 녹음 중지
+  useEffect(() => {
+    if (!isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+    }
+  }, [isRecording])
+
+  // 컴포넌트 언마운트 시 녹음 중지
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
+
   // 녹음 시작 버튼 누르면 녹음 시작
   const handleRecord = async () => {
     if (!isRecording) {

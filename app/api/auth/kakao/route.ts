@@ -18,7 +18,11 @@ export async function GET(request: NextRequest) {
   try {
     //console.log('[KAKAO] 토큰 요청 시작')
     
-    const baseUrl = process.env.BASE_URL || 'next-app-gilt-one.vercel.app'
+    const baseUrl = (process.env.BASE_URL || 'https://next-app-gilt-one.vercel.app').replace(/\/$/, '')
+    const redirectUri = `${baseUrl}/api/auth/kakao`
+    
+    console.log('[KAKAO] Base URL:', baseUrl)
+    console.log('[KAKAO] Redirect URI:', redirectUri)
     
     // 카카오에서 액세스 토큰 받기
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
@@ -29,7 +33,7 @@ export async function GET(request: NextRequest) {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         client_id: process.env.KAKAO_REST_API_KEY!,
-        redirect_uri: `${baseUrl}/api/auth/kakao`,
+        redirect_uri: redirectUri,
         code: code,
       }),
     })

@@ -12,7 +12,7 @@ interface SocialLoginButtonsProps {
 export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const router = useRouter()
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'next-app-gilt-one.vercel.app'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://next-app-gilt-one.vercel.app'
 
   const handleSocialLogin = async (provider: string) => {
     setLoadingProvider(provider)
@@ -23,13 +23,15 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
 
       switch (provider) {
         case 'kakao':
+          const kakaoRedirectUri = `${baseUrl}/api/auth/kakao/login`
           authUrl = 
             `https://kauth.kakao.com/oauth/authorize?` +
             `client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&` +
-            `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/kakao/login`)}&` +
+            `redirect_uri=${encodeURIComponent(kakaoRedirectUri)}&` +
             `response_type=code&` +
             `scope=profile_nickname`
           popupName = 'kakao_login'
+          console.log('카카오 Redirect URI:', kakaoRedirectUri)
           break
           
         case 'naver':
@@ -45,10 +47,11 @@ export function SocialLoginButtons({ isSignup = false }: SocialLoginButtonsProps
           break
           
         case 'google':
+          const googleRedirectUri = `${baseUrl.replace(/\/$/, '')}/api/auth/google/login`
           authUrl = 
             `https://accounts.google.com/o/oauth2/v2/auth?` +
             `client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&` +
-            `redirect_uri=${encodeURIComponent(`${baseUrl}/api/auth/google/login`)}&` +
+            `redirect_uri=${encodeURIComponent(googleRedirectUri)}&` +
             `response_type=code&` +
             `scope=profile email&` +
             `access_type=offline&` +

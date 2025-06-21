@@ -61,6 +61,11 @@ export function SentenceCard({
   const [isClient, setIsClient] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)  // 분석 상태 추가
+  const [isTTSLoading, setIsTTSLoading] = useState(false)  // TTS 로딩 상태 추가
+  const [hasAnalyzed, setHasAnalyzed] = useState(false)  // 분석 완료 상태 추가
+
+  // TTS 캐시 상태 추가
+  const [ttsCache, setTtsCache] = useState<Map<string, string>>(new Map())
 
   // TTS progress state (for AI announcer playback)
   const [ttsProgress, setTtsProgress] = useState<number | null>(null)
@@ -76,7 +81,7 @@ export function SentenceCard({
     }
   }
 
-  const MAX_LENGTH = 300;
+  const MAX_LENGTH = 250;
 
   // 250609 박남규 - 내부 문장 상태를 따로 관리하도록 수정
   const [localSentence, setLocalSentence] = useState(sentence);
@@ -98,6 +103,8 @@ export function SentenceCard({
   useEffect(() => {
     // console.log("Sentence prop changed to:", sentence);  // sentence prop 변경 시점 로그
     setLocalSentence(sentence);
+    // 문장이 변경되면 기존 TTS 캐시 초기화
+    setTtsCache(new Map());
     // console.log("localSentence updated to:", sentence);  // localSentence 업데이트 후 값 확인
   }, [sentence]);
 
@@ -141,6 +148,8 @@ export function SentenceCard({
     // console.log("Textarea input:", inputText);  // 입력된 텍스트 확인
     const truncatedText = inputText.slice(0, MAX_LENGTH);
     setLocalSentence(truncatedText);
+    // 문장이 변경되면 기존 TTS 캐시 초기화
+    setTtsCache(new Map());
     // console.log("localSentence set to:", truncatedText);  // localSentence 설정 값 확인
     
     if (onSentenceChange) onSentenceChange(truncatedText);
@@ -250,11 +259,54 @@ export function SentenceCard({
       return;
     }
 
+    // 이미 TTS 로딩 중이면 취소
+    if (isTTSLoading) {
+      console.log("TTS가 이미 진행 중입니다.");
+      return;
+    }
+
+    // 현재 재생 중인 오디오가 있다면 중지
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+      setIsPlayingAIExample(false);
+      return;
+    }
+
     try {
-      setIsPlayingAIExample(true);
+      // 캐시 키 생성 (문장 + 모델 ID + 탭)
+      const cacheKey = `${localSentence}_${selectedModel}_${currentTab}`;
+      
+      // 캐시된 TTS 결과가 있는지 확인
+      let audioUrl: string | null = ttsCache.get(cacheKey) || null;
+      
+      if (audioUrl) {
+        console.log("캐시된 TTS 결과 사용:", cacheKey);
+        
+        // 캐시된 URL로 바로 재생
+        const audio = new Audio(audioUrl);
+        currentAudioRef.current = audio;
+        
+        audio.onended = () => {
+          setIsPlayingAIExample(false);
+          currentAudioRef.current = null;
+        };
+
+        audio.onerror = () => {
+          setIsPlayingAIExample(false);
+          currentAudioRef.current = null;
+        };
+
+        await audio.play();
+        setIsPlayingAIExample(true);
+        return;
+      }
+
+      setIsTTSLoading(true);  // TTS 로딩 시작
+      console.log("새로운 TTS 생성 시작:", cacheKey);
       
       // DB의 voiceUrl이 있으면 사용, 없으면 TTS 생성
-      let audioUrl = null;
+      audioUrl = null;
       
       if (currentTab !== 'custom') {
         const modelDetails = aiModels.find(model => model.id === selectedModel);
@@ -317,17 +369,26 @@ export function SentenceCard({
         }
       }
 
-      // 현재 재생 중인 오디오가 있다면 중지
-      if (currentAudioRef.current) {
-        currentAudioRef.current.pause();
-        currentAudioRef.current = null;
+      // TTS 결과를 캐시에 저장
+      if (audioUrl) {
+        setTtsCache(prev => {
+          const newCache = new Map(prev);
+          newCache.set(cacheKey, audioUrl!);
+          console.log("TTS 결과 캐시 저장:", cacheKey);
+          return newCache;
+        });
       }
 
       // 새로운 오디오 생성 및 재생
-      const audio = new Audio(audioUrl);
+      const audio = new Audio(audioUrl!);
       currentAudioRef.current = audio;
       
       audio.onended = () => {
+        setIsPlayingAIExample(false);
+        currentAudioRef.current = null;
+      };
+
+      audio.onerror = () => {
         setIsPlayingAIExample(false);
         currentAudioRef.current = null;
       };
@@ -338,6 +399,8 @@ export function SentenceCard({
       console.error('TTS 처리 중 오류:', error);
       setIsPlayingAIExample(false);
       currentAudioRef.current = null;
+    } finally {
+      setIsTTSLoading(false);  // TTS 로딩 완료
     }
   };
 
@@ -402,13 +465,31 @@ export function SentenceCard({
   const [isPlaying, setIsPlaying] = useState(false)
   const [waveHeights, setWaveHeights] = useState<number[]>([])
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])  
+  const audioChunksRef = useRef<Blob[]>([])
   const [recordingTime, setRecordingTime] = useState(0)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<string | null>(null)  // 업로드된 녹음 URL 저장
 
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);  // 녹음된 오디오 재생용 ref 추가
+
+  // 부모 컴포넌트에서 녹음 상태가 변경되면 녹음 중지
+  useEffect(() => {
+    if (!isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+    }
+  }, [isRecording])
+
+  // 컴포넌트 언마운트 시 녹음 중지
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
 
   // 평가하기 버튼 클릭 핸들러 추가
   const handleEvaluate = async () => {
@@ -588,6 +669,7 @@ export function SentenceCard({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true"
         },
         body: JSON.stringify({
           reference_url: referenceUrl,
@@ -635,6 +717,9 @@ export function SentenceCard({
           
           // 전체 피드백 객체도 출력 (개발자용)
           console.log("🔍 전체 AI 피드백 객체:", analysisResult.ai_feedback);
+          
+          // 분석 완료 상태를 true로 설정
+          setHasAnalyzed(true);
           
           // 분석 결과를 부모 컴포넌트로 전달
           if (onAnalysisComplete) {
@@ -719,6 +804,9 @@ export function SentenceCard({
           setAudioURL(url)
           if (onRecordingComplete) onRecordingComplete(url)
           audioChunksRef.current = []
+
+          // 새로운 녹음 시 분석 완료 상태 초기화
+          setHasAnalyzed(false)
 
           // 250611 박남규 업로드 - skipAnalysis: true로 자동 분석 비활성화
           uploadToS3(audioBlob, true)
@@ -823,7 +911,7 @@ export function SentenceCard({
 
   return (
     <Card className="bg-onair-bg-sub border-onair-text-sub/20">
-      <CardHeader>
+      <CardHeader>                                                
         <CardTitle className="text-onair-text flex items-center justify-between">
           <span>훈련 문장</span>
           <div className="flex items-center space-x-2 ml-auto">
@@ -846,9 +934,24 @@ export function SentenceCard({
                 size="sm"
                 className="relative inline-flex items-center rounded-l-md rounded-r-none border-r border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
                 onClick={handlePlayAIExample}
+                disabled={isTTSLoading}
               >
-                {isPlayingAIExample ? <Pause className="w-4 h-4 mr-2" /> : <Volume2 className="w-4 h-4 mr-2" />}
-                {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
+                {isTTSLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    음성 생성 중...
+                  </>
+                ) : isPlayingAIExample ? (
+                  <>
+                    <Pause className="w-4 h-4 mr-2" />
+                    재생 중지
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4 mr-2" />
+                    {selectedModel ? aiModels.find(model => model.id === selectedModel)?.name : 'AI 예시 듣기'}
+                  </>
+                )}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -857,6 +960,7 @@ export function SentenceCard({
                     size="sm"
                     className="relative inline-flex items-center rounded-r-md rounded-l-none text-onair-mint hover:bg-onair-mint hover:text-onair-bg px-2 focus:z-10 focus:outline-none focus:ring-1 focus:ring-onair-mint"
                     aria-label="AI 모델 선택"
+                    disabled={isTTSLoading}
                   >
                     <ChevronDown className="w-4 h-4" />
                   </Button>
@@ -921,11 +1025,11 @@ export function SentenceCard({
             value={localSentence}
             onChange={handleSentenceChange}
             spellCheck={false}
-            readOnly={currentTab !== 'custom' || isPlayingAIExample}
+            readOnly={currentTab !== 'custom' || isPlayingAIExample || isTTSLoading}
             maxLength={MAX_LENGTH}
           />
           <p className="text-sm text-onair-text-sub text-right">
-            {localSentence.length}/300
+            {localSentence.length}/250
           </p>
           {currentTab === 'custom' && ttsProgress !== null && (
             <div className="mt-2">
@@ -1028,12 +1132,17 @@ export function SentenceCard({
                     size="lg"
                     variant="outline"
                     className="border-onair-mint text-onair-mint hover:bg-onair-mint hover:text-onair-bg"
-                    disabled={isAnalyzing || !uploadedRecordingUrl}
+                    disabled={isAnalyzing || !uploadedRecordingUrl || hasAnalyzed}
                   >
                     {isAnalyzing ? (
                       <>
                         <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
                         평가 중...
+                      </>
+                    ) : hasAnalyzed ? (
+                      <>
+                        <MessageSquare className="w-5 h-5 mr-2" />
+                        평가 완료
                       </>
                     ) : (
                       <>
