@@ -20,7 +20,6 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
   const [progress, setProgress] = useState(0)
   const [waveHeights, setWaveHeights] = useState<number[]>([])
   const [isClient, setIsClient] = useState(false)
-  const [imageError, setImageError] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const animationRef = useRef<number | null>(null)
@@ -109,9 +108,8 @@ export function AIVoiceShowcase({ gender, name, title, description, sampleText }
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
               <AvatarImage 
-                src={imageError ? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random` : `/images/${name.toLowerCase()}.jpg`}
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`}
                 alt={name}
-                onError={() => setImageError(true)}
               />
               <AvatarFallback className={`bg-${colors[gender].secondary} text-${colors[gender].primary}`}>
                 {name.charAt(0)}

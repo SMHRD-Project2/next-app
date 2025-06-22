@@ -318,9 +318,6 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_PY_URL }/upload_model`, {
         method: 'POST',
-        headers: {
-          "ngrok-skip-browser-warning": "true"
-        },
         body: formData,
       })
 

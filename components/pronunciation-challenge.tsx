@@ -139,6 +139,10 @@ export function PronunciationChallenge({
   const currentChallengeRef = useRef<HTMLDivElement>(null)
   const waveformRef = useRef<WaveformPlayerHandle>(null!)
   const headerControlsRef = useRef<HTMLDivElement>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [uploadedRecordingUrl, setUploadedRecordingUrl] = useState<string | null>(null)
+  const [waveformHeights, setWaveformHeights] = useState<number[]>([])
+  const [isClient, setIsClient] = useState(false)
 
   const filteredChallenges = selectedDifficulty
     ? challenges.filter((c) => c.difficulty === selectedDifficulty)

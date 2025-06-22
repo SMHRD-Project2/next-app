@@ -107,7 +107,7 @@ export default function HomePage() {
         </div>
 
         <Card className="bg-onair-bg-sub border-onair-text-sub/20 overflow-hidden">
-          <CardContent className="p-8">
+          <CardContent className="p-5 md:p-8">
             <div className="flex items-start gap-4">
               <div className="bg-onair-mint/20 p-3 rounded-full flex-shrink-0">
                 <Quote className="w-6 h-6 text-onair-mint" />

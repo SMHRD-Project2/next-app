@@ -142,44 +142,58 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
 
   return (
     <div className="p-4">
-      {/* 음성 선택 라디오 */}
-      <div className="mb-4 flex gap-6">
-        {['ai', 'user'].map(v => (
-          <label key={v} className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="version"
-              value={v}
-              checked={version === v}
-              onChange={() => changeVersion(v as 'ai' | 'user')}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300"
-            />
-            <span className="text-sm font-medium">
-              {v === 'ai' ? 'AI 음성' : '내 음성'}
-            </span>
-          </label>
-        ))}
+      {/* 컨트롤 영역: 토글 버튼과 재생 버튼 */}
+      <div className="flex items-center gap-2 mb-4">
+        {/* 토글 버튼 */}
+        <div className="inline-flex bg-slate-800 rounded-lg p-1">
+          <button
+            onClick={() => changeVersion('ai')}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors duration-200 ${
+              version === 'ai'
+                ? 'bg-slate-300 text-slate-800'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            AI 음성
+          </button>
+          <button
+            onClick={() => changeVersion('user')}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors duration-200 ${
+              version === 'user'
+                ? 'text-white'
+                : 'text-slate-300 hover:text-white'
+            }`}
+            style={{
+              backgroundColor: version === 'user' ? 'rgb(69, 135, 243)' : 'transparent'
+            }}
+          >
+            내 음성
+          </button>
+        </div>
+
+        {/* 재생/일시정지 버튼 */}
+        <button
+          onClick={togglePlay}
+          className="w-8 h-8 bg-transparent text-gray-300 rounded-full text-xs transition-colors flex items-center justify-center border-2 border-gray-400 hover:bg-white/10 hover:border-white"
+        >
+          {playing ? '⏸' : '▶'}
+        </button>
       </div>
 
-      {/* 파형 오버레이 */}
-      <div className="mb-4">
-        <div className="flex gap-4 mb-2">
-          <Legend color="bg-gray-400" text={label1} />
-          <Legend color="bg-blue-500" text={label2} />
-        </div>
-        <div className="relative border rounded-lg p-2" style={{ height: 150 }}>
-          <div ref={ref1} className="absolute inset-0 z-10" />
-          <div ref={ref2} className="absolute inset-0 z-20" />
-        </div>
+      <div className="relative border rounded-lg p-2" style={{ height: '150px' }}>
+        {/* 배경 파형 */}
+        <div
+          ref={ref1}
+          className="absolute inset-0"
+          style={{ zIndex: 1 }}
+        ></div>
+        {/* 앞쪽 파형 */}
+        <div
+          ref={ref2}
+          className="absolute inset-0"
+          style={{ zIndex: 2 }}
+        ></div>
       </div>
-
-      <button
-        onClick={togglePlay}
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
-        {playing ? '일시정지' : '재생'} (
-        {version === 'ai' ? 'AI 음성' : '내 음성'})
-      </button>
     </div>
   );
 };
