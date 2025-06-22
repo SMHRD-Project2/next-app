@@ -87,22 +87,47 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
 
     ws1.current = WaveSurfer.create({
       container: ref1.current,
-      waveColor: 'rgba(224,224,224,1)',
-      progressColor: 'rgba(208,208,208,1)',
+      waveColor: 'rgb(145, 145, 145)', // 회색 (정답/참조)
+      progressColor: 'rgba(255, 255, 255, 0.9)',
       height: 150,
       normalize: true,
       interact: true,
       hideScrollbar: true,
+      fillParent: true,
+      minPxPerSec: 50,
     });
+
+    // 앞쪽 파형 (male.wav) - 앞에 표시
     ws2.current = WaveSurfer.create({
       container: ref2.current,
-      waveColor: 'rgba(74,144,226,0.5)',
-      progressColor: 'rgba(0,51,102,0.5)',
+      waveColor: 'rgba(121, 172, 253, 0.7)', // 파란색 (사용자/비교)
+      progressColor: 'rgba(41, 111, 224, 0.9)',
       height: 150,
       normalize: true,
       interact: true,
       hideScrollbar: true,
+      fillParent: true,
+      minPxPerSec: 50,
     });
+
+    // ws1.current = WaveSurfer.create({
+    //   container: ref1.current,
+    //   waveColor: 'rgba(224,224,224,1)',
+    //   progressColor: 'rgba(208,208,208,1)',
+    //   height: 150,
+    //   normalize: true,
+    //   interact: true,
+    //   hideScrollbar: true,
+    // });
+    // ws2.current = WaveSurfer.create({
+    //   container: ref2.current,
+    //   waveColor: 'rgba(74,144,226,0.5)',
+    //   progressColor: 'rgba(0,51,102,0.5)',
+    //   height: 150,
+    //   normalize: true,
+    //   interact: true,
+    //   hideScrollbar: true,
+    // });
 
     // 원본 URL로 로드 (안정적인 방법)
     ws1.current.load(proxify(audioFile1));
