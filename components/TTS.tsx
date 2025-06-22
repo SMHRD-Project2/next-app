@@ -44,7 +44,7 @@ export const TTS = ({ text, voice = 'SPK005.wav', onError }: TTSProps) => {
       setAudioUrl(url);
 
     } catch (error) {
-      console.error('TTS 오류:', error);
+      //console.error('TTS 오류:', error);
       onError?.(error as Error);
     } finally {
       setIsLoading(false);

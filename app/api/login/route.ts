@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error(error);
+    //console.error(error);
     return NextResponse.json({ message: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 }

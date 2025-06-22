@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   //console.log('[KAKAO] 받은 파라미터:', { code: code?.substring(0, 10) + '...', state })
 
   if (!code) {
-    console.error('[KAKAO] Authorization code가 없습니다')
+    //console.error('[KAKAO] Authorization code가 없습니다')
     return NextResponse.json({ error: 'Authorization code not provided' }, { status: 400 })
   }
 
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     const baseUrl = (process.env.BASE_URL || 'https://f5-onair.vercel.app').replace(/\/$/, '')
     const redirectUri = `${baseUrl}/api/auth/kakao`
     
-    console.log('[KAKAO] Base URL:', baseUrl)
-    console.log('[KAKAO] Redirect URI:', redirectUri)
+    //console.log('[KAKAO] Base URL:', baseUrl)
+    //console.log('[KAKAO] Redirect URI:', redirectUri)
     
     // 카카오에서 액세스 토큰 받기
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     //console.log('[KAKAO] 토큰 응답:', tokenData)
 
     if (!tokenResponse.ok) {
-      console.error('[KAKAO] 토큰 요청 실패:', tokenData)
+      //console.error('[KAKAO] 토큰 요청 실패:', tokenData)
       throw new Error(tokenData.error_description || 'Failed to get access token')
     }
 
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     //console.log('[KAKAO] 연동할 사용자 이메일:', userEmail)
 
     if (!userEmail) {
-      console.error('[KAKAO] 사용자 이메일이 없습니다')
+      //console.error('[KAKAO] 사용자 이메일이 없습니다')
       return NextResponse.json({ error: 'User email not provided' }, { status: 400 })
     }
 
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[KAKAO] 카카오 OAuth 에러:', error)
+    //console.error('[KAKAO] 카카오 OAuth 에러:', error)
     return NextResponse.json({ 
       error: 'Failed to connect Kakao account',
       details: error instanceof Error ? error.message : 'Unknown error'

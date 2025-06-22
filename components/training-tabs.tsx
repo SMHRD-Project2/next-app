@@ -74,12 +74,12 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       const data = await res.json();
       if (!data) throw new Error("No sentence data received");
       
-      console.log("=== API Response Details ===");
-      console.log("Full Response:", data);
-      console.log("Response Type:", typeof data);
-      console.log("Response Keys:", Object.keys(data));
-      console.log("Response Values:", Object.values(data));
-      console.log("=========================");
+      //console.log("=== API Response Details ===");
+      //console.log("Full Response:", data);
+      //console.log("Response Type:", typeof data);
+      //console.log("Response Keys:", Object.keys(data));
+      //console.log("Response Values:", Object.values(data));
+      //console.log("=========================");
       
       // API 응답 구조에 따라 적절한 필드 사용
       const sentenceText = data.sentence || data.text || "";
@@ -87,9 +87,9 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       const voiceUrl2 = data.voiceUrl2;  // 이동욱 아나운서
       const voiceUrl3 = data.voiceUrl3;  // 박소현 아나운서
       
-      console.log("Extracted sentence:", sentenceText);
+      //console.log("Extracted sentence:", sentenceText);
 
-      console.log("Extracted voiceUrls:", { voiceUrl1, voiceUrl2, voiceUrl3 });
+      //console.log("Extracted voiceUrls:", { voiceUrl1, voiceUrl2, voiceUrl3 });
       
       setSentence(sentenceText);
       setVoiceUrl1(voiceUrl1);
@@ -100,7 +100,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
         console.warn("No voiceUrls found in API response. Available fields:", Object.keys(data));
       }
     } catch (error) {
-      console.error("문장 불러오기 실패:", error);
+      //console.error("문장 불러오기 실패:", error);
       setSentence("");
       setVoiceUrl1(undefined);
       setVoiceUrl2(undefined);
@@ -160,7 +160,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
   };
 
   const handleAnalysisComplete = async (result: any, refUrl?: string, userUrl?: string) => {
-    console.log("TrainingTabs에서 분석 결과 받음:", result);
+    //console.log("TrainingTabs에서 분석 결과 받음:", result);
     setAnalysisResult(result);
     if (refUrl) setReferenceUrl(refUrl);
     if (userUrl) setUserRecordingUrl(userUrl);
@@ -169,7 +169,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
     try {
       const { userProfile } = getAuthStatus()
       if (!userProfile?.email) {
-        console.log("사용자가 로그인하지 않았습니다. 자동 저장을 건너뜁니다.");
+        //console.log("사용자가 로그인하지 않았습니다. 자동 저장을 건너뜁니다.");
         return;
       }
 
@@ -199,12 +199,12 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
       })
 
       if (response.ok) {
-        console.log('AI 분석 결과가 자동으로 저장되었습니다.');
+        //console.log('AI 분석 결과가 자동으로 저장되었습니다.');
       } else {
-        console.error('자동 저장 실패:', await response.text());
+        //console.error('자동 저장 실패:', await response.text());
       }
     } catch (err) {
-      console.error('자동 저장 중 오류 발생:', err);
+      //console.error('자동 저장 중 오류 발생:', err);
     }
   };
 
@@ -241,7 +241,7 @@ export function TrainingTabs({ initialCustomSentence, initialTab }: TrainingTabs
         router.push('/history')
       }
     } catch (err) {
-      console.error('Failed to save record', err)
+      //console.error('Failed to save record', err)
     }
   }
 

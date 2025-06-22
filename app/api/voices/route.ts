@@ -7,7 +7,7 @@ export async function GET() {
     const client = await clientPromise
     const db = client.db('ONAIR')
     
-    console.log('=== Fetching Voice Data ===')
+    //console.log('=== Fetching Voice Data ===')
     
     // 세 명의 아나운서에 대한 음성 데이터를 모두 가져옵니다
     const voices = await db.collection('VOICE').find({
@@ -16,11 +16,11 @@ export async function GET() {
       }
     }).toArray()
 
-    console.log('Found voices:', voices)
+    //console.log('Found voices:', voices)
 
     // 각 아나운서별로 voiceUrl을 매핑합니다
     const formattedVoices = voices.map(voice => {
-      console.log(`Processing voice: ${voice.name}`, voice)
+      //console.log(`Processing voice: ${voice.name}`, voice)
       return {
         ...voice,
         voiceUrl1: voice.name === '김주하 아나운서' ? voice.voiceUrl || voice.url : null,
@@ -29,8 +29,8 @@ export async function GET() {
       }
     })
 
-    console.log('Formatted voices:', formattedVoices)
-    console.log('========================')
+    //console.log('Formatted voices:', formattedVoices)
+    //console.log('========================')
 
     return NextResponse.json(formattedVoices)
   } catch (error) {

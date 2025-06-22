@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   //console.log('[GOOGLE] 받은 파라미터:', { code: code?.substring(0, 10) + '...', state })
 
   if (!code) {
-    console.error('[GOOGLE] Authorization code가 없습니다')
+    //console.error('[GOOGLE] Authorization code가 없습니다')
     return NextResponse.json({ error: 'Authorization code not provided' }, { status: 400 })
   }
 
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     //console.log('[GOOGLE] 토큰 응답:', tokenData)
 
     if (!tokenResponse.ok) {
-      console.error('[GOOGLE] 토큰 요청 실패:', tokenData)
+      //console.error('[GOOGLE] 토큰 요청 실패:', tokenData)
       throw new Error(tokenData.error_description || 'Failed to get access token')
     }
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     //console.log('[GOOGLE] 연동할 사용자 이메일:', userEmail)
 
     if (!userEmail) {
-      console.error('[GOOGLE] 사용자 이메일이 없습니다')
+      //console.error('[GOOGLE] 사용자 이메일이 없습니다')
       return NextResponse.json({ error: 'User email not provided' }, { status: 400 })
     }
 
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[GOOGLE] 구글 OAuth 에러:', error)
+    //console.error('[GOOGLE] 구글 OAuth 에러:', error)
     return NextResponse.json({ 
       error: 'Failed to connect Google account',
       details: error instanceof Error ? error.message : 'Unknown error'

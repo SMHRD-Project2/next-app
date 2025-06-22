@@ -74,7 +74,7 @@ export function SignupForm() {
       // 메인 페이지로 이동
       window.location.href = "/";
     } catch (error) {
-      console.error('회원가입 실패:', error);
+      //console.error('회원가입 실패:', error);
       alert(error instanceof Error ? error.message : '회원가입 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);

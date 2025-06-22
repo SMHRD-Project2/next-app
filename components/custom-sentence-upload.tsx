@@ -28,7 +28,7 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
       const extracted = await extractTextFromUrl(urlInput)
       onSentenceSelect(extracted.slice(0, MAX_LENGTH))
     } catch (error) {
-      console.error("URL 처리 실패:", error)
+      //console.error("URL 처리 실패:", error)
     } finally {
       setIsLoading(false)
     }
@@ -58,10 +58,10 @@ export function CustomSentenceUpload({ onSentenceSelect }: CustomSentenceUploadP
         const extracted = await extractTextFromPdf(file)
         onSentenceSelect(extracted.slice(0, MAX_LENGTH))
       } else {
-        console.error("지원하지 않는 파일 형식입니다.")
+        //console.error("지원하지 않는 파일 형식입니다.")
       }
     } catch (error) {
-      console.error("파일 업로드 실패:", error)
+      //console.error("파일 업로드 실패:", error)
     } finally {
       setIsLoading(false)
     }

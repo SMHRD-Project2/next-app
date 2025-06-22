@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
         </head>
         <body>
           <script>
-            console.error('[NAVER LOGIN] 사용자 데이터가 없습니다');
             if (window.opener) {
               window.opener.postMessage({ 
                 type: 'SOCIAL_LOGIN_ERROR', 
@@ -97,7 +96,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[NAVER LOGIN SUCCESS] 사용자 데이터 파싱 오류:', error)
+    //console.error('[NAVER LOGIN SUCCESS] 사용자 데이터 파싱 오류:', error)
     return new NextResponse(`
       <!DOCTYPE html>
       <html lang="ko">
@@ -107,7 +106,6 @@ export async function GET(request: NextRequest) {
         </head>
         <body>
           <script>
-            console.error('[NAVER LOGIN] 데이터 파싱 오류:', ${JSON.stringify(error instanceof Error ? error.message : '알 수 없는 오류')});
             if (window.opener) {
               window.opener.postMessage({ 
                 type: 'SOCIAL_LOGIN_ERROR', 

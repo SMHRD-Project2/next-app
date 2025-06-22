@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
 
   if (!code) {
-    console.error('[NAVER LOGIN] Authorization code가 없습니다')
+    //console.error('[NAVER LOGIN] Authorization code가 없습니다')
     return NextResponse.redirect(new URL('/auth/login?error=no_code', request.url))
   }
 
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(successUrl)
 
   } catch (error) {
-    console.error('[NAVER LOGIN] 네이버 로그인 에러:', error)
+    //console.error('[NAVER LOGIN] 네이버 로그인 에러:', error)
     return NextResponse.redirect(new URL('/auth/login?error=naver_login_failed&message=네이버 로그인 중 오류가 발생했습니다.', request.url))
   }
 } 

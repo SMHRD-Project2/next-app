@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       isDefault: user.isDefault || null
     });
   } catch (error) {
-    console.error("GET error:", error);
+    //console.error("GET error:", error);
     return NextResponse.json(
       { error: "기본 모델 정보 조회 실패" },
       { status: 500 }
@@ -78,7 +78,7 @@ export async function PUT(request: Request) {
       modelId
     });
   } catch (error) {
-    console.error("PUT error:", error);
+    //console.error("PUT error:", error);
     return NextResponse.json(
       { error: "기본 모델 업데이트 실패" },
       { status: 500 }

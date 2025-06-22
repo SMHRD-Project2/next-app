@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error('구글 연동 오류:', error)
+    //console.error('구글 연동 오류:', error)
     return NextResponse.json(
       { error: '구글 연동에 실패했습니다.' },
       { status: 500 }

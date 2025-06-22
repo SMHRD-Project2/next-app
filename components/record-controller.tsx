@@ -41,7 +41,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
       })
 
       audioRef.current.addEventListener('error', (e) => {
-        console.error('오디오 재생 오류:', e)
+        //console.error('오디오 재생 오류:', e)
         setIsPlaying(false)
       })
     }
@@ -117,7 +117,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
 
         // 녹음 완료 시 처리
         mediaRecorder.onstop = async () => {
-          console.log("mediaRecorder onstop 이벤트 발생");
+          //console.log("mediaRecorder onstop 이벤트 발생");
           const audioBlob = new Blob(audioChunksRef.current, {
             type: mimeType || 'audio/webm'
           })
@@ -139,45 +139,45 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
 
           // 서버로 녹음 파일 전송
           try {
-            console.log("[DEBUG] 녹음 파일 서버 전송 시작");
+            //console.log("[DEBUG] 녹음 파일 서버 전송 시작");
             const formData = new FormData();
             const file = new File([audioBlob], "recording.webm", { type: "audio/webm" });
             formData.append("file", file);
 
-            console.log("[DEBUG] FormData 생성됨:", {
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size
-            });
+            //console.log("[DEBUG] FormData 생성됨:", {
+            //  fileName: file.name,
+            //  fileType: file.type,
+            //  fileSize: file.size
+            //});
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_PY_URL}/upload_model`, {
               method: "POST",
               body: formData,
             });
 
-            console.log("[DEBUG] 서버 응답 받음:", response.status);
+            //console.log("[DEBUG] 서버 응답 받음:", response.status);
             
             if (!response.ok) {
               const errorText = await response.text();
-              console.error("[ERROR] 서버 응답 오류:", errorText);
+              //console.error("[ERROR] 서버 응답 오류:", errorText);
               throw new Error(`서버 응답 오류: ${response.status} ${errorText}`);
             }
 
             const data = await response.json();
-            console.log("[DEBUG] 서버 응답 데이터:", data);
+            //console.log("[DEBUG] 서버 응답 데이터:", data);
 
             if (data.success) {
-              console.log("[DEBUG] 파일 업로드 성공:", data.url);
+              //console.log("[DEBUG] 파일 업로드 성공:", data.url);
             } else {
-              console.error("[ERROR] 파일 업로드 실패:", data.error);
+              //console.error("[ERROR] 파일 업로드 실패:", data.error);
             }
           } catch (error) {
-            console.error("[ERROR] 파일 업로드 중 오류 발생:", error);
+            //console.error("[ERROR] 파일 업로드 중 오류 발생:", error);
           }
         }
 
         mediaRecorder.start()
-        console.log("이벤트 발생");
+        //console.log("이벤트 발생");
         onRecord()
 
         // 타이머 시작
@@ -186,7 +186,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
           setRecordingTime(prev => prev + 1)
         }, 1000)
       } catch (err) {
-        console.error('녹음 권한을 얻을 수 없습니다:', err)
+        //console.error('녹음 권한을 얻을 수 없습니다:', err)
         alert('마이크 접근 권한이 필요합니다. 브라우저 설정에서 마이크 권한을 확인해주세요.')
       }
     } else {
@@ -212,7 +212,7 @@ export function RecordController({ isRecording, onRecord, hasRecorded, onNext, c
           setIsPlaying(true)
         }
       } catch (err) {
-        console.error('재생 오류:', err)
+        //console.error('재생 오류:', err)
         setIsPlaying(false)
       }
     }

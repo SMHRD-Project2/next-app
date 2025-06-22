@@ -30,8 +30,8 @@ def upload_file(file_path, session_hash):
     }
     
     response = requests.post(url, files=files, headers=headers)
-    print(f"Upload Status: {response.status_code}")
-    print(f"Upload Response: {response.text}")
+    #print(f"Upload Status: {response.status_code}")
+    #print(f"Upload Response: {response.text}")
     return response.json()[0]  # 리스트의 첫 번째 항목 반환
 
 def call_api(session_hash, audio_path, silence_path, tts_text):
@@ -81,8 +81,8 @@ def call_api(session_hash, audio_path, silence_path, tts_text):
     }
     
     response = requests.post(url, headers=headers, data=json.dumps(data))
-    print(f"API Status: {response.status_code}")
-    print(f"API Response: {response.text}")
+    #print(f"API Status: {response.status_code}")
+    #print(f"API Response: {response.text}")
     return response.json()
 
 def wait_for_result(session_hash, timeout=300):
@@ -100,15 +100,15 @@ def wait_for_result(session_hash, timeout=300):
     start_time = time.time()
     last_progress = 0
     
-    print("SSE 대기 시작...")
+    #print("SSE 대기 시작...")
     while time.time() - start_time < timeout:
-        print("SSE 요청 시도...")
+        #print("SSE 요청 시도...")
         try:
             with requests.get(url, headers=headers, stream=True) as response:
-                print("SSE 응답 받음")
+                #print("SSE 응답 받음")
                 client = sseclient.SSEClient(response)
                 
-                print("이벤트 처리 시작...")
+                #print("이벤트 처리 시작...")
                 for event in client.events():
                     # heartbeat 이벤트는 무시
                     if "heartbeat" in event.data:
@@ -124,22 +124,22 @@ def wait_for_result(session_hash, timeout=300):
                             total_length = progress_data.get("length", 1)
                             progress = current_index / total_length
                             if progress > last_progress:
-                                print(f"진행률: {progress*100:.1f}%")
+                                #print(f"진행률: {progress*100:.1f}%")
                                 last_progress = progress
                         
                         # 완료 상태 확인
                         if data.get("msg") == "process_completed":
-                            print("\n=== 변환 완료! ===")
+                            #print("\n=== 변환 완료! ===")
                             output_data = data.get("output", {}).get("data", [])
                             if output_data and isinstance(output_data[0], dict):
                                 audio_data = output_data[0]
-                                print("\n오디오 파일 정보:")
-                                print(f"파일 경로: {audio_data.get('path')}")
-                                print(f"URL: {audio_data.get('url')}")
-                                print(f"파일명: {audio_data.get('orig_name')}")
-                                print(f"파일 크기: {audio_data.get('size')}")
-                                print(f"MIME 타입: {audio_data.get('mime_type')}")
-                                print("==================\n")
+                                #print("\n오디오 파일 정보:")
+                                #print(f"파일 경로: {audio_data.get('path')}")
+                                #print(f"URL: {audio_data.get('url')}")
+                                #print(f"파일명: {audio_data.get('orig_name')}")
+                                #print(f"파일 크기: {audio_data.get('size')}")
+                                #print(f"MIME 타입: {audio_data.get('mime_type')}")
+                                #print("==================\n")
                                 
                                 audio_url = audio_data.get("url")
                                 if audio_url:
@@ -151,15 +151,15 @@ def wait_for_result(session_hash, timeout=300):
                             raise Exception(f"변환 중 오류 발생: {error_msg}")
                         
                     except json.JSONDecodeError as e:
-                        print(f"JSON 파싱 오류: {str(e)}")
+                        #print(f"JSON 파싱 오류: {str(e)}")
                         continue
                     except Exception as e:
-                        print(f"이벤트 처리 중 오류: {str(e)}")
+                        #print(f"이벤트 처리 중 오류: {str(e)}")
                         continue
                 
-                print("이벤트 처리 완료, 0.5초 대기...")
+                #print("이벤트 처리 완료, 0.5초 대기...")
         except Exception as e:
-            print(f"SSE 연결 오류: {str(e)}")
+            #print(f"SSE 연결 오류: {str(e)}")
             time.sleep(1)
             continue
             
@@ -172,10 +172,10 @@ def download_audio(file_url, output_path="output.wav"):
     if response.status_code == 200:
         with open(output_path, "wb") as f:
             f.write(response.content)
-        print(f"오디오 저장 완료: {output_path}")
+        #print(f"오디오 저장 완료: {output_path}")
         return True
     else:
-        print(f"오디오 다운로드 실패: {response.status_code}")
+        #print(f"오디오 다운로드 실패: {response.status_code}")
         return False
 
 if __name__ == "__main__":
@@ -200,10 +200,10 @@ if __name__ == "__main__":
         )
 
         # 결과 대기 및 다운로드
-        print("결과 대기 중...")
+        #print("결과 대기 중...")
         result = wait_for_result(session_hash)
         if result:
             download_audio(result)
 
     except Exception as e:
-        print(f"오류 발생: {str(e)}")
+        print("")

@@ -264,13 +264,13 @@ export function SentenceCard({
 
   const handlePlayAIExample = async () => {
     if (!selectedModel) {
-      console.error("선택된 모델이 없습니다.");
+      //console.error("선택된 모델이 없습니다.");
       return;
     }
 
     // 이미 TTS 로딩 중이면 취소
     if (isTTSLoading) {
-      console.log("TTS가 이미 진행 중입니다.");
+      //console.log("TTS가 이미 진행 중입니다.");
       return;
     }
 
@@ -290,7 +290,7 @@ export function SentenceCard({
       let audioUrl: string | null = ttsCache.get(cacheKey) || null;
       
       if (audioUrl) {
-        console.log("캐시된 TTS 결과 사용:", cacheKey);
+        //console.log("캐시된 TTS 결과 사용:", cacheKey);
         
         // 캐시된 URL로 바로 재생
         const audio = new Audio(audioUrl);
@@ -312,7 +312,7 @@ export function SentenceCard({
       }
 
       setIsTTSLoading(true);  // TTS 로딩 시작
-      console.log("새로운 TTS 생성 시작:", cacheKey);
+      //console.log("새로운 TTS 생성 시작:", cacheKey);
       
       // DB의 voiceUrl이 있으면 사용, 없으면 TTS 생성
       audioUrl = null;
@@ -330,10 +330,10 @@ export function SentenceCard({
 
       // DB에 음성이 없거나 custom 탭인 경우 TTS 사용
       if (!audioUrl) {
-        console.log("Using TTS for playback");
+        //console.log("Using TTS for playback");
         const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
-        console.log("Selected Model URL:", modelUrl);
-        console.log("Selected localSentence:", localSentence);
+        //console.log("Selected Model URL:", modelUrl);
+        //console.log("Selected localSentence:", localSentence);
 
         // 음성 파일 가져오기
         const voiceResponse = await fetch(modelUrl || '');
@@ -348,11 +348,11 @@ export function SentenceCard({
         formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
         formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
 
-        console.log('전송할 데이터:', {
-          text: localSentence,
-          voiceFileName: modelUrl?.split('/').pop(),
-          formDataKeys: Array.from(formData.keys())
-        });
+        // console.log('전송할 데이터:', {
+        //   text: localSentence,
+        //   voiceFileName: modelUrl?.split('/').pop(),
+        //   formDataKeys: Array.from(formData.keys())
+        // });
 
         // Next.js API를 통해 요청
         const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
@@ -367,12 +367,12 @@ export function SentenceCard({
 
         // TTS API는 JSON 응답으로 S3 URL을 반환
         const jsonResponse = await response.json();
-        console.log("TTS JSON 응답:", jsonResponse);
+        //console.log("TTS JSON 응답:", jsonResponse);
         
         if (jsonResponse.success && jsonResponse.url) {
           // S3 URL을 직접 사용
           audioUrl = jsonResponse.url;
-          console.log("TTS 결과 S3 URL:", audioUrl);
+          //console.log("TTS 결과 S3 URL:", audioUrl);
         } else {
           throw new Error("TTS 응답에 유효한 URL이 없습니다.");
         }
@@ -383,7 +383,7 @@ export function SentenceCard({
         setTtsCache(prev => {
           const newCache = new Map(prev);
           newCache.set(cacheKey, audioUrl!);
-          console.log("TTS 결과 캐시 저장:", cacheKey);
+          //console.log("TTS 결과 캐시 저장:", cacheKey);
           return newCache;
         });
       }
@@ -405,7 +405,7 @@ export function SentenceCard({
       await audio.play();
       setIsPlayingAIExample(true);
     } catch (error) {
-      console.error('TTS 처리 중 오류:', error);
+      //console.error('TTS 처리 중 오류:', error);
       setIsPlayingAIExample(false);
       currentAudioRef.current = null;
     } finally {
@@ -503,7 +503,7 @@ export function SentenceCard({
   // 평가하기 버튼 클릭 핸들러 추가
   const handleEvaluate = async () => {
     if (!uploadedRecordingUrl) {
-      console.error("업로드된 녹음 파일이 없습니다.");
+      //console.error("업로드된 녹음 파일이 없습니다.");
       return;
     }
     
@@ -512,9 +512,9 @@ export function SentenceCard({
 
   //  2506011 박남규 aws 업로드하기
   const uploadToS3 = async (blob: Blob, skipAnalysis: boolean = false) => {
-    console.log("전달된 blob:", blob)
-    console.log("Blob 타입:", blob.type)
-    console.log("Blob 크기:", blob.size)
+    //console.log("전달된 blob:", blob)
+    //console.log("Blob 타입:", blob.type)
+    //console.log("Blob 크기:", blob.size)
 
     // blob 타입에 따라 파일명과 타입 결정
     let fileName: string
@@ -536,15 +536,15 @@ export function SentenceCard({
     const formData = new FormData()
     const file = new File([blob], fileName, { type: fileType })
 
-    console.log("생성된 File 객체:", file)
-    console.log("File 타입:", file.type)
-    console.log("File 크기:", file.size)
-    console.log("파일명:", fileName)
+    //console.log("생성된 File 객체:", file)
+    //console.log("File 타입:", file.type)
+    //console.log("File 크기:", file.size)
+    //console.log("파일명:", fileName)
 
     formData.append("file", file)
 
     for (let [key, value] of formData.entries()) {
-      console.log("FormData 항목:", key, value)
+      //console.log("FormData 항목:", key, value)
     }
 
     try {
@@ -552,18 +552,18 @@ export function SentenceCard({
         method: "POST",
         body: formData,
       })
-      console.log("응답 상태:", res.status)
+      //console.log("응답 상태:", res.status)
 
       if (!res.ok) {
         const errorText = await res.text()
-        console.error("[ERROR] 서버 응답 오류:", errorText)
+        //console.error("[ERROR] 서버 응답 오류:", errorText)
         throw new Error(`서버 응답 오류: ${res.status} ${errorText}`)
       }
 
       const data = await res.json()
 
       if (data.success) {
-        console.log("업로드 성공:", data.url)
+        //console.log("업로드 성공:", data.url)
         setUploadedRecordingUrl(data.url)  // 업로드된 URL 저장
         if (onRecordingComplete) onRecordingComplete(data.url)
         
@@ -575,11 +575,11 @@ export function SentenceCard({
         return data.url
       } else {
         const errMsg = typeof data.error === "string" ? data.error : "업로드 중 알 수 없는 오류가 발생했습니다."
-        console.error("업로드 실패:", data.error)
+        //console.error("업로드 실패:", data.error)
         throw new Error(errMsg)
       }
     } catch (error) {
-      console.error("[ERROR] 업로드 중 예외 발생:", error)
+      //console.error("[ERROR] 업로드 중 예외 발생:", error)
       throw error
     }
   }
@@ -592,7 +592,7 @@ export function SentenceCard({
       // AI 아나운서 모델 정보 가져오기
       const modelDetails = aiModels.find(model => model.id === selectedModel);
       if (!modelDetails) {
-        console.error("선택된 AI 모델을 찾을 수 없습니다.");
+        //console.error("선택된 AI 모델을 찾을 수 없습니다.");
         setIsAnalyzing(false);  // 분석 실패 시 상태 초기화
         return;
       }
@@ -613,10 +613,10 @@ export function SentenceCard({
 
       // DB에 음성이 없거나 custom 탭인 경우 모델 URL 사용
       if (!referenceUrl) {
-        console.log("DB에 음성이 없거나 custom 탭인 경우 모델 URL 사용");
+        //console.log("DB에 음성이 없거나 custom 탭인 경우 모델 URL 사용");
         const modelUrl = aiModels.find(model => model.id === selectedModel)?.url;
-        console.log("Selected Model URL:", modelUrl);
-        console.log("Selected localSentence:", localSentence);
+        //console.log("Selected Model URL:", modelUrl);
+        //console.log("Selected localSentence:", localSentence);
 
         // 음성 파일 가져오기
         const voiceResponse = await fetch(modelUrl || '');
@@ -631,11 +631,11 @@ export function SentenceCard({
         formData.append('voice_file', voiceBlob, modelUrl?.split('/').pop() || '');
         formData.append('silence_file', silenceBlob, 'silence_100ms.wav');
 
-        console.log('전송할 데이터:', {
-          text: localSentence,
-          voiceFileName: modelUrl?.split('/').pop(),
-          formDataKeys: Array.from(formData.keys())
-        });
+        // console.log('전송할 데이터:', {
+        //   text: localSentence,
+        //   voiceFileName: modelUrl?.split('/').pop(),
+        //   formDataKeys: Array.from(formData.keys())
+        // });
 
         // Next.js API를 통해 요청
         const response = await fetch(`/api/tts?text=${encodeURIComponent(localSentence)}`, {
@@ -650,28 +650,28 @@ export function SentenceCard({
 
         // TTS API는 JSON 응답으로 S3 URL을 반환
         const jsonResponse = await response.json();
-        console.log("TTS JSON 응답:", jsonResponse);
+        //console.log("TTS JSON 응답:", jsonResponse);
         
         if (jsonResponse.success && jsonResponse.url) {
           // S3 URL을 직접 사용
           referenceUrl = jsonResponse.url;
-          console.log("TTS 결과 S3 URL:", referenceUrl);
+          //console.log("TTS 결과 S3 URL:", referenceUrl);
         } else {
           throw new Error("TTS 응답에 유효한 URL이 없습니다.");
         }
       }
 
       if (!referenceUrl) {
-        console.error("레퍼런스 음성 URL을 찾을 수 없습니다.");
+        //console.error("레퍼런스 음성 URL을 찾을 수 없습니다.");
         return;
       }
 
-      console.log("음성 분석 시작", {
-        referenceUrl,
-        userRecordingUrl,
-        selectedModel: modelDetails.name,
-        currentTab
-      });
+      // console.log("음성 분석 시작", {
+      //   referenceUrl,
+      //   userRecordingUrl,
+      //   selectedModel: modelDetails.name,
+      //   currentTab
+      // });
 
       // 음성 분석 API 호출
       const analysisResponse = await fetch(`${process.env.NEXT_PUBLIC_PY_URL}/analyze-voice`, {
@@ -686,49 +686,49 @@ export function SentenceCard({
         })
       });
 
-      console.log("음성 분석 API 응답 상태:", analysisResponse.status);
-      console.log("음성 분석 API 응답 헤더:", Object.fromEntries(analysisResponse.headers.entries()));
+      //console.log("음성 분석 API 응답 상태:", analysisResponse.status);
+      //console.log("음성 분석 API 응답 헤더:", Object.fromEntries(analysisResponse.headers.entries()));
 
       if (!analysisResponse.ok) {
         const errorText = await analysisResponse.text();
-        console.error("음성 분석 API 오류 응답:", errorText);
+        //console.error("음성 분석 API 오류 응답:", errorText);
         throw new Error(`음성 분석 API 호출 실패: ${analysisResponse.status} - ${errorText}`);
       }
 
       const analysisResult = await analysisResponse.json();
       
-      console.log("🎯 음성 분석 결과:", analysisResult);
+      //console.log("🎯 음성 분석 결과:", analysisResult);
 
       const processedRefUrl = analysisResult.processed_files?.reference_url || referenceUrl
       const processedUserUrl = analysisResult.processed_files?.user_url || userRecordingUrl
       
       if (analysisResult.success) {
-        console.log("📊 상세 분석 점수:");
-        console.log("- 발음특성(MFCC) 점수:", analysisResult.analysis_result.mfcc);
-        console.log("- 음정(Pitch) 점수:", analysisResult.analysis_result.pitch);
-        console.log("- 음량(Energy) 점수:", analysisResult.analysis_result.energy);
-        console.log("- 발음속도(Speech-rate) 점수:", analysisResult.analysis_result.speed);
-        console.log("- 음색(Formant) 점수:", analysisResult.analysis_result.formant);
-        console.log("- 음정(Intonation) 점수:", analysisResult.analysis_result.intonation);
-        console.log("- 리듬(Rhythm) 점수:", analysisResult.analysis_result.rhythm);
-        console.log("- 문장간 쉼(Pause) 점수:", analysisResult.analysis_result.pause);
-        console.log("🏆 종합 점수:", analysisResult.analysis_result.total);
+        //console.log("📊 상세 분석 점수:");
+        //console.log("- 발음특성(MFCC) 점수:", analysisResult.analysis_result.mfcc);
+        //console.log("- 음정(Pitch) 점수:", analysisResult.analysis_result.pitch);
+        //console.log("- 음량(Energy) 점수:", analysisResult.analysis_result.energy);
+        //console.log("- 발음속도(Speech-rate) 점수:", analysisResult.analysis_result.speed);
+        //console.log("- 음색(Formant) 점수:", analysisResult.analysis_result.formant);
+        //console.log("- 음정(Intonation) 점수:", analysisResult.analysis_result.intonation);
+        //console.log("- 리듬(Rhythm) 점수:", analysisResult.analysis_result.rhythm);
+        //console.log("- 문장간 쉼(Pause) 점수:", analysisResult.analysis_result.pause);
+        //console.log("🏆 종합 점수:", analysisResult.analysis_result.total);
         
         // OpenAI 피드백 결과 출력
         if (analysisResult.ai_feedback) {
-          console.log("\n🤖 OpenAI 피드백 결과:");
-          console.log("- 분석 ID:", analysisResult.ai_feedback.analysisId);
-          console.log("- 전체 점수:", analysisResult.ai_feedback.overallScore);
-          console.log("- 항목별 피드백:");
+          //console.log("\n🤖 OpenAI 피드백 결과:");
+          //console.log("- 분석 ID:", analysisResult.ai_feedback.analysisId);
+          //console.log("- 전체 점수:", analysisResult.ai_feedback.overallScore);
+          //console.log("- 항목별 피드백:");
           
           analysisResult.ai_feedback.items.forEach((item: any) => {
-            console.log(`   ${item.metric} (${item.score}점):`);
-            console.log(`     짧은 피드백: ${item.shortFeedback}`);
-            console.log(`     상세 피드백:`, item.detailedFeedback);
+            //console.log(`   ${item.metric} (${item.score}점):`);
+            //console.log(`     짧은 피드백: ${item.shortFeedback}`);
+            //console.log(`     상세 피드백:`, item.detailedFeedback);
           });
           
           // 전체 피드백 객체도 출력 (개발자용)
-          console.log("🔍 전체 AI 피드백 객체:", analysisResult.ai_feedback);
+          //console.log("🔍 전체 AI 피드백 객체:", analysisResult.ai_feedback);
           
           // 분석 완료 상태를 true로 설정
           setHasAnalyzed(true);
@@ -738,20 +738,20 @@ export function SentenceCard({
             onAnalysisComplete(analysisResult.ai_feedback, referenceUrl, userRecordingUrl);
           }
         } else {
-          console.log("⚠️ OpenAI 피드백을 받지 못했습니다.");
+          //console.log("⚠️ OpenAI 피드백을 받지 못했습니다.");
         }
       } else {
-        console.error("음성 분석 실패:", analysisResult.error);
-        console.error("전체 분석 결과:", analysisResult);
+        //console.error("음성 분석 실패:", analysisResult.error);
+        //console.error("전체 분석 결과:", analysisResult);
       }
 
     } catch (error) {
-      console.error("음성 분석 중 오류 발생:", error);
-      console.error("에러 상세 정보:", {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error
-      });
+      //console.error("음성 분석 중 오류 발생:", error);
+      // console.error("에러 상세 정보:", {
+      //   message: error instanceof Error ? error.message : 'Unknown error',
+      //   stack: error instanceof Error ? error.stack : undefined,
+      //   error: error
+      // });
     } finally {
       setIsAnalyzing(false);  // 분석 완료 (성공/실패 관계없이)
     }
@@ -841,10 +841,10 @@ export function SentenceCard({
           setRecordingTime(prev => prev + 1)
         }, 1000)
       } catch (err) {
-        console.error('녹음 권한을 얻을 수 없습니다:', err)
+        //console.error('녹음 권한을 얻을 수 없습니다:', err)
         alert('마이크 접근 권한이 필요합니다. 브라우저 설정에서 마이크 권한을 확인해주세요.')
         // 여기에서 err 객체를 자세히 로깅하여 어떤 종류의 오류인지 확인
-        console.error("Error details:", err)
+        //console.error("Error details:", err)
       }
     } else {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -889,7 +889,7 @@ export function SentenceCard({
         }
       }
     } catch (err) {
-      console.error('재생 오류:', err);
+      //console.error('재생 오류:', err);
       setIsPlaying(false);
     }
   };
@@ -1186,7 +1186,7 @@ export function SentenceCard({
           ref={audioRef}
           onEnded={() => setIsPlaying(false)}
           onError={(e) => {
-            console.error('오디오 재생 오류:', e);
+            //console.error('오디오 재생 오류:', e);
             setIsPlaying(false);
           }}
           style={{ display: 'none' }}

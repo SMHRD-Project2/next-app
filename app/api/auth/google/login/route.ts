@@ -19,12 +19,12 @@ export async function GET(request: NextRequest) {
 
   // 구글 인증 에러 처리
   if (error) {
-    console.error('[GOOGLE LOGIN] 구글 인증 에러:', error)
+    //console.error('[GOOGLE LOGIN] 구글 인증 에러:', error)
     return NextResponse.redirect(new URL(`/auth/login?error=google_auth_error&message=${error}`, request.url))
   }
 
   if (!code) {
-    console.error('[GOOGLE LOGIN] Authorization code가 없습니다')
+    //console.error('[GOOGLE LOGIN] Authorization code가 없습니다')
     return NextResponse.redirect(new URL('/auth/login?error=no_code', request.url))
   }
 
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(successUrl)
 
   } catch (error) {
-    console.error('[GOOGLE LOGIN] 구글 로그인 에러:', error)
+    //console.error('[GOOGLE LOGIN] 구글 로그인 에러:', error)
     return NextResponse.redirect(new URL('/auth/login?error=google_login_failed&message=구글 로그인 중 오류가 발생했습니다.', request.url))
   }
 } 

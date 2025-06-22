@@ -33,7 +33,7 @@ export function AIModelManager() {
     try {
       const selectedModel = models.find(model => model.id === modelId);
       if (!selectedModel) {
-        console.error("선택한 모델을 찾을 수 없습니다.");
+        //console.error("선택한 모델을 찾을 수 없습니다.");
         return;
       }
 
@@ -56,10 +56,10 @@ export function AIModelManager() {
         URL.revokeObjectURL(currentAudio.src);
       }
 
-      console.log("=== 음성 재생 정보 ===");
-      console.log("원본 URL:", selectedModel.url);
-      console.log("모델명:", selectedModel.name);
-      console.log("===================");
+      //console.log("=== 음성 재생 정보 ===");
+      //console.log("원본 URL:", selectedModel.url);
+      //console.log("모델명:", selectedModel.name);
+      //console.log("===================");
 
       // 음성 파일 가져오기
       const response = await fetch(selectedModel.url);
@@ -75,7 +75,7 @@ export function AIModelManager() {
       };
 
       audio.onerror = () => {
-        console.error("오디오 재생 중 오류 발생");
+        //console.error("오디오 재생 중 오류 발생");
         setPlayingModel(null);
         setCurrentAudio(null);
         URL.revokeObjectURL(audioUrl);
@@ -85,8 +85,8 @@ export function AIModelManager() {
       setPlayingModel(modelId);
       setCurrentAudio(audio);
     } catch (error) {
-      console.error("음성 재생 중 오류 발생:", error);
-      setPlayingModel(null);
+      //console.error("음성 재생 중 오류 발생:", error);
+      //setPlayingModel(null);
       setCurrentAudio(null);
     }
   }
@@ -95,13 +95,13 @@ export function AIModelManager() {
     try {
       const { userProfile } = getAuthStatus();
       if (!userProfile?.email) {
-        console.error("사용자 이메일을 찾을 수 없습니다.");
+        //console.error("사용자 이메일을 찾을 수 없습니다.");
         return;
       }
 
       const selectedModel = models.find(model => model.id === modelId);
       if (!selectedModel) {
-        console.error("선택한 모델을 찾을 수 없습니다.");
+        //console.error("선택한 모델을 찾을 수 없습니다.");
         return;
       }
 
@@ -121,11 +121,11 @@ export function AIModelManager() {
       }
 
       const result = await response.json();
-      console.log("기본 모델 설정 결과:", result);
+      //console.log("기본 모델 설정 결과:", result);
       
       await refreshModels();
     } catch (error) {
-      console.error("기본 모델 설정 중 오류 발생:", error);
+      //console.error("기본 모델 설정 중 오류 발생:", error);
     }
   };
 
@@ -134,20 +134,20 @@ export function AIModelManager() {
       try {
         const { userProfile } = getAuthStatus();
         if (!userProfile?.email) {
-          console.error("사용자 이메일을 찾을 수 없습니다.");
+          //console.error("사용자 이메일을 찾을 수 없습니다.");
           return;
         }
 
         const selectedModel = models.find(model => model.id === modelId);
         if (!selectedModel) {
-          console.error("선택한 모델을 찾을 수 없습니다.");
+          //console.error("선택한 모델을 찾을 수 없습니다.");
           return;
         }
 
-        console.log("삭제할 모델 정보:", {
-          id: selectedModel._id,
-          name: selectedModel.name
-        });
+        //console.log("삭제할 모델 정보:", {
+        //  id: selectedModel._id,
+        //  name: selectedModel.name
+        //});
 
         const response = await fetch(`/api/models?id=${selectedModel._id}`, {
           method: "DELETE",
@@ -160,7 +160,7 @@ export function AIModelManager() {
         await refreshModels();
         alert("모델이 삭제되었습니다.");
       } catch (error) {
-        console.error("모델 삭제 중 오류 발생:", error);
+        //console.error("모델 삭제 중 오류 발생:", error);
         alert("모델 삭제에 실패했습니다.");
       }
     }

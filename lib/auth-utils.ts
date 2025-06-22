@@ -3,7 +3,7 @@
 // 디버깅을 위한 로그 함수
 const debugLog = (message: string, data?: any) => {
   if (process.env.NODE_ENV === "development") {
-    console.log(`[AUTH] ${message}`, data || "")
+    //console.log(`[AUTH] ${message}`, data || "")
   }
 }
 
@@ -181,7 +181,7 @@ export const connectSNS = (provider: string) => {
         alert(`${provider} 계정 연동이 완료되었습니다!`)
         resolve(true)
       } else if (event.data.type === 'SNS_CONNECT_ERROR') {
-        console.error(`[${provider.toUpperCase()}] 연동 에러:`, event.data.error)
+        //console.error(`[${provider.toUpperCase()}] 연동 에러:`, event.data.error)
         clearInterval(timer)
         window.removeEventListener('message', messageHandler)
         popup.close()
@@ -233,7 +233,7 @@ async function handleStartRecording() {
   try {
     recorder = await startRecording();
   } catch (err) {
-    console.error('녹음 시작 실패:', err);
+    //console.error('녹음 시작 실패:', err);
   }
 }
 
@@ -264,12 +264,12 @@ async function startRecording() {
       // 오디오 재생 전에 유효성 검사
       const audio = new Audio();
       audio.onerror = (e) => {
-        console.error('오디오 로드 오류:', e);
+        //console.error('오디오 로드 오류:', e);
       };
       
       audio.src = audioUrl;
       audio.play().catch(err => {
-        console.error('재생 오류:', err);
+        //console.error('재생 오류:', err);
       });
     };
 
@@ -281,7 +281,7 @@ async function startRecording() {
     
     return mediaRecorder;
   } catch (err) {
-    console.error('녹음 시작 오류:', err);
+    //console.error('녹음 시작 오류:', err);
     throw err;
   }
 }

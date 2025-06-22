@@ -40,7 +40,7 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
         setDefaultModelId(data.isDefault);
       }
     } catch (error) {
-      console.error("기본 모델 정보를 가져오는데 실패했습니다:", error);
+      //console.error("기본 모델 정보를 가져오는데 실패했습니다:", error);
     }
   };
 
@@ -115,7 +115,7 @@ export function AIModelProvider({ children }: { children: ReactNode }) {
       // localStorage.setItem('aiModelsTimestamp', now.toString())
     } catch (error) {
       setError('AI 모델을 불러오는데 실패했습니다.')
-      console.error('Failed to fetch models:', error)
+      //console.error('Failed to fetch models:', error)
     } finally {
       setIsLoading(false)
     }

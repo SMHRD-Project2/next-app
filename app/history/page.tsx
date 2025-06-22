@@ -55,7 +55,7 @@ export default function HistoryPage() {
           setCurrentPlayingId(null) // 재생 완료 시 상태 초기화
         }
         audioInstanceRef.current.onerror = (e) => {
-          console.error(`[${currentPlayingId}] 오디오 로드 또는 재생 중 에러 발생:`, e)
+          //console.error(`[${currentPlayingId}] 오디오 로드 또는 재생 중 에러 발생:`, e)
           setCurrentPlayingId(null) // 에러 발생 시 상태 초기화
         }
       } else {
@@ -70,7 +70,7 @@ export default function HistoryPage() {
         // console.log(`[${id}] 오디오 재생 시작됨.`)
         setCurrentPlayingId(id) // 재생 시작 시 현재 ID로 업데이트
       }).catch(error => {
-        console.error(`[${id}] audio.play() Promise 에러:`, error)
+        //console.error(`[${id}] audio.play() Promise 에러:`, error)
         setCurrentPlayingId(null) // Promise 에러 시 상태 초기화
       })
     }
@@ -83,7 +83,7 @@ export default function HistoryPage() {
         try {
           const { userProfile } = getAuthStatus()
           if (!userProfile?.email) {
-            console.error('User email not found')
+            //console.error('User email not found')
             return
           }
 
@@ -93,7 +93,7 @@ export default function HistoryPage() {
             setTrainingRecords(data)
           }
         } catch (err) {
-          console.error('Failed to load records', err)
+          //console.error('Failed to load records', err)
         }
       }
       fetchRecords()
@@ -209,7 +209,7 @@ export default function HistoryPage() {
         setTrainingRecords(prev => prev.filter(record => record._id !== id))
         alert("기록이 삭제되었습니다.")
       } catch (err) {
-        console.error('Failed to delete record', err)
+        //console.error('Failed to delete record', err)
       }
     }
   }

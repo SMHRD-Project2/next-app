@@ -468,7 +468,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
     } catch (error) {
       setIsProcessing(false)
       setProcessingProgress(0)
-      console.error('모델 생성 실패:', error)
+      //console.error('모델 생성 실패:', error)
       // 오류 시에도 폴백 실행
       simulateLocalProgress()
     }
@@ -481,11 +481,11 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
         return;
       }
 
-      console.log("[DEBUG] 모델 저장 시작");
+      //console.log("[DEBUG] 모델 저장 시작");
       
       // FastAPI로 데이터 전송
       const result = await sendToFastAPI();
-      console.log("[DEBUG] FastAPI 응답:", result);
+      //console.log("[DEBUG] FastAPI 응답:", result);
 
       if (!result.success) {
         throw new Error(result.error || "파일 업로드 실패");
@@ -498,7 +498,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
         throw new Error("로그인이 필요합니다.");
       }
 
-      console.log("[DEBUG] 현재 로그인된 사용자:", userProfile.email);
+      //console.log("[DEBUG] 현재 로그인된 사용자:", userProfile.email);
 
       // Create a new model object
       const newModel = {
@@ -543,7 +543,7 @@ export function VoiceCloningStudio({ onSaveSuccess }: VoiceCloningStudioProps) {
       //   onSaveSuccess();
       // }
     } catch (error) {
-      console.error("[ERROR] 모델 저장 중 오류:", error);
+      //console.error("[ERROR] 모델 저장 중 오류:", error);
       alert("모델 저장 중 오류가 발생했습니다.");
     }
   };

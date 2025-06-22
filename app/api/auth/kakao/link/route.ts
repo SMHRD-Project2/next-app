@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const baseAuthUrl = (process.env.NEXTAUTH_URL || '').replace(/\/$/, '')
     const redirectUri = `${baseAuthUrl}/api/auth/kakao/callback`
     
-    console.log('[KAKAO LINK] Redirect URI:', redirectUri)
+    //console.log('[KAKAO LINK] Redirect URI:', redirectUri)
     
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     })
 
   } catch (error) {
-    console.error('카카오 연동 오류:', error)
+    //console.error('카카오 연동 오류:', error)
     return NextResponse.json(
       { error: '카카오 연동에 실패했습니다.' },
       { status: 500 }

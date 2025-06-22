@@ -88,7 +88,7 @@ export function Navigation() {
       window.dispatchEvent(new Event("localStorageChange"))
       window.location.href = "/"
     } catch (err) {
-      console.error("[NAV] 로그아웃 오류", err)
+      //console.error("[NAV] 로그아웃 오류", err)
       alert("로그아웃 처리 중 오류가 발생했습니다.")
     }
   }

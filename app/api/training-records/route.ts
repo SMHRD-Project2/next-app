@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     const result = await db.collection('TRAINING_RECORD').insertOne(recordData)
     return NextResponse.json(result)
   } catch (error) {
-    console.error('Training record save error:', error)
+    //console.error('Training record save error:', error)
     return NextResponse.json({ error: 'Failed to create record' }, { status: 500 })
   }
 }

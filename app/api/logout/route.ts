@@ -14,7 +14,7 @@ export async function POST() {
       message: '로그아웃되었습니다.' 
     })
   } catch (error) {
-    console.error('[API] 로그아웃 처리 중 오류:', error)
+    //console.error('[API] 로그아웃 처리 중 오류:', error)
     return NextResponse.json(
       { 
         success: false,

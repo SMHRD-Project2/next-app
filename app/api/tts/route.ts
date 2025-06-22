@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const jsonResponse = await response.json();
     return NextResponse.json(jsonResponse);
   } catch (error) {
-    console.error('TTS 처리 중 오류:', error);
+    //console.error('TTS 처리 중 오류:', error);
     return NextResponse.json(
       { error: 'TTS 처리 중 오류가 발생했습니다.' },
       { status: 500 }
@@ -83,11 +83,11 @@ export async function GET(request: Request) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      console.error('FastAPI 서버 응답 오류:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
+      // console.error('FastAPI 서버 응답 오류:', {
+      //   status: response.status,
+      //   statusText: response.statusText,
+      //   error: errorData
+      // });
       throw new Error(`FastAPI 서버 응답 오류: ${response.status} ${response.statusText}`);
     }
 
@@ -95,7 +95,7 @@ export async function GET(request: Request) {
     const audioData = await response.json();
     
     if (!audioData.audio) {
-      console.error('FastAPI 응답에 audio 데이터가 없습니다:', audioData);
+      //console.error('FastAPI 응답에 audio 데이터가 없습니다:', audioData);
       throw new Error('FastAPI 응답에 audio 데이터가 없습니다');
     }
 
@@ -108,7 +108,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ audioUrl });
 
   } catch (error) {
-    console.error('TTS 처리 중 오류:', error);
+    //console.error('TTS 처리 중 오류:', error);
     return NextResponse.json(
       { 
         error: 'TTS 처리 중 오류가 발생했습니다.',

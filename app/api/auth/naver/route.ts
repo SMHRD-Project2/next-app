@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   //console.log('[NAVER] 받은 파라미터:', { code: code?.substring(0, 10) + '...', state })
 
   if (!code) {
-    console.error('[NAVER] Authorization code가 없습니다')
+    //console.error('[NAVER] Authorization code가 없습니다')
     return NextResponse.json({ error: 'Authorization code not provided' }, { status: 400 })
   }
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     //console.log('[NAVER] 토큰 응답:', tokenData)
 
     if (!tokenResponse.ok) {
-      console.error('[NAVER] 토큰 요청 실패:', tokenData)
+      //console.error('[NAVER] 토큰 요청 실패:', tokenData)
       throw new Error(tokenData.error_description || 'Failed to get access token')
     }
 
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     //console.log('[NAVER] 연동할 사용자 이메일:', userEmail)
 
     if (!userEmail) {
-      console.error('[NAVER] 사용자 이메일이 없습니다')
+      //console.error('[NAVER] 사용자 이메일이 없습니다')
       return NextResponse.json({ error: 'User email not provided' }, { status: 400 })
     }
 
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[NAVER] 네이버 OAuth 에러:', error)
+    //console.error('[NAVER] 네이버 OAuth 에러:', error)
     return NextResponse.json({ 
       error: 'Failed to connect Naver account',
       details: error instanceof Error ? error.message : 'Unknown error'

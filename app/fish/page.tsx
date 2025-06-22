@@ -71,7 +71,7 @@ export default function TTSClient() {
       setStatusMessage("대기열에 추가됨 — 상태 확인 중…")
       pollingRef.current = setInterval(() => checkStatus(request_uid), 2000)
     } catch (err: any) {
-      console.error(err)
+      //console.error(err)
       setStatusMessage(`에러: ${err.message}`)
     }
   }
@@ -102,7 +102,7 @@ export default function TTSClient() {
         stopPolling()
       }
     } catch (err: any) {
-      console.error(err)
+      //console.error(err)
       stopPolling()
       setStatusMessage(`상태 확인 오류: ${err.message}`)
     }

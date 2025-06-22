@@ -11,8 +11,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
     
-    console.log('=== DB Query Details ===')
-    console.log('Requested type:', type)
+    //console.log('=== DB Query Details ===')
+    //console.log('Requested type:', type)
     
     // type에 따라 필터링하여 무작위 1개 문장 추출
     const [randomSentence] = await db.collection('SENTENCE')
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       ])
       .toArray()
     
-    console.log('Random sentence:', randomSentence)
+    //console.log('Random sentence:', randomSentence)
     
     if (!randomSentence) {
       return NextResponse.json({ error: `No sentence found for type: ${type}` }, { status: 404 })
@@ -36,12 +36,12 @@ export async function GET(request: Request) {
       voiceUrl3: randomSentence.audioUrl3
     }
     
-    console.log('Final response:', response)
-    console.log('====================')
+    //console.log('Final response:', response)
+    //console.log('====================')
     
     return NextResponse.json(response)
   } catch (error) {
-    console.error('Error fetching sentence:', error)
+    //console.error('Error fetching sentence:', error)
     return NextResponse.json({ error: 'Failed to fetch sentences' }, { status: 500 })
   }
 }

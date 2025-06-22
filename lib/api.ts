@@ -17,7 +17,7 @@ export async function extractTextFromUrl(url: string): Promise<string> {
     const data = await response.json();
     return data.text;
   } catch (error) {
-    console.error('API 호출 중 오류 발생:', error);
+    //console.error('API 호출 중 오류 발생:', error);
     throw error;
   }
 }
@@ -39,7 +39,7 @@ export async function extractTextFromPdf(file: File): Promise<string> {
     const data = await response.json();
     return data.text;
   } catch (error) {
-    console.error('PDF 처리 중 오류 발생:', error);
+    //console.error('PDF 처리 중 오류 발생:', error);
     throw error;
   }
 } 

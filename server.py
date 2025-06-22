@@ -44,15 +44,7 @@ load_dotenv("C:/Users/smhrd/Desktop/ggg/next-app/.env.local")
 # OpenAI API 키 설정
 # .env.local 파일에 OPENAI_API_KEY=sk-proj-... 추가 필요
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-ASD = os.getenv("ASD")
-ASD1 = os.getenv("ASD1")
-if not OPENAI_API_KEY:
-    print("⚠️  OPENAI_API_KEY 환경 변수가 설정되지 않았습니다!")
-    print("📝 .env.local 파일에 다음을 추가하세요:")
-else:
-    print(f"✅ OpenAI API 키 설정됨 (길이: {len(OPENAI_API_KEY)})")
-    print("ASDasdsadasdasdsad", ASD)
-    print("ASDasdsadasdasdsad", ASD1)
+
 app = FastAPI()
 
 # CORS 설정
@@ -433,16 +425,16 @@ async def upload_recording(file: UploadFile = File(...)):
     tmp_in_path = None
     tmp_out_path = None
     try:
-        print(f"[DEBUG] 파일 업로드 시작: {file.filename}, 타입: {file.content_type}")
+        #print(f"[DEBUG] 파일 업로드 시작: {file.filename}, 타입: {file.content_type}")
         
         # 파일 확장자 확인
         file_extension = os.path.splitext(file.filename)[1].lower() if file.filename else ""
         is_wav_file = file_extension == ".wav"
         is_webm_file = file_extension == ".webm"
         
-        print(f"[DEBUG] 파일 확장자: {file_extension}")
-        print(f"[DEBUG] WAV 파일 여부: {is_wav_file}")
-        print(f"[DEBUG] WebM 파일 여부: {is_webm_file}")
+        #print(f"[DEBUG] 파일 확장자: {file_extension}")
+        #print(f"[DEBUG] WAV 파일 여부: {is_wav_file}")
+        #print(f"[DEBUG] WebM 파일 여부: {is_webm_file}")
         
         if not is_wav_file and not is_webm_file:
             raise ValueError("지원하지 않는 파일 형식입니다. WAV 또는 WebM 파일만 업로드 가능합니다.")
@@ -454,25 +446,25 @@ async def upload_recording(file: UploadFile = File(...)):
                 content = await file.read()
                 if not content:
                     raise ValueError("업로드된 파일이 비어있습니다.")
-                print(f"[DEBUG] 파일 크기: {len(content)} bytes")
+                #print(f"[DEBUG] 파일 크기: {len(content)} bytes")
                 tmp_in.write(content)
                 tmp_in_path = tmp_in.name
                 tmp_out_path = tmp_in_path  # WAV 파일은 변환하지 않으므로 같은 경로 사용
-                print(f"[DEBUG] 임시 WAV 파일 저장됨: {tmp_in_path}")
+                #print(f"[DEBUG] 임시 WAV 파일 저장됨: {tmp_in_path}")
         else:
             # WebM 파일인 경우 기존 로직 사용
             with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp_in:
                 content = await file.read()
                 if not content:
                     raise ValueError("업로드된 파일이 비어있습니다.")
-                print(f"[DEBUG] 파일 크기: {len(content)} bytes")
+                #print(f"[DEBUG] 파일 크기: {len(content)} bytes")
                 tmp_in.write(content)
                 tmp_in_path = tmp_in.name
-                print(f"[DEBUG] 임시 WebM 파일 저장됨: {tmp_in_path}")
+                #print(f"[DEBUG] 임시 WebM 파일 저장됨: {tmp_in_path}")
 
             # WebM 파일을 WAV로 변환할 경로 생성
             tmp_out_path = tmp_in_path.replace(".webm", ".wav")
-            print(f"[DEBUG] 변환될 WAV 파일 경로: {tmp_out_path}")
+            #print(f"[DEBUG] 변환될 WAV 파일 경로: {tmp_out_path}")
 
             # ffmpeg를 이용한 변환 수행
             ffmpeg_path = "C:\\ffmpeg\\bin\\ffmpeg.exe"  # ffmpeg 전체 경로
@@ -484,22 +476,22 @@ async def upload_recording(file: UploadFile = File(...)):
                 "-y",            # 기존 파일 덮어쓰기
                 tmp_out_path
             ]
-            print(f"[DEBUG] ffmpeg 명령어: {' '.join(cmd)}")
+            #print(f"[DEBUG] ffmpeg 명령어: {' '.join(cmd)}")
             try:
                 result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                print(f"[DEBUG] ffmpeg 실행 결과 - 반환 코드: {result.returncode}")
-                print(f"[DEBUG] ffmpeg stdout: {result.stdout}")
-                print(f"[DEBUG] ffmpeg stderr: {result.stderr}")
+                #print(f"[DEBUG] ffmpeg 실행 결과 - 반환 코드: {result.returncode}")
+                #print(f"[DEBUG] ffmpeg stdout: {result.stdout}")
+                #print(f"[DEBUG] ffmpeg stderr: {result.stderr}")
                 if result.returncode != 0:
                     error_msg = result.stderr
-                    print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
+                    #print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
                     raise RuntimeError(f"ffmpeg 변환 실패: {error_msg}")
             except FileNotFoundError as e:
-                print(f"[ERROR] ffmpeg 실행 파일을 찾을 수 없습니다: {e}")
-                print(f"[DEBUG] 현재 작업 디렉토리: {os.getcwd()}")
-                print(f"[DEBUG] ffmpeg 경로 존재 여부: {os.path.exists(ffmpeg_path)}")
+                #print(f"[ERROR] ffmpeg 실행 파일을 찾을 수 없습니다: {e}")
+                #print(f"[DEBUG] 현재 작업 디렉토리: {os.getcwd()}")
+                #print(f"[DEBUG] ffmpeg 경로 존재 여부: {os.path.exists(ffmpeg_path)}")
                 raise
-            print("[DEBUG] ffmpeg 변환 성공")
+            #print("[DEBUG] ffmpeg 변환 성공")
 
         # 변환된 파일이 존재하는지 확인
         if not os.path.exists(tmp_out_path):
@@ -507,7 +499,7 @@ async def upload_recording(file: UploadFile = File(...)):
 
         # 변환된 파일 크기 확인
         wav_size = os.path.getsize(tmp_out_path)
-        print(f"[DEBUG] WAV 파일 크기: {wav_size} bytes")
+        #print(f"[DEBUG] WAV 파일 크기: {wav_size} bytes")
         if wav_size == 0:
             raise RuntimeError("WAV 파일이 비어있습니다.")
 
@@ -515,30 +507,30 @@ async def upload_recording(file: UploadFile = File(...)):
         unique_filename = f"recordings/{uuid.uuid4()}.wav"
 
         # S3에 업로드
-        print(f"[DEBUG] S3 업로드 시작: {unique_filename}")
+        #print(f"[DEBUG] S3 업로드 시작: {unique_filename}")
         try:
             with open(tmp_out_path, "rb") as wav_file:
                 file_content = wav_file.read()
                 if not file_content:
                     raise ValueError("WAV 파일이 비어있습니다.")
-                print(f"[DEBUG] S3에 업로드할 파일 크기: {len(file_content)} bytes")
+                #print(f"[DEBUG] S3에 업로드할 파일 크기: {len(file_content)} bytes")
                 s3_client.upload_fileobj(
                     io.BytesIO(file_content),
                     S3_BUCKET_NAME,
                     unique_filename,
                     ExtraArgs={"ContentType": "audio/wav"}
                 )
-            print(f"[DEBUG] S3_BUCKET_NAME: {S3_BUCKET_NAME} (type: {type(S3_BUCKET_NAME)})")
-            print(f"[DEBUG] S3_REGION: {S3_REGION}")
-            print(f"[DEBUG] unique_filename: {unique_filename}")
-            print("[DEBUG] S3 업로드 완료")
+            #print(f"[DEBUG] S3_BUCKET_NAME: {S3_BUCKET_NAME} (type: {type(S3_BUCKET_NAME)})")
+            #print(f"[DEBUG] S3_REGION: {S3_REGION}")
+            #print(f"[DEBUG] unique_filename: {unique_filename}")
+            #print("[DEBUG] S3 업로드 완료")
         except Exception as e:
-            print(f"[ERROR] S3 업로드 실패: {str(e)}")
+            #print(f"[ERROR] S3 업로드 실패: {str(e)}")
             raise
 
         # S3 URL 생성
         s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{unique_filename}"
-        print(f"[DEBUG] S3 URL 생성됨: {s3_url}")
+        #print(f"[DEBUG] S3 URL 생성됨: {s3_url}")
 
         return {
             "success": True,
@@ -547,13 +539,13 @@ async def upload_recording(file: UploadFile = File(...)):
         }
 
     except ClientError as e:
-        print(f"[ERROR] AWS ClientError: {e}")
+        #print(f"[ERROR] AWS ClientError: {e}")
         return {"success": False, "error": f"AWS ClientError: {e}"}
     except NoCredentialsError:
-        print("[ERROR] AWS 인증 오류 발생")
+        #print("[ERROR] AWS 인증 오류 발생")
         return {"success": False, "error": "AWS 인증 오류"}
     except Exception as e:
-        print(f"[ERROR] 예외 발생: {str(e)}")
+        #print(f"[ERROR] 예외 발생: {str(e)}")
         return {"success": False, "error": str(e)}
     finally:
         # 임시 파일 정리
@@ -561,16 +553,16 @@ async def upload_recording(file: UploadFile = File(...)):
             if path and os.path.exists(path) and path != tmp_in_path:  # tmp_in_path와 tmp_out_path가 같은 경우 중복 삭제 방지
                 try:
                     os.unlink(path)
-                    print(f"[DEBUG] 임시 파일 삭제됨: {path}")
+                    print("")
                 except Exception as e:
-                    print(f"[ERROR] 임시 파일 삭제 실패: {path}, 에러: {e}")
+                    print("")
         # tmp_in_path가 tmp_out_path와 다른 경우에만 삭제
         if tmp_in_path and tmp_in_path != tmp_out_path and os.path.exists(tmp_in_path):
             try:
                 os.unlink(tmp_in_path)
-                print(f"[DEBUG] 임시 파일 삭제됨: {tmp_in_path}")
+                print("")
             except Exception as e:
-                print(f"[ERROR] 임시 파일 삭제 실패: {tmp_in_path}, 에러: {e}")
+                print("")
 
 
 @app.post("/upload_model")
@@ -578,16 +570,16 @@ async def upload_recording(file: UploadFile = File(...)):
     tmp_in_path = None
     tmp_out_path = None
     try:
-        print(f"[DEBUG] 파일 업로드 시작: {file.filename}, 타입: {file.content_type}")
+        #print(f"[DEBUG] 파일 업로드 시작: {file.filename}, 타입: {file.content_type}")
         
         # 파일 확장자 확인
         file_extension = os.path.splitext(file.filename)[1].lower() if file.filename else ""
         is_wav_file = file_extension == ".wav"
         is_webm_file = file_extension == ".webm"
         
-        print(f"[DEBUG] 파일 확장자: {file_extension}")
-        print(f"[DEBUG] WAV 파일 여부: {is_wav_file}")
-        print(f"[DEBUG] WebM 파일 여부: {is_webm_file}")
+        #print(f"[DEBUG] 파일 확장자: {file_extension}")
+        #print(f"[DEBUG] WAV 파일 여부: {is_wav_file}")
+        #print(f"[DEBUG] WebM 파일 여부: {is_webm_file}")
         
         if not is_wav_file and not is_webm_file:
             raise ValueError("지원하지 않는 파일 형식입니다. WAV 또는 WebM 파일만 업로드 가능합니다.")
@@ -599,25 +591,25 @@ async def upload_recording(file: UploadFile = File(...)):
                 content = await file.read()
                 if not content:
                     raise ValueError("업로드된 파일이 비어있습니다.")
-                print(f"[DEBUG] 파일 크기: {len(content)} bytes")
+                #print(f"[DEBUG] 파일 크기: {len(content)} bytes")
                 tmp_in.write(content)
                 tmp_in_path = tmp_in.name
                 tmp_out_path = tmp_in_path  # WAV 파일은 변환하지 않으므로 같은 경로 사용
-                print(f"[DEBUG] 임시 WAV 파일 저장됨: {tmp_in_path}")
+                #print(f"[DEBUG] 임시 WAV 파일 저장됨: {tmp_in_path}")
         else:
             # WebM 파일인 경우 기존 로직 사용
             with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp_in:
                 content = await file.read()
                 if not content:
                     raise ValueError("업로드된 파일이 비어있습니다.")
-                print(f"[DEBUG] 파일 크기: {len(content)} bytes")
+                #print(f"[DEBUG] 파일 크기: {len(content)} bytes")
                 tmp_in.write(content)
                 tmp_in_path = tmp_in.name
-                print(f"[DEBUG] 임시 WebM 파일 저장됨: {tmp_in_path}")
+                #print(f"[DEBUG] 임시 WebM 파일 저장됨: {tmp_in_path}")
 
             # WebM 파일을 WAV로 변환할 경로 생성
             tmp_out_path = tmp_in_path.replace(".webm", ".wav")
-            print(f"[DEBUG] 변환될 WAV 파일 경로: {tmp_out_path}")
+            #print(f"[DEBUG] 변환될 WAV 파일 경로: {tmp_out_path}")
 
             # ffmpeg를 이용한 변환 수행
             ffmpeg_path = "C:\\ffmpeg\\bin\\ffmpeg.exe"  # ffmpeg 전체 경로
@@ -629,22 +621,22 @@ async def upload_recording(file: UploadFile = File(...)):
                 "-y",            # 기존 파일 덮어쓰기
                 tmp_out_path
             ]
-            print(f"[DEBUG] ffmpeg 명령어: {' '.join(cmd)}")
+            #print(f"[DEBUG] ffmpeg 명령어: {' '.join(cmd)}")
             try:
                 result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                print(f"[DEBUG] ffmpeg 실행 결과 - 반환 코드: {result.returncode}")
-                print(f"[DEBUG] ffmpeg stdout: {result.stdout}")
-                print(f"[DEBUG] ffmpeg stderr: {result.stderr}")
+                #print(f"[DEBUG] ffmpeg 실행 결과 - 반환 코드: {result.returncode}")
+                #print(f"[DEBUG] ffmpeg stdout: {result.stdout}")
+                #print(f"[DEBUG] ffmpeg stderr: {result.stderr}")
                 if result.returncode != 0:
                     error_msg = result.stderr
-                    print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
+                    #print(f"[ERROR] ffmpeg 변환 실패. 에러: {error_msg}")
                     raise RuntimeError(f"ffmpeg 변환 실패: {error_msg}")
             except FileNotFoundError as e:
-                print(f"[ERROR] ffmpeg 실행 파일을 찾을 수 없습니다: {e}")
-                print(f"[DEBUG] 현재 작업 디렉토리: {os.getcwd()}")
-                print(f"[DEBUG] ffmpeg 경로 존재 여부: {os.path.exists(ffmpeg_path)}")
+                #print(f"[ERROR] ffmpeg 실행 파일을 찾을 수 없습니다: {e}")
+                #print(f"[DEBUG] 현재 작업 디렉토리: {os.getcwd()}")
+                #print(f"[DEBUG] ffmpeg 경로 존재 여부: {os.path.exists(ffmpeg_path)}")
                 raise
-            print("[DEBUG] ffmpeg 변환 성공")
+            #print("[DEBUG] ffmpeg 변환 성공")
 
         # 변환된 파일이 존재하는지 확인
         if not os.path.exists(tmp_out_path):
@@ -652,7 +644,7 @@ async def upload_recording(file: UploadFile = File(...)):
 
         # 변환된 파일 크기 확인
         wav_size = os.path.getsize(tmp_out_path)
-        print(f"[DEBUG] WAV 파일 크기: {wav_size} bytes")
+        #print(f"[DEBUG] WAV 파일 크기: {wav_size} bytes")
         if wav_size == 0:
             raise RuntimeError("WAV 파일이 비어있습니다.")
 
@@ -660,30 +652,30 @@ async def upload_recording(file: UploadFile = File(...)):
         unique_filename = f"model/{uuid.uuid4()}.wav"
 
         # S3에 업로드
-        print(f"[DEBUG] S3 업로드 시작: {unique_filename}")
+        #print(f"[DEBUG] S3 업로드 시작: {unique_filename}")
         try:
             with open(tmp_out_path, "rb") as wav_file:
                 file_content = wav_file.read()
                 if not file_content:
                     raise ValueError("WAV 파일이 비어있습니다.")
-                print(f"[DEBUG] S3에 업로드할 파일 크기: {len(file_content)} bytes")
+                #print(f"[DEBUG] S3에 업로드할 파일 크기: {len(file_content)} bytes")
                 s3_client.upload_fileobj(
                     io.BytesIO(file_content),
                     S3_BUCKET_NAME,
                     unique_filename,
                     ExtraArgs={"ContentType": "audio/wav"}
                 )
-            print(f"[DEBUG] S3_BUCKET_NAME: {S3_BUCKET_NAME} (type: {type(S3_BUCKET_NAME)})")
-            print(f"[DEBUG] S3_REGION: {S3_REGION}")
-            print(f"[DEBUG] unique_filename: {unique_filename}")
-            print("[DEBUG] S3 업로드 완료")
+            #print(f"[DEBUG] S3_BUCKET_NAME: {S3_BUCKET_NAME} (type: {type(S3_BUCKET_NAME)})")
+            #print(f"[DEBUG] S3_REGION: {S3_REGION}")
+            #print(f"[DEBUG] unique_filename: {unique_filename}")
+            #print("[DEBUG] S3 업로드 완료")
         except Exception as e:
-            print(f"[ERROR] S3 업로드 실패: {str(e)}")
+            #print(f"[ERROR] S3 업로드 실패: {str(e)}")
             raise
 
         # S3 URL 생성
         s3_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{unique_filename}"
-        print(f"[DEBUG] S3 URL 생성됨: {s3_url}")
+        #print(f"[DEBUG] S3 URL 생성됨: {s3_url}")
 
         # 작업 ID 생성
         task_id = str(uuid.uuid4())
@@ -708,13 +700,13 @@ async def upload_recording(file: UploadFile = File(...)):
         }
 
     except ClientError as e:
-        print(f"[ERROR] AWS ClientError: {e}")
+        #print(f"[ERROR] AWS ClientError: {e}")
         return {"success": False, "error": f"AWS ClientError: {e}"}
     except NoCredentialsError:
-        print("[ERROR] AWS 인증 오류 발생")
+        #print("[ERROR] AWS 인증 오류 발생")
         return {"success": False, "error": "AWS 인증 오류"}
     except Exception as e:
-        print(f"[ERROR] 예외 발생: {str(e)}")
+        #print(f"[ERROR] 예외 발생: {str(e)}")
         return {"success": False, "error": str(e)}
     finally:
         # 임시 파일 정리
@@ -722,16 +714,16 @@ async def upload_recording(file: UploadFile = File(...)):
             if path and os.path.exists(path) and path != tmp_in_path:  # tmp_in_path와 tmp_out_path가 같은 경우 중복 삭제 방지
                 try:
                     os.unlink(path)
-                    print(f"[DEBUG] 임시 파일 삭제됨: {path}")
+                    print("")
                 except Exception as e:
-                    print(f"[ERROR] 임시 파일 삭제 실패: {path}, 에러: {e}")
+                    print("")
         # tmp_in_path가 tmp_out_path와 다른 경우에만 삭제
         if tmp_in_path and tmp_in_path != tmp_out_path and os.path.exists(tmp_in_path):
             try:
                 os.unlink(tmp_in_path)
-                print(f"[DEBUG] 임시 파일 삭제됨: {tmp_in_path}")
+                print("")
             except Exception as e:
-                print(f"[ERROR] 임시 파일 삭제 실패: {tmp_in_path}, 에러: {e}")
+                print("")
 
 
 @app.get("/health")
@@ -991,17 +983,17 @@ async def process_voice(
         }
         
         # 콘솔에 출력
-        print("=" * 60)
-        print("VOICE CLONING API - 데이터 수신")
-        print("=" * 60)
-        print(f"작업 ID: {task_id}")
-        print(f"수신 시간: {received_data['timestamp']}")
-        print(f"텍스트 내용: {text}")
-        print(f"파일명: {audio.filename}")
-        print(f"파일 타입: {audio.content_type}")
-        print(f"파일 크기: {received_data['audio_info']['size_kb']} KB")
-        print(f"텍스트 길이: {len(text)} 글자")
-        print("=" * 60)
+        # print("=" * 60)
+        # print("VOICE CLONING API - 데이터 수신")
+        # print("=" * 60)
+        # print(f"작업 ID: {task_id}")
+        # print(f"수신 시간: {received_data['timestamp']}")
+        # print(f"텍스트 내용: {text}")
+        # print(f"파일명: {audio.filename}")
+        # print(f"파일 타입: {audio.content_type}")
+        # print(f"파일 크기: {received_data['audio_info']['size_kb']} KB")
+        # print(f"텍스트 길이: {len(text)} 글자")
+        # print("=" * 60)
         
         # 처리 결과 생성
         processing_result = {
@@ -1018,8 +1010,8 @@ async def process_voice(
             }
         }
         
-        print("처리 시작 - Next.js로 응답 전송")
-        print(f"응답 데이터: {json.dumps(processing_result, ensure_ascii=False, indent=2)}")
+        #print("처리 시작 - Next.js로 응답 전송")
+        #print(f"응답 데이터: {json.dumps(processing_result, ensure_ascii=False, indent=2)}")
         
         return processing_result
         
@@ -1031,7 +1023,7 @@ async def process_voice(
             "message": f"처리 중 오류 발생: {str(e)}",
             "timestamp": datetime.now().isoformat()
         }
-        print(f"오류 발생: {str(e)}")
+        #print(f"오류 발생: {str(e)}")
         return error_response
 
 @app.get("/process-voice-stream/{task_id}")
@@ -1044,7 +1036,7 @@ async def process_voice_stream(task_id: str):
     
     async def generate():
         try:
-            print(f"SSE 스트림 시작 - Task ID: {task_id}")
+            #print(f"SSE 스트림 시작 - Task ID: {task_id}")
             
             steps = [
                 (10, "음성 파일 업로드 완료"),
@@ -1065,7 +1057,7 @@ async def process_voice_stream(task_id: str):
                     "timestamp": datetime.now().isoformat()
                 }
                 
-                print(f"진행률 전송: {progress}% - {message}")
+                #print(f"진행률 전송: {progress}% - {message}")
                 
                 # SSE 형식으로 데이터 전송
                 yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
@@ -1089,10 +1081,10 @@ async def process_voice_stream(task_id: str):
             processing_tasks[task_id]["status"] = "completed"
             processing_tasks[task_id]["end_time"] = datetime.now()
             
-            print(f"SSE 스트림 완료 - Task ID: {task_id}")
+            #print(f"SSE 스트림 완료 - Task ID: {task_id}")
             
         except Exception as e:
-            print(f"SSE 스트림 오류: {str(e)}")
+            #print(f"SSE 스트림 오류: {str(e)}")
             error_data = {
                 "task_id": task_id,
                 "error": str(e),
