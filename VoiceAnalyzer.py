@@ -253,14 +253,14 @@ class Analyzer:
         self.res["total"] = sum(self.res[k] * WEIGHTS[k] for k in WEIGHTS)
 
         # 콘솔 출력
-        if verbose:
-            print("\n--- Analysis Result ---")
-            for k, label in [
-                ("mfcc", "MFCC"), ("pitch", "Pitch"), ("energy", "Energy"),
-                ("speed", "Speech-rate"), ("formant", "Formant"),
-                ("intonation", "Intonation"), ("rhythm", "Rhythm"),
-                ("pause", "Pause"), ("total", "Overall")
-            ]:
-                print(f"{label:12s}: {self.res.get(k, 0):6.2f}")
+        
+        print("\n--- Analysis Result ---")
+        for k, label in [
+            ("mfcc", "MFCC"), ("pitch", "Pitch"), ("energy", "Energy"),
+            ("speed", "Speech-rate"), ("formant", "Formant"),
+            ("intonation", "Intonation"), ("rhythm", "Rhythm"),
+            ("pause", "Pause"), ("total", "Overall")
+        ]:
+            print(f"{label:12s}: {self.res.get(k, 0):6.2f}")
 
         return self.res
