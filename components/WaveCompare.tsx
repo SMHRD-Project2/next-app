@@ -82,7 +82,7 @@ const WaveCompare: React.FC<WaveCompareProps> = ({
   audioFile2 = '/audio/male.wav',
   label1 = '참조 음성',
   label2 = '사용자 음성',
-  topDb = 18,
+  topDb = 15,
 }) => {
   const proxify = (u: string) =>
     u.startsWith('https://tennyvoice.s3.ap-northeast-2.amazonaws.com/')

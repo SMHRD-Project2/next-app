@@ -10,7 +10,7 @@ load_dotenv("C:/Users/smhrd/Desktop/ggg/next-app/.env.local")
 
 # 서버 설정
 BASE_URL = "http://bore.pub"
-PORT = os.getenv("TTS_PORT")
+PORT = "24661"
 SERVER_URL = f"{BASE_URL}:{PORT}"
 
 # TTS 설정
